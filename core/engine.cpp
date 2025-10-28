@@ -1,6 +1,7 @@
 #include "engine.h"
-#include "SDL3/SDL_init.h"
 #include "launch_settings.h"
+
+#include <SDL3/SDL_init.h>
 #include <chrono>
 
 namespace feather {
