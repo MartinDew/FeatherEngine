@@ -6,9 +6,6 @@ FetchContent_Declare(SDL3
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-list(APPEND THIRDPARTY_PACKAGES SDL3)
-list(APPEND THIRDPARTIES SDL3::SDL3)
-
 # if release build then use static linking
 IF (${STATIC_CPP})
     set(SDL_SHARED OFF CACHE BOOL "Use shared SDL library" FORCE)
@@ -30,3 +27,6 @@ set (SDL_HIDAPI   OFF)
 set (SDL_POWER    OFF)
 set (SDL_SENSOR   OFF)
 set (SDL_DIALOG   OFF)
+
+FetchContent_MakeAvailable(SDL3)
+RegisterThirdparty(SDL3::SDL3)

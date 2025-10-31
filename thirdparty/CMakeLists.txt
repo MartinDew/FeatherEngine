@@ -1,14 +1,17 @@
 include(FetchContent)
 
-set(THIRDPARTY_PACKAGES "")
 set(THIRDPARTIES "")
 
-# include all subfolders configure.cmake files
-file(GLOB_RECURSE CONFIG_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*configure.cmake")
-foreach(CONFIG_FILE ${CONFIG_FILES})
-    include(${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_FILE})
-endforeach()
+macro(RegisterThirdparty)
+    list(APPEND THIRDPARTIES ${ARGV})
+    set(THIRDPARTIES ${THIRDPARTIES} PARENT_SCOPE)
+endmacro()
 
-FetchContent_MakeAvailable(${THIRDPARTY_PACKAGES})
+# also add subdirectories for the libraries that are directly built 
+file(GLOB SUBDIR_CMAKELISTS "*/CMakeLists.txt")
+foreach(CM_FILE ${SUBDIR_CMAKELISTS})
+    get_filename_component(SUBDIR_NAME ${CM_FILE} DIRECTORY)
+    add_subdirectory(${SUBDIR_NAME})
+endforeach()
 
 set(THIRDPARTIES ${THIRDPARTIES} PARENT_SCOPE)

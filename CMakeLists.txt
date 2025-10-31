@@ -30,6 +30,8 @@ set(PROJECT_HEADERS
     core/launch_settings.h
     core/window.h
     core/engine.h
+    # core/transform.h
+    core/math.h
 )
 
 # Source files (shared between both targets)
@@ -38,12 +40,13 @@ set(PROJECT_SOURCES
     core/launch_settings.cpp
     core/window.cpp
     core/engine.cpp
+    # core/transform.cpp
+    core/math.cpp
  )
 
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
-target_include_directories(Editor PRIVATE core)
 target_compile_definitions(Editor PRIVATE EDITOR_MODE)
 target_link_libraries(Editor PUBLIC ${THIRDPARTIES})
 
@@ -56,7 +59,6 @@ target_compile_options(Editor PRIVATE
 
 # Standalone target
 add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
-target_include_directories(Standalone PRIVATE core)
 target_compile_definitions(Standalone PRIVATE STANDALONE_MODE)
 target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
 
