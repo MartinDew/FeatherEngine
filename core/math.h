@@ -1,5 +1,5 @@
 #pragma once
-#include <vectormath.hpp>
+#include <DirectXMath.h>
 
 // include<format>;
 
@@ -23,11 +23,11 @@ namespace feather {
 // using IntVector2 = DirectX::XMINT2;
 
 // // Helper Functions
-float DegToRad(float degrees);
-float RadToDeg(float radians);
-
-Vector3 DegToRad(const Vector3& degrees);
-Vector3 RadToDeg(const Vector3& radians);
+// float DegToRad(float degrees);
+// float RadToDeg(float radians);
+//
+// Vector3 DegToRad(const Vector3& degrees);
+// Vector3 RadToDeg(const Vector3& radians);
 
 // uint32_t RoundUpToNextPow2(uint32_t x);
 

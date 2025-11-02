@@ -1,33 +1,32 @@
 #include "math.h"
-#include <vectormath.hpp>
 
 #include <numbers>
 
 namespace feather {
 
-float DegToRad(float degrees) {
-	return degrees / 180.0f * std::numbers::pi;
-}
-
-float RadToDeg(float radians) {
-	return radians / std::numbers::pi * 180.0f;
-}
-
-Vector3 DegToRad(const Vector3& degrees) {
-	Vector3 result;
-	result.x = DegToRad(degrees.x);
-	result.y = DegToRad(degrees.y);
-	result.z = DegToRad(degrees.z);
-	return result;
-}
-
-Vector3 RadToDeg(const Vector3& degrees) {
-	Vector3 result;
-	result.x = RadToDeg(degrees.x);
-	result.y = RadToDeg(degrees.y);
-	result.z = RadToDeg(degrees.z);
-	return result;
-}
+// float DegToRad(float degrees) {
+// 	return degrees / 180.0f * std::numbers::pi;
+// }
+//
+// float RadToDeg(float radians) {
+// 	return radians / std::numbers::pi * 180.0f;
+// }
+//
+// Vector3 DegToRad(const Vector3& degrees) {
+// 	Vector3 result;
+// 	result.x = DegToRad(degrees.x);
+// 	result.y = DegToRad(degrees.y);
+// 	result.z = DegToRad(degrees.z);
+// 	return result;
+// }
+//
+// Vector3 RadToDeg(const Vector3& degrees) {
+// 	Vector3 result;
+// 	result.x = RadToDeg(degrees.x);
+// 	result.y = RadToDeg(degrees.y);
+// 	result.z = RadToDeg(degrees.z);
+// 	return result;
+// }
 
 // uint32_t RoundUpToNextPow2(uint32_t x) {
 // 	x |= x >> 1;
