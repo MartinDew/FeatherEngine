@@ -18,38 +18,38 @@
 
 namespace DirectX {
 namespace SimpleMath {
-const Vector2 Vector2::Zero = { 0.f, 0.f };
-const Vector2 Vector2::One = { 1.f, 1.f };
-const Vector2 Vector2::UnitX = { 1.f, 0.f };
-const Vector2 Vector2::UnitY = { 0.f, 1.f };
+const Vector2 Vector2::ZERO = { 0.f, 0.f };
+const Vector2 Vector2::ONE = { 1.f, 1.f };
+const Vector2 Vector2::UNIT_X = { 1.f, 0.f };
+const Vector2 Vector2::UNIT_Y = { 0.f, 1.f };
 
-const Vector3 Vector3::Zero = { 0.f, 0.f, 0.f };
-const Vector3 Vector3::One = { 1.f, 1.f, 1.f };
-const Vector3 Vector3::UnitX = { 1.f, 0.f, 0.f };
-const Vector3 Vector3::UnitY = { 0.f, 1.f, 0.f };
-const Vector3 Vector3::UnitZ = { 0.f, 0.f, 1.f };
-const Vector3 Vector3::Up = { 0.f, 1.f, 0.f };
-const Vector3 Vector3::Down = { 0.f, -1.f, 0.f };
-const Vector3 Vector3::Right = { 1.f, 0.f, 0.f };
-const Vector3 Vector3::Left = { -1.f, 0.f, 0.f };
-const Vector3 Vector3::Forward = { 0.f, 0.f, -1.f };
-const Vector3 Vector3::Backward = { 0.f, 0.f, 1.f };
+const Vector3 Vector3::ZERO = { 0.f, 0.f, 0.f };
+const Vector3 Vector3::ONE = { 1.f, 1.f, 1.f };
+const Vector3 Vector3::UNIT_X = { 1.f, 0.f, 0.f };
+const Vector3 Vector3::UNIT_Y = { 0.f, 1.f, 0.f };
+const Vector3 Vector3::UNIT_Z = { 0.f, 0.f, 1.f };
+const Vector3 Vector3::UP = { 0.f, 1.f, 0.f };
+const Vector3 Vector3::DOWN = { 0.f, -1.f, 0.f };
+const Vector3 Vector3::RIGHT = { 1.f, 0.f, 0.f };
+const Vector3 Vector3::LEFT = { -1.f, 0.f, 0.f };
+const Vector3 Vector3::FORWARD = { 0.f, 0.f, -1.f };
+const Vector3 Vector3::BACKWARD = { 0.f, 0.f, 1.f };
 
-const Vector4 Vector4::Zero = { 0.f, 0.f, 0.f, 0.f };
-const Vector4 Vector4::One = { 1.f, 1.f, 1.f, 1.f };
-const Vector4 Vector4::UnitX = { 1.f, 0.f, 0.f, 0.f };
-const Vector4 Vector4::UnitY = { 0.f, 1.f, 0.f, 0.f };
-const Vector4 Vector4::UnitZ = { 0.f, 0.f, 1.f, 0.f };
-const Vector4 Vector4::UnitW = { 0.f, 0.f, 0.f, 1.f };
+const Vector4 Vector4::ZERO = { 0.f, 0.f, 0.f, 0.f };
+const Vector4 Vector4::ONE = { 1.f, 1.f, 1.f, 1.f };
+const Vector4 Vector4::UNIT_X = { 1.f, 0.f, 0.f, 0.f };
+const Vector4 Vector4::UNIT_Y = { 0.f, 1.f, 0.f, 0.f };
+const Vector4 Vector4::UNIT_Z = { 0.f, 0.f, 1.f, 0.f };
+const Vector4 Vector4::UNIT_W = { 0.f, 0.f, 0.f, 1.f };
 
-const Matrix Matrix::Identity = {
+const Matrix Matrix::IDENTITY = {
 	1.f, 0.f, 0.f, 0.f,
 	0.f, 1.f, 0.f, 0.f,
 	0.f, 0.f, 1.f, 0.f,
 	0.f, 0.f, 0.f, 1.f
 };
 
-const Quaternion Quaternion::Identity = { 0.f, 0.f, 0.f, 1.f };
+const Quaternion Quaternion::IDENTITY = { 0.f, 0.f, 0.f, 1.f };
 } //namespace SimpleMath
 } //namespace DirectX
 
@@ -62,7 +62,7 @@ using namespace DirectX::SimpleMath;
  *
  ****************************************************************************/
 
-void Quaternion::RotateTowards(const Quaternion& target, float maxAngle, Quaternion& result) const noexcept {
+void Quaternion::rotate_towards(const Quaternion& target, float maxAngle, Quaternion& result) const noexcept {
 	const XMVECTOR T = XMLoadFloat4(this);
 
 	// We can use the conjugate here instead of inverse assuming q1 & q2 are normalized.
@@ -82,7 +82,7 @@ void Quaternion::RotateTowards(const Quaternion& target, float maxAngle, Quatern
 	}
 }
 
-void Quaternion::FromToRotation(const Vector3& fromDir, const Vector3& toDir, Quaternion& result) noexcept {
+void Quaternion::from_to_rotation(const Vector3& fromDir, const Vector3& toDir, Quaternion& result) noexcept {
 	// Melax, "The Shortest Arc Quaternion", Game Programming Gems, Charles River Media (2000).
 
 	const XMVECTOR F = XMVector3Normalize(fromDir);
@@ -90,12 +90,12 @@ void Quaternion::FromToRotation(const Vector3& fromDir, const Vector3& toDir, Qu
 
 	const float dot = XMVectorGetX(XMVector3Dot(F, T));
 	if (dot >= 1.f) {
-		result = Identity;
+		result = IDENTITY;
 	}
 	else if (dot <= -1.f) {
-		XMVECTOR axis = XMVector3Cross(F, Vector3::Right);
+		XMVECTOR axis = XMVector3Cross(F, Vector3::RIGHT);
 		if (XMVector3NearEqual(XMVector3LengthSq(axis), g_XMZero, g_XMEpsilon)) {
-			axis = XMVector3Cross(F, Vector3::Up);
+			axis = XMVector3Cross(F, Vector3::UP);
 		}
 
 		const XMVECTOR Q = XMQuaternionRotationAxis(axis, XM_PI);
@@ -113,9 +113,9 @@ void Quaternion::FromToRotation(const Vector3& fromDir, const Vector3& toDir, Qu
 	}
 }
 
-void Quaternion::LookRotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept {
+void Quaternion::look_rotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept {
 	Quaternion q1;
-	FromToRotation(Vector3::Forward, forward, q1);
+	from_to_rotation(Vector3::FORWARD, forward, q1);
 
 	const XMVECTOR C = XMVector3Cross(forward, up);
 	if (XMVector3NearEqual(XMVector3LengthSq(C), g_XMZero, g_XMEpsilon)) {
@@ -124,10 +124,10 @@ void Quaternion::LookRotation(const Vector3& forward, const Vector3& up, Quatern
 		return;
 	}
 
-	const XMVECTOR U = XMQuaternionMultiply(q1, Vector3::Up);
+	const XMVECTOR U = XMQuaternionMultiply(q1, Vector3::UP);
 
 	Quaternion q2;
-	FromToRotation(U, up, q2);
+	from_to_rotation(U, up, q2);
 
 	XMStoreFloat4(&result, XMQuaternionMultiply(q2, q1));
 }
@@ -217,15 +217,15 @@ RECT Viewport::ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UI
 }
 #endif
 
-RECT Viewport::ComputeTitleSafeArea(UINT backBufferWidth, UINT backBufferHeight) noexcept {
-	const float safew = (float(backBufferWidth) + 19.f) / 20.f;
-	const float safeh = (float(backBufferHeight) + 19.f) / 20.f;
+RECT Viewport::compute_title_safe_area(UINT back_buffer_width, UINT back_buffer_height) noexcept {
+	const float safew = (float(back_buffer_width) + 19.f) / 20.f;
+	const float safeh = (float(back_buffer_height) + 19.f) / 20.f;
 
 	RECT rct;
 	rct.left = static_cast<LONG>(safew);
 	rct.top = static_cast<LONG>(safeh);
-	rct.right = static_cast<LONG>(float(backBufferWidth) - safew + 0.5f);
-	rct.bottom = static_cast<LONG>(float(backBufferHeight) - safeh + 0.5f);
+	rct.right = static_cast<LONG>(float(back_buffer_width) - safew + 0.5f);
+	rct.bottom = static_cast<LONG>(float(back_buffer_height) - safeh + 0.5f);
 
 	return rct;
 }

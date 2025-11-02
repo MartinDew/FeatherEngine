@@ -137,29 +137,29 @@ struct DIRECTX_TOOLKIT_API Rectangle {
 	}
 
 	// Rectangle operations
-	Vector2 Location() const noexcept;
-	Vector2 Center() const noexcept;
+	Vector2 location() const noexcept;
+	Vector2 center() const noexcept;
 
-	bool IsEmpty() const noexcept { return (width == 0 && height == 0 && x == 0 && y == 0); }
+	bool is_empty() const noexcept { return (width == 0 && height == 0 && x == 0 && y == 0); }
 
-	bool Contains(long ix, long iy) const noexcept { return (x <= ix) && (ix < (x + width)) && (y <= iy) && (iy < (y + height)); }
-	bool Contains(const Vector2& point) const noexcept;
-	bool Contains(const Rectangle& r) const noexcept { return (x <= r.x) && ((r.x + r.width) <= (x + width)) && (y <= r.y) && ((r.y + r.height) <= (y + height)); }
-	bool Contains(const RECT& rct) const noexcept { return (x <= rct.left) && (rct.right <= (x + width)) && (y <= rct.top) && (rct.bottom <= (y + height)); }
+	bool contains(long ix, long iy) const noexcept { return (x <= ix) && (ix < (x + width)) && (y <= iy) && (iy < (y + height)); }
+	bool contains(const Vector2& point) const noexcept;
+	bool contains(const Rectangle& r) const noexcept { return (x <= r.x) && ((r.x + r.width) <= (x + width)) && (y <= r.y) && ((r.y + r.height) <= (y + height)); }
+	bool contains(const RECT& rct) const noexcept { return (x <= rct.left) && (rct.right <= (x + width)) && (y <= rct.top) && (rct.bottom <= (y + height)); }
 
-	void Inflate(long horizAmount, long vertAmount) noexcept;
+	void inflate(long horiz_amount, long vert_amount) noexcept;
 
-	bool Intersects(const Rectangle& r) const noexcept { return (r.x < (x + width)) && (x < (r.x + r.width)) && (r.y < (y + height)) && (y < (r.y + r.height)); }
-	bool Intersects(const RECT& rct) const noexcept { return (rct.left < (x + width)) && (x < rct.right) && (rct.top < (y + height)) && (y < rct.bottom); }
+	bool intersects(const Rectangle& r) const noexcept { return (r.x < (x + width)) && (x < (r.x + r.width)) && (r.y < (y + height)) && (y < (r.y + r.height)); }
+	bool intersects(const RECT& rct) const noexcept { return (rct.left < (x + width)) && (x < rct.right) && (rct.top < (y + height)) && (y < rct.bottom); }
 
-	void Offset(long ox, long oy) noexcept {
+	void offset(long ox, long oy) noexcept {
 		x += ox;
 		y += oy;
 	}
 
 	// Static functions
-	static Rectangle Intersect(const Rectangle& ra, const Rectangle& rb) noexcept;
-	static RECT Intersect(const RECT& rcta, const RECT& rctb) noexcept;
+	static Rectangle intersect(const Rectangle& ra, const Rectangle& rb) noexcept;
+	static RECT intersect(const RECT& rcta, const RECT& rctb) noexcept;
 
 	static Rectangle Union(const Rectangle& ra, const Rectangle& rb) noexcept;
 	static RECT Union(const RECT& rcta, const RECT& rctb) noexcept;
@@ -174,16 +174,16 @@ struct DIRECTX_TOOLKIT_API Vector2 : public XMFLOAT2 {
 			XMFLOAT2(ix, ix) {}
 	constexpr Vector2(float ix, float iy) noexcept :
 			XMFLOAT2(ix, iy) {}
-	explicit Vector2(_In_reads_(2) const float* pArray) noexcept :
-			XMFLOAT2(pArray) {}
-	Vector2(FXMVECTOR V) noexcept { XMStoreFloat2(this, V); }
-	Vector2(const XMFLOAT2& V) noexcept {
-		this->x = V.x;
-		this->y = V.y;
+	explicit Vector2(_In_reads_(2) const float* p_array) noexcept :
+			XMFLOAT2(p_array) {}
+	Vector2(FXMVECTOR v) noexcept { XMStoreFloat2(this, v); }
+	Vector2(const XMFLOAT2& v) noexcept {
+		this->x = v.x;
+		this->y = v.y;
 	}
-	explicit Vector2(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
+	explicit Vector2(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
 	}
 
 	Vector2(const Vector2&) = default;
@@ -195,38 +195,38 @@ struct DIRECTX_TOOLKIT_API Vector2 : public XMFLOAT2 {
 	operator XMVECTOR() const noexcept { return XMLoadFloat2(this); }
 
 	// Comparison operators
-	bool operator==(const Vector2& V) const noexcept { return ((x == V.x) && (y == V.y)); }
-	bool operator!=(const Vector2& V) const noexcept { return ((x != V.x) || (y != V.y)); }
+	bool operator==(const Vector2& v) const noexcept { return ((x == v.x) && (y == v.y)); }
+	bool operator!=(const Vector2& v) const noexcept { return ((x != v.x) || (y != v.y)); }
 
 	// Assignment operators
-	Vector2& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
+	Vector2& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
 		return *this;
 	}
-	Vector2& operator+=(const Vector2& V) noexcept {
-		x += V.x;
-		y += V.y;
+	Vector2& operator+=(const Vector2& v) noexcept {
+		x += v.x;
+		y += v.y;
 		return *this;
 	}
-	Vector2& operator-=(const Vector2& V) noexcept {
-		x -= V.x;
-		y -= V.y;
+	Vector2& operator-=(const Vector2& v) noexcept {
+		x -= v.x;
+		y -= v.y;
 		return *this;
 	}
-	Vector2& operator*=(const Vector2& V) noexcept {
-		x *= V.x;
-		y *= V.y;
+	Vector2& operator*=(const Vector2& v) noexcept {
+		x *= v.x;
+		y *= v.y;
 		return *this;
 	}
-	Vector2& operator*=(float S) noexcept {
-		x *= S;
-		y *= S;
+	Vector2& operator*=(float s) noexcept {
+		x *= s;
+		y *= s;
 		return *this;
 	}
-	Vector2& operator/=(float S) noexcept {
-		x /= S;
-		y /= S;
+	Vector2& operator/=(float s) noexcept {
+		x /= s;
+		y /= s;
 		return *this;
 	}
 
@@ -235,85 +235,85 @@ struct DIRECTX_TOOLKIT_API Vector2 : public XMFLOAT2 {
 	Vector2 operator-() const noexcept { return Vector2(-x, -y); }
 
 	// Vector operations
-	bool InBounds(const Vector2& Bounds) const noexcept;
+	[[nodiscard]] bool in_bounds(const Vector2& bounds) const noexcept;
 
-	float Length() const noexcept { return std::sqrt((x * x) + (y * y)); }
-	float LengthSquared() const noexcept { return (x * x) + (y * y); }
+	[[nodiscard]] float length() const noexcept { return std::sqrt((x * x) + (y * y)); }
+	float length_squared() const noexcept { return (x * x) + (y * y); }
 
-	float Dot(const Vector2& V) const noexcept { return (x * V.x) + (y * V.y); }
-	void Cross(const Vector2& V, Vector2& result) const noexcept { result.x = result.y = (x * V.y) - (y * V.x); }
-	Vector2 Cross(const Vector2& V) const noexcept {
-		float c = (x * V.y) - (y * V.x);
+	float dot(const Vector2& v) const noexcept { return (x * v.x) + (y * v.y); }
+	void cross(const Vector2& v, Vector2& result) const noexcept { result.x = result.y = (x * v.y) - (y * v.x); }
+	Vector2 cross(const Vector2& v) const noexcept {
+		float c = (x * v.y) - (y * v.x);
 		return Vector2(c, c);
 	}
 
-	void Normalize() noexcept;
-	void Normalize(Vector2& result) const noexcept;
+	void normalize() noexcept;
+	void normalize(Vector2& result) const noexcept;
 
-	void Clamp(const Vector2& vmin, const Vector2& vmax) noexcept;
-	void Clamp(const Vector2& vmin, const Vector2& vmax, Vector2& result) const noexcept;
+	void clamp(const Vector2& vmin, const Vector2& vmax) noexcept;
+	void clamp(const Vector2& vmin, const Vector2& vmax, Vector2& result) const noexcept;
 
 	// Static functions
-	static float Distance(const Vector2& v1, const Vector2& v2) noexcept;
-	static float DistanceSquared(const Vector2& v1, const Vector2& v2) noexcept;
+	static float distance(const Vector2& v1, const Vector2& v2) noexcept;
+	static float distance_squared(const Vector2& v1, const Vector2& v2) noexcept;
 
-	static void Min(const Vector2& v1, const Vector2& v2, Vector2& result) noexcept;
-	static Vector2 Min(const Vector2& v1, const Vector2& v2) noexcept;
+	static void min(const Vector2& v1, const Vector2& v2, Vector2& result) noexcept;
+	static Vector2 min(const Vector2& v1, const Vector2& v2) noexcept;
 
-	static void Max(const Vector2& v1, const Vector2& v2, Vector2& result) noexcept;
-	static Vector2 Max(const Vector2& v1, const Vector2& v2) noexcept;
+	static void max(const Vector2& v1, const Vector2& v2, Vector2& result) noexcept;
+	static Vector2 max(const Vector2& v1, const Vector2& v2) noexcept;
 
-	static void Lerp(const Vector2& v1, const Vector2& v2, float t, Vector2& result) noexcept;
-	static Vector2 Lerp(const Vector2& v1, const Vector2& v2, float t) noexcept;
+	static void lerp(const Vector2& v1, const Vector2& v2, float t, Vector2& result) noexcept;
+	static Vector2 lerp(const Vector2& v1, const Vector2& v2, float t) noexcept;
 
-	static void SmoothStep(const Vector2& v1, const Vector2& v2, float t, Vector2& result) noexcept;
-	static Vector2 SmoothStep(const Vector2& v1, const Vector2& v2, float t) noexcept;
+	static void smooth_step(const Vector2& v1, const Vector2& v2, float t, Vector2& result) noexcept;
+	static Vector2 smooth_step(const Vector2& v1, const Vector2& v2, float t) noexcept;
 
-	static void Barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g, Vector2& result) noexcept;
-	static Vector2 Barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g) noexcept;
+	static void barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g, Vector2& result) noexcept;
+	static Vector2 barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g) noexcept;
 
-	static void CatmullRom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t, Vector2& result) noexcept;
-	static Vector2 CatmullRom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t) noexcept;
+	static void catmull_rom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t, Vector2& result) noexcept;
+	static Vector2 catmull_rom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t) noexcept;
 
-	static void Hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t, Vector2& result) noexcept;
-	static Vector2 Hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t) noexcept;
+	static void hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t, Vector2& result) noexcept;
+	static Vector2 hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t) noexcept;
 
-	static void Reflect(const Vector2& ivec, const Vector2& nvec, Vector2& result) noexcept;
-	static Vector2 Reflect(const Vector2& ivec, const Vector2& nvec) noexcept;
+	static void reflect(const Vector2& ivec, const Vector2& nvec, Vector2& result) noexcept;
+	static Vector2 reflect(const Vector2& ivec, const Vector2& nvec) noexcept;
 
-	static void Refract(const Vector2& ivec, const Vector2& nvec, float refractionIndex, Vector2& result) noexcept;
-	static Vector2 Refract(const Vector2& ivec, const Vector2& nvec, float refractionIndex) noexcept;
+	static void refract(const Vector2& ivec, const Vector2& nvec, float refraction_index, Vector2& result) noexcept;
+	static Vector2 refract(const Vector2& ivec, const Vector2& nvec, float refraction_index) noexcept;
 
-	static void Transform(const Vector2& v, const Quaternion& quat, Vector2& result) noexcept;
-	static Vector2 Transform(const Vector2& v, const Quaternion& quat) noexcept;
+	static void transform(const Vector2& v, const Quaternion& quat, Vector2& result) noexcept;
+	static Vector2 transform(const Vector2& v, const Quaternion& quat) noexcept;
 
-	static void Transform(const Vector2& v, const Matrix& m, Vector2& result) noexcept;
-	static Vector2 Transform(const Vector2& v, const Matrix& m) noexcept;
-	static void Transform(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector2* resultArray) noexcept;
+	static void transform(const Vector2& v, const Matrix& m, Vector2& result) noexcept;
+	static Vector2 transform(const Vector2& v, const Matrix& m) noexcept;
+	static void transform(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector2* result_array) noexcept;
 
-	static void Transform(const Vector2& v, const Matrix& m, Vector4& result) noexcept;
-	static void Transform(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* resultArray) noexcept;
+	static void transform(const Vector2& v, const Matrix& m, Vector4& result) noexcept;
+	static void transform(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* result_array) noexcept;
 
-	static void TransformNormal(const Vector2& v, const Matrix& m, Vector2& result) noexcept;
-	static Vector2 TransformNormal(const Vector2& v, const Matrix& m) noexcept;
-	static void TransformNormal(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector2* resultArray) noexcept;
+	static void transform_normal(const Vector2& v, const Matrix& m, Vector2& result) noexcept;
+	static Vector2 transform_normal(const Vector2& v, const Matrix& m) noexcept;
+	static void transform_normal(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector2* result_array) noexcept;
 
 	// Constants
-	static const Vector2 Zero;
-	static const Vector2 One;
-	static const Vector2 UnitX;
-	static const Vector2 UnitY;
+	static const Vector2 ZERO;
+	static const Vector2 ONE;
+	static const Vector2 UNIT_X;
+	static const Vector2 UNIT_Y;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API inline Vector2 operator+(const Vector2& V1, const Vector2& V2) noexcept { return Vector2(V1.x + V2.x, V1.y + V2.y); }
-DIRECTX_TOOLKIT_API inline Vector2 operator-(const Vector2& V1, const Vector2& V2) noexcept { return Vector2(V1.x - V2.x, V1.y - V2.y); }
-DIRECTX_TOOLKIT_API inline Vector2 operator*(const Vector2& V1, const Vector2& V2) noexcept { return Vector2(V1.x * V2.x, V1.y * V2.y); }
-DIRECTX_TOOLKIT_API inline Vector2 operator*(const Vector2& V, float S) noexcept { return Vector2(V.x * S, V.y * S); }
-DIRECTX_TOOLKIT_API inline Vector2 operator*(float S, const Vector2& V) noexcept { return Vector2(S * V.x, S * V.y); }
-DIRECTX_TOOLKIT_API inline Vector2 operator/(const Vector2& V1, const Vector2& V2) noexcept { return Vector2(V1.x / V2.x, V1.y / V2.y); }
-DIRECTX_TOOLKIT_API inline Vector2 operator/(const Vector2& V, float S) noexcept { return Vector2(V.x / S, V.y / S); }
-DIRECTX_TOOLKIT_API inline Vector2 operator/(float S, const Vector2& V) noexcept { return Vector2(S / V.x, S / V.y); };
+DIRECTX_TOOLKIT_API inline Vector2 operator+(const Vector2& v1, const Vector2& v2) noexcept { return Vector2(v1.x + v2.x, v1.y + v2.y); }
+DIRECTX_TOOLKIT_API inline Vector2 operator-(const Vector2& v1, const Vector2& v2) noexcept { return Vector2(v1.x - v2.x, v1.y - v2.y); }
+DIRECTX_TOOLKIT_API inline Vector2 operator*(const Vector2& v1, const Vector2& v2) noexcept { return Vector2(v1.x * v2.x, v1.y * v2.y); }
+DIRECTX_TOOLKIT_API inline Vector2 operator*(const Vector2& v, float s) noexcept { return Vector2(v.x * s, v.y * s); }
+DIRECTX_TOOLKIT_API inline Vector2 operator*(float s, const Vector2& v) noexcept { return Vector2(s * v.x, s * v.y); }
+DIRECTX_TOOLKIT_API inline Vector2 operator/(const Vector2& v1, const Vector2& v2) noexcept { return Vector2(v1.x / v2.x, v1.y / v2.y); }
+DIRECTX_TOOLKIT_API inline Vector2 operator/(const Vector2& v, float s) noexcept { return Vector2(v.x / s, v.y / s); }
+DIRECTX_TOOLKIT_API inline Vector2 operator/(float s, const Vector2& v) noexcept { return Vector2(s / v.x, s / v.y); };
 
 //------------------------------------------------------------------------------
 // 3D vector
@@ -324,18 +324,18 @@ struct DIRECTX_TOOLKIT_API Vector3 : public XMFLOAT3 {
 			XMFLOAT3(ix, ix, ix) {}
 	constexpr Vector3(float ix, float iy, float iz) noexcept :
 			XMFLOAT3(ix, iy, iz) {}
-	explicit Vector3(_In_reads_(3) const float* pArray) noexcept :
-			XMFLOAT3(pArray) {}
-	Vector3(FXMVECTOR V) noexcept { XMStoreFloat3(this, V); }
-	Vector3(const XMFLOAT3& V) noexcept {
-		this->x = V.x;
-		this->y = V.y;
-		this->z = V.z;
+	explicit Vector3(_In_reads_(3) const float* p_array) noexcept :
+			XMFLOAT3(p_array) {}
+	Vector3(FXMVECTOR v) noexcept { XMStoreFloat3(this, v); }
+	Vector3(const XMFLOAT3& v) noexcept {
+		this->x = v.x;
+		this->y = v.y;
+		this->z = v.z;
 	}
-	explicit Vector3(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
-		this->z = F.f[2];
+	explicit Vector3(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
+		this->z = f.f[2];
 	}
 
 	Vector3(const Vector3&) = default;
@@ -347,44 +347,44 @@ struct DIRECTX_TOOLKIT_API Vector3 : public XMFLOAT3 {
 	operator XMVECTOR() const noexcept { return XMLoadFloat3(this); }
 
 	// Comparison operators
-	bool operator==(const Vector3& V) const noexcept { return ((x == V.x) && (y == V.y) && (z == V.z)); }
-	bool operator!=(const Vector3& V) const noexcept { return ((x != V.x) || (y != V.y) || (z != V.z)); }
+	bool operator==(const Vector3& v) const noexcept { return ((x == v.x) && (y == v.y) && (z == v.z)); }
+	bool operator!=(const Vector3& v) const noexcept { return ((x != v.x) || (y != v.y) || (z != v.z)); }
 
 	// Assignment operators
-	Vector3& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
-		z = F.f[2];
+	Vector3& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
+		z = f.f[2];
 		return *this;
 	}
-	Vector3& operator+=(const Vector3& V) noexcept {
-		x += V.x;
-		y += V.y;
-		z += V.z;
+	Vector3& operator+=(const Vector3& v) noexcept {
+		x += v.x;
+		y += v.y;
+		z += v.z;
 		return *this;
 	}
-	Vector3& operator-=(const Vector3& V) noexcept {
-		x -= V.x;
-		y -= V.y;
-		z -= V.z;
+	Vector3& operator-=(const Vector3& v) noexcept {
+		x -= v.x;
+		y -= v.y;
+		z -= v.z;
 		return *this;
 	}
-	Vector3& operator*=(const Vector3& V) noexcept {
-		x *= V.x;
-		y *= V.y;
-		z *= V.z;
+	Vector3& operator*=(const Vector3& v) noexcept {
+		x *= v.x;
+		y *= v.y;
+		z *= v.z;
 		return *this;
 	}
-	Vector3& operator*=(float S) noexcept {
-		x *= S;
-		y *= S;
-		z *= S;
+	Vector3& operator*=(float s) noexcept {
+		x *= s;
+		y *= s;
+		z *= s;
 		return *this;
 	}
-	Vector3& operator/=(float S) noexcept {
-		x /= S;
-		y /= S;
-		z /= S;
+	Vector3& operator/=(float s) noexcept {
+		x /= s;
+		y /= s;
+		z /= s;
 		return *this;
 	}
 
@@ -393,93 +393,93 @@ struct DIRECTX_TOOLKIT_API Vector3 : public XMFLOAT3 {
 	Vector3 operator-() const noexcept { return Vector3(-x, -y, -z); }
 
 	// Vector operations
-	bool InBounds(const Vector3& Bounds) const noexcept;
+	bool in_bounds(const Vector3& bounds) const noexcept;
 
-	float Length() const noexcept { return std::sqrt((x * x) + (y * y) + (z * z)); }
-	float LengthSquared() const noexcept { return (x * x) + (y * y) + (z * z); }
+	float length() const noexcept { return std::sqrt((x * x) + (y * y) + (z * z)); }
+	float length_squared() const noexcept { return (x * x) + (y * y) + (z * z); }
 
-	float Dot(const Vector3& V) const noexcept { return (x * V.x) + (y * V.y) + (z * V.z); }
-	void Cross(const Vector3& V, Vector3& result) const noexcept {
-		result.x = y * V.z - z * V.y;
-		result.y = z * V.x - x * V.z;
-		result.z = x * V.y - y * V.x;
+	float dot(const Vector3& v) const noexcept { return (x * v.x) + (y * v.y) + (z * v.z); }
+	void cross(const Vector3& v, Vector3& result) const noexcept {
+		result.x = y * v.z - z * v.y;
+		result.y = z * v.x - x * v.z;
+		result.z = x * v.y - y * v.x;
 	}
-	Vector3 Cross(const Vector3& V) const noexcept { return Vector3(y * V.z - z * V.y, z * V.x - x * V.z, x * V.y - y * V.x); }
+	Vector3 cross(const Vector3& v) const noexcept { return Vector3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
 
-	void Normalize() noexcept;
-	void Normalize(Vector3& result) const noexcept;
+	void normalize() noexcept;
+	void normalize(Vector3& result) const noexcept;
 
-	void Clamp(const Vector3& vmin, const Vector3& vmax) noexcept;
-	void Clamp(const Vector3& vmin, const Vector3& vmax, Vector3& result) const noexcept;
+	void clamp(const Vector3& vmin, const Vector3& vmax) noexcept;
+	void clamp(const Vector3& vmin, const Vector3& vmax, Vector3& result) const noexcept;
 
 	// Static functions
-	static float Distance(const Vector3& v1, const Vector3& v2) noexcept;
-	static float DistanceSquared(const Vector3& v1, const Vector3& v2) noexcept;
+	static float distance(const Vector3& v1, const Vector3& v2) noexcept;
+	static float distance_squared(const Vector3& v1, const Vector3& v2) noexcept;
 
-	static void Min(const Vector3& v1, const Vector3& v2, Vector3& result) noexcept;
-	static Vector3 Min(const Vector3& v1, const Vector3& v2) noexcept;
+	static void min(const Vector3& v1, const Vector3& v2, Vector3& result) noexcept;
+	static Vector3 min(const Vector3& v1, const Vector3& v2) noexcept;
 
-	static void Max(const Vector3& v1, const Vector3& v2, Vector3& result) noexcept;
-	static Vector3 Max(const Vector3& v1, const Vector3& v2) noexcept;
+	static void max(const Vector3& v1, const Vector3& v2, Vector3& result) noexcept;
+	static Vector3 max(const Vector3& v1, const Vector3& v2) noexcept;
 
-	static void Lerp(const Vector3& v1, const Vector3& v2, float t, Vector3& result) noexcept;
-	static Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) noexcept;
+	static void lerp(const Vector3& v1, const Vector3& v2, float t, Vector3& result) noexcept;
+	static Vector3 lerp(const Vector3& v1, const Vector3& v2, float t) noexcept;
 
-	static void SmoothStep(const Vector3& v1, const Vector3& v2, float t, Vector3& result) noexcept;
-	static Vector3 SmoothStep(const Vector3& v1, const Vector3& v2, float t) noexcept;
+	static void smooth_step(const Vector3& v1, const Vector3& v2, float t, Vector3& result) noexcept;
+	static Vector3 smooth_step(const Vector3& v1, const Vector3& v2, float t) noexcept;
 
-	static void Barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g, Vector3& result) noexcept;
-	static Vector3 Barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g) noexcept;
+	static void barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g, Vector3& result) noexcept;
+	static Vector3 barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g) noexcept;
 
-	static void CatmullRom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t, Vector3& result) noexcept;
-	static Vector3 CatmullRom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t) noexcept;
+	static void catmull_rom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t, Vector3& result) noexcept;
+	static Vector3 catmull_rom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t) noexcept;
 
-	static void Hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t, Vector3& result) noexcept;
-	static Vector3 Hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t) noexcept;
+	static void hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t, Vector3& result) noexcept;
+	static Vector3 hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t) noexcept;
 
-	static void Reflect(const Vector3& ivec, const Vector3& nvec, Vector3& result) noexcept;
-	static Vector3 Reflect(const Vector3& ivec, const Vector3& nvec) noexcept;
+	static void reflect(const Vector3& ivec, const Vector3& nvec, Vector3& result) noexcept;
+	static Vector3 reflect(const Vector3& ivec, const Vector3& nvec) noexcept;
 
-	static void Refract(const Vector3& ivec, const Vector3& nvec, float refractionIndex, Vector3& result) noexcept;
-	static Vector3 Refract(const Vector3& ivec, const Vector3& nvec, float refractionIndex) noexcept;
+	static void refract(const Vector3& ivec, const Vector3& nvec, float refraction_index, Vector3& result) noexcept;
+	static Vector3 refract(const Vector3& ivec, const Vector3& nvec, float refraction_index) noexcept;
 
-	static void Transform(const Vector3& v, const Quaternion& quat, Vector3& result) noexcept;
-	static Vector3 Transform(const Vector3& v, const Quaternion& quat) noexcept;
+	static void transform(const Vector3& v, const Quaternion& quat, Vector3& result) noexcept;
+	static Vector3 transform(const Vector3& v, const Quaternion& quat) noexcept;
 
-	static void Transform(const Vector3& v, const Matrix& m, Vector3& result) noexcept;
-	static Vector3 Transform(const Vector3& v, const Matrix& m) noexcept;
-	static void Transform(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector3* resultArray) noexcept;
+	static void transform(const Vector3& v, const Matrix& m, Vector3& result) noexcept;
+	static Vector3 transform(const Vector3& v, const Matrix& m) noexcept;
+	static void transform(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector3* result_array) noexcept;
 
-	static void Transform(const Vector3& v, const Matrix& m, Vector4& result) noexcept;
-	static void Transform(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* resultArray) noexcept;
+	static void transform(const Vector3& v, const Matrix& m, Vector4& result) noexcept;
+	static void transform(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* result_array) noexcept;
 
-	static void TransformNormal(const Vector3& v, const Matrix& m, Vector3& result) noexcept;
-	static Vector3 TransformNormal(const Vector3& v, const Matrix& m) noexcept;
-	static void TransformNormal(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector3* resultArray) noexcept;
+	static void transform_normal(const Vector3& v, const Matrix& m, Vector3& result) noexcept;
+	static Vector3 transform_normal(const Vector3& v, const Matrix& m) noexcept;
+	static void transform_normal(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector3* result_array) noexcept;
 
 	// Constants
-	static const Vector3 Zero;
-	static const Vector3 One;
-	static const Vector3 UnitX;
-	static const Vector3 UnitY;
-	static const Vector3 UnitZ;
-	static const Vector3 Up;
-	static const Vector3 Down;
-	static const Vector3 Right;
-	static const Vector3 Left;
-	static const Vector3 Forward;
-	static const Vector3 Backward;
+	static const Vector3 ZERO;
+	static const Vector3 ONE;
+	static const Vector3 UNIT_X;
+	static const Vector3 UNIT_Y;
+	static const Vector3 UNIT_Z;
+	static const Vector3 UP;
+	static const Vector3 DOWN;
+	static const Vector3 RIGHT;
+	static const Vector3 LEFT;
+	static const Vector3 FORWARD;
+	static const Vector3 BACKWARD;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API inline Vector3 operator+(const Vector3& V1, const Vector3& V2) noexcept { return Vector3(V1.x + V2.x, V1.y + V2.y, V1.z + V2.z); }
-DIRECTX_TOOLKIT_API inline Vector3 operator-(const Vector3& V1, const Vector3& V2) noexcept { return Vector3(V1.x - V2.x, V1.y - V2.y, V1.z - V2.z); }
-DIRECTX_TOOLKIT_API inline Vector3 operator*(const Vector3& V1, const Vector3& V2) noexcept { return Vector3(V1.x * V2.x, V1.y * V2.y, V1.z * V2.z); }
-DIRECTX_TOOLKIT_API inline Vector3 operator*(const Vector3& V, float S) noexcept { return Vector3(V.x * S, V.y * S, V.z * S); }
-DIRECTX_TOOLKIT_API inline Vector3 operator*(float S, const Vector3& V) noexcept { return Vector3(S * V.x, S * V.y, S * V.z); }
-DIRECTX_TOOLKIT_API inline Vector3 operator/(const Vector3& V1, const Vector3& V2) noexcept { return Vector3(V1.x / V2.x, V1.y / V2.y, V1.z / V2.z); }
-DIRECTX_TOOLKIT_API inline Vector3 operator/(const Vector3& V, float S) noexcept { return Vector3(V.x / S, V.y / S, V.z / S); }
-DIRECTX_TOOLKIT_API inline Vector3 operator/(float S, const Vector3& V) noexcept { return Vector3(S / V.x, S / V.y, S / V.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator+(const Vector3& v1, const Vector3& v2) noexcept { return Vector3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator-(const Vector3& v1, const Vector3& v2) noexcept { return Vector3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator*(const Vector3& v1, const Vector3& v2) noexcept { return Vector3(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator*(const Vector3& v, float s) noexcept { return Vector3(v.x * s, v.y * s, v.z * s); }
+DIRECTX_TOOLKIT_API inline Vector3 operator*(float s, const Vector3& v) noexcept { return Vector3(s * v.x, s * v.y, s * v.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator/(const Vector3& v1, const Vector3& v2) noexcept { return Vector3(v1.x / v2.x, v1.y / v2.y, v1.z / v2.z); }
+DIRECTX_TOOLKIT_API inline Vector3 operator/(const Vector3& v, float s) noexcept { return Vector3(v.x / s, v.y / s, v.z / s); }
+DIRECTX_TOOLKIT_API inline Vector3 operator/(float s, const Vector3& v) noexcept { return Vector3(s / v.x, s / v.y, s / v.z); }
 
 //------------------------------------------------------------------------------
 // 4D vector
@@ -490,20 +490,20 @@ struct DIRECTX_TOOLKIT_API Vector4 : public XMFLOAT4 {
 			XMFLOAT4(ix, ix, ix, ix) {}
 	constexpr Vector4(float ix, float iy, float iz, float iw) noexcept :
 			XMFLOAT4(ix, iy, iz, iw) {}
-	explicit Vector4(_In_reads_(4) const float* pArray) noexcept :
-			XMFLOAT4(pArray) {}
-	Vector4(FXMVECTOR V) noexcept { XMStoreFloat4(this, V); }
-	Vector4(const XMFLOAT4& V) noexcept {
-		this->x = V.x;
-		this->y = V.y;
-		this->z = V.z;
-		this->w = V.w;
+	explicit Vector4(_In_reads_(4) const float* p_array) noexcept :
+			XMFLOAT4(p_array) {}
+	Vector4(FXMVECTOR v) noexcept { XMStoreFloat4(this, v); }
+	Vector4(const XMFLOAT4& v) noexcept {
+		this->x = v.x;
+		this->y = v.y;
+		this->z = v.z;
+		this->w = v.w;
 	}
-	explicit Vector4(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
-		this->z = F.f[2];
-		this->w = F.f[3];
+	explicit Vector4(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
+		this->z = f.f[2];
+		this->w = f.f[3];
 	}
 
 	Vector4(const Vector4&) = default;
@@ -515,105 +515,105 @@ struct DIRECTX_TOOLKIT_API Vector4 : public XMFLOAT4 {
 	operator XMVECTOR() const noexcept { return XMLoadFloat4(this); }
 
 	// Comparison operators
-	bool operator==(const Vector4& V) const noexcept;
-	bool operator!=(const Vector4& V) const noexcept;
+	bool operator==(const Vector4& v) const noexcept;
+	bool operator!=(const Vector4& v) const noexcept;
 
 	// Assignment operators
-	Vector4& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
-		z = F.f[2];
-		w = F.f[3];
+	Vector4& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
+		z = f.f[2];
+		w = f.f[3];
 		return *this;
 	}
-	Vector4& operator+=(const Vector4& V) noexcept;
-	Vector4& operator-=(const Vector4& V) noexcept;
-	Vector4& operator*=(const Vector4& V) noexcept;
-	Vector4& operator*=(float S) noexcept;
-	Vector4& operator/=(float S) noexcept;
+	Vector4& operator+=(const Vector4& v) noexcept;
+	Vector4& operator-=(const Vector4& v) noexcept;
+	Vector4& operator*=(const Vector4& v) noexcept;
+	Vector4& operator*=(float s) noexcept;
+	Vector4& operator/=(float s) noexcept;
 
 	// Unary operators
 	Vector4 operator+() const noexcept { return *this; }
 	Vector4 operator-() const noexcept { return Vector4(-x, -y, -z, -w); }
 
 	// Vector operations
-	bool InBounds(const Vector4& Bounds) const noexcept;
+	bool in_bounds(const Vector4& bounds) const noexcept;
 
-	float Length() const noexcept;
-	float LengthSquared() const noexcept;
+	float length() const noexcept;
+	float length_squared() const noexcept;
 
-	float Dot(const Vector4& V) const noexcept;
-	void Cross(const Vector4& v1, const Vector4& v2, Vector4& result) const noexcept;
-	Vector4 Cross(const Vector4& v1, const Vector4& v2) const noexcept;
+	float dot(const Vector4& v) const noexcept;
+	void cross(const Vector4& v1, const Vector4& v2, Vector4& result) const noexcept;
+	Vector4 cross(const Vector4& v1, const Vector4& v2) const noexcept;
 
-	void Normalize() noexcept;
-	void Normalize(Vector4& result) const noexcept;
+	void normalize() noexcept;
+	void normalize(Vector4& result) const noexcept;
 
-	void Clamp(const Vector4& vmin, const Vector4& vmax) noexcept;
-	void Clamp(const Vector4& vmin, const Vector4& vmax, Vector4& result) const noexcept;
+	void clamp(const Vector4& vmin, const Vector4& vmax) noexcept;
+	void clamp(const Vector4& vmin, const Vector4& vmax, Vector4& result) const noexcept;
 
 	// Static functions
-	static float Distance(const Vector4& v1, const Vector4& v2) noexcept;
-	static float DistanceSquared(const Vector4& v1, const Vector4& v2) noexcept;
+	static float distance(const Vector4& v1, const Vector4& v2) noexcept;
+	static float distance_squared(const Vector4& v1, const Vector4& v2) noexcept;
 
-	static void Min(const Vector4& v1, const Vector4& v2, Vector4& result) noexcept;
-	static Vector4 Min(const Vector4& v1, const Vector4& v2) noexcept;
+	static void min(const Vector4& v1, const Vector4& v2, Vector4& result) noexcept;
+	static Vector4 min(const Vector4& v1, const Vector4& v2) noexcept;
 
-	static void Max(const Vector4& v1, const Vector4& v2, Vector4& result) noexcept;
-	static Vector4 Max(const Vector4& v1, const Vector4& v2) noexcept;
+	static void max(const Vector4& v1, const Vector4& v2, Vector4& result) noexcept;
+	static Vector4 max(const Vector4& v1, const Vector4& v2) noexcept;
 
-	static void Lerp(const Vector4& v1, const Vector4& v2, float t, Vector4& result) noexcept;
-	static Vector4 Lerp(const Vector4& v1, const Vector4& v2, float t) noexcept;
+	static void lerp(const Vector4& v1, const Vector4& v2, float t, Vector4& result) noexcept;
+	static Vector4 lerp(const Vector4& v1, const Vector4& v2, float t) noexcept;
 
-	static void SmoothStep(const Vector4& v1, const Vector4& v2, float t, Vector4& result) noexcept;
-	static Vector4 SmoothStep(const Vector4& v1, const Vector4& v2, float t) noexcept;
+	static void smooth_step(const Vector4& v1, const Vector4& v2, float t, Vector4& result) noexcept;
+	static Vector4 smooth_step(const Vector4& v1, const Vector4& v2, float t) noexcept;
 
-	static void Barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g, Vector4& result) noexcept;
-	static Vector4 Barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g) noexcept;
+	static void barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g, Vector4& result) noexcept;
+	static Vector4 barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g) noexcept;
 
-	static void CatmullRom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t, Vector4& result) noexcept;
-	static Vector4 CatmullRom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t) noexcept;
+	static void catmull_rom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t, Vector4& result) noexcept;
+	static Vector4 catmull_rom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t) noexcept;
 
-	static void Hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t, Vector4& result) noexcept;
-	static Vector4 Hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t) noexcept;
+	static void hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t, Vector4& result) noexcept;
+	static Vector4 hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t) noexcept;
 
-	static void Reflect(const Vector4& ivec, const Vector4& nvec, Vector4& result) noexcept;
-	static Vector4 Reflect(const Vector4& ivec, const Vector4& nvec) noexcept;
+	static void reflect(const Vector4& ivec, const Vector4& nvec, Vector4& result) noexcept;
+	static Vector4 reflect(const Vector4& ivec, const Vector4& nvec) noexcept;
 
-	static void Refract(const Vector4& ivec, const Vector4& nvec, float refractionIndex, Vector4& result) noexcept;
-	static Vector4 Refract(const Vector4& ivec, const Vector4& nvec, float refractionIndex) noexcept;
+	static void refract(const Vector4& ivec, const Vector4& nvec, float refraction_index, Vector4& result) noexcept;
+	static Vector4 refract(const Vector4& ivec, const Vector4& nvec, float refraction_index) noexcept;
 
-	static void Transform(const Vector2& v, const Quaternion& quat, Vector4& result) noexcept;
-	static Vector4 Transform(const Vector2& v, const Quaternion& quat) noexcept;
+	static void transform(const Vector2& v, const Quaternion& quat, Vector4& result) noexcept;
+	static Vector4 transform(const Vector2& v, const Quaternion& quat) noexcept;
 
-	static void Transform(const Vector3& v, const Quaternion& quat, Vector4& result) noexcept;
-	static Vector4 Transform(const Vector3& v, const Quaternion& quat) noexcept;
+	static void transform(const Vector3& v, const Quaternion& quat, Vector4& result) noexcept;
+	static Vector4 transform(const Vector3& v, const Quaternion& quat) noexcept;
 
-	static void Transform(const Vector4& v, const Quaternion& quat, Vector4& result) noexcept;
-	static Vector4 Transform(const Vector4& v, const Quaternion& quat) noexcept;
+	static void transform(const Vector4& v, const Quaternion& quat, Vector4& result) noexcept;
+	static Vector4 transform(const Vector4& v, const Quaternion& quat) noexcept;
 
-	static void Transform(const Vector4& v, const Matrix& m, Vector4& result) noexcept;
-	static Vector4 Transform(const Vector4& v, const Matrix& m) noexcept;
-	static void Transform(_In_reads_(count) const Vector4* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* resultArray) noexcept;
+	static void transform(const Vector4& v, const Matrix& m, Vector4& result) noexcept;
+	static Vector4 transform(const Vector4& v, const Matrix& m) noexcept;
+	static void transform(_In_reads_(count) const Vector4* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* result_array) noexcept;
 
 	// Constants
-	static const Vector4 Zero;
-	static const Vector4 One;
-	static const Vector4 UnitX;
-	static const Vector4 UnitY;
-	static const Vector4 UnitZ;
-	static const Vector4 UnitW;
+	static const Vector4 ZERO;
+	static const Vector4 ONE;
+	static const Vector4 UNIT_X;
+	static const Vector4 UNIT_Y;
+	static const Vector4 UNIT_Z;
+	static const Vector4 UNIT_W;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API Vector4 operator+(const Vector4& V1, const Vector4& V2) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator-(const Vector4& V1, const Vector4& V2) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator*(const Vector4& V1, const Vector4& V2) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator*(const Vector4& V, float S) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator*(float S, const Vector4& V) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator/(const Vector4& V1, const Vector4& V2) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator/(const Vector4& V, float S) noexcept;
-DIRECTX_TOOLKIT_API Vector4 operator/(float S, const Vector4& V) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator+(const Vector4& v1, const Vector4& v2) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator-(const Vector4& v1, const Vector4& v2) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator*(const Vector4& v1, const Vector4& v2) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator*(const Vector4& v, float s) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator*(float s, const Vector4& v) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator/(const Vector4& v1, const Vector4& v2) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator/(const Vector4& v, float s) noexcept;
+DIRECTX_TOOLKIT_API Vector4 operator/(float s, const Vector4& v) noexcept;
 
 //------------------------------------------------------------------------------
 // 4x4 Matrix (assumes right-handed cooordinates)
@@ -645,13 +645,13 @@ struct DIRECTX_TOOLKIT_API Matrix : public XMFLOAT4X4 {
 					r1.x, r1.y, r1.z, r1.w,
 					r2.x, r2.y, r2.z, r2.w,
 					r3.x, r3.y, r3.z, r3.w) {}
-	Matrix(const XMFLOAT4X4& M) noexcept { memcpy(this, &M, sizeof(XMFLOAT4X4)); }
-	Matrix(const XMFLOAT3X3& M) noexcept;
-	Matrix(const XMFLOAT4X3& M) noexcept;
+	Matrix(const XMFLOAT4X4& m) noexcept { memcpy(this, &m, sizeof(XMFLOAT4X4)); }
+	Matrix(const XMFLOAT3X3& m) noexcept;
+	Matrix(const XMFLOAT4X3& m) noexcept;
 
-	explicit Matrix(_In_reads_(16) const float* pArray) noexcept :
-			XMFLOAT4X4(pArray) {}
-	Matrix(CXMMATRIX M) noexcept { XMStoreFloat4x4(this, M); }
+	explicit Matrix(_In_reads_(16) const float* p_array) noexcept :
+			XMFLOAT4X4(p_array) {}
+	Matrix(CXMMATRIX m) noexcept { XMStoreFloat4x4(this, m); }
 
 	Matrix(const Matrix&) = default;
 	Matrix& operator=(const Matrix&) = default;
@@ -662,19 +662,19 @@ struct DIRECTX_TOOLKIT_API Matrix : public XMFLOAT4X4 {
 	operator XMMATRIX() const noexcept { return XMLoadFloat4x4(this); }
 
 	// Comparison operators
-	bool operator==(const Matrix& M) const noexcept;
-	bool operator!=(const Matrix& M) const noexcept;
+	bool operator==(const Matrix& m) const noexcept;
+	bool operator!=(const Matrix& m) const noexcept;
 
 	// Assignment operators
-	Matrix& operator=(const XMFLOAT3X3& M) noexcept;
-	Matrix& operator=(const XMFLOAT4X3& M) noexcept;
-	Matrix& operator+=(const Matrix& M) noexcept;
-	Matrix& operator-=(const Matrix& M) noexcept;
-	Matrix& operator*=(const Matrix& M) noexcept;
-	Matrix& operator*=(float S) noexcept;
-	Matrix& operator/=(float S) noexcept;
+	Matrix& operator=(const XMFLOAT3X3& m) noexcept;
+	Matrix& operator=(const XMFLOAT4X3& m) noexcept;
+	Matrix& operator+=(const Matrix& m) noexcept;
+	Matrix& operator-=(const Matrix& m) noexcept;
+	Matrix& operator*=(const Matrix& m) noexcept;
+	Matrix& operator*=(float s) noexcept;
+	Matrix& operator/=(float s) noexcept;
 
-	Matrix& operator/=(const Matrix& M) noexcept;
+	Matrix& operator/=(const Matrix& m) noexcept;
 	// Element-wise divide
 
 	// Unary operators
@@ -682,131 +682,131 @@ struct DIRECTX_TOOLKIT_API Matrix : public XMFLOAT4X4 {
 	Matrix operator-() const noexcept;
 
 	// Properties
-	Vector3 Up() const noexcept { return Vector3(_21, _22, _23); }
-	void Up(const Vector3& v) noexcept {
+	Vector3 up() const noexcept { return Vector3(_21, _22, _23); }
+	void up(const Vector3& v) noexcept {
 		_21 = v.x;
 		_22 = v.y;
 		_23 = v.z;
 	}
 
-	Vector3 Down() const noexcept { return Vector3(-_21, -_22, -_23); }
-	void Down(const Vector3& v) noexcept {
+	Vector3 down() const noexcept { return Vector3(-_21, -_22, -_23); }
+	void down(const Vector3& v) noexcept {
 		_21 = -v.x;
 		_22 = -v.y;
 		_23 = -v.z;
 	}
 
-	Vector3 Right() const noexcept { return Vector3(_11, _12, _13); }
-	void Right(const Vector3& v) noexcept {
+	Vector3 right() const noexcept { return Vector3(_11, _12, _13); }
+	void right(const Vector3& v) noexcept {
 		_11 = v.x;
 		_12 = v.y;
 		_13 = v.z;
 	}
 
-	Vector3 Left() const noexcept { return Vector3(-_11, -_12, -_13); }
-	void Left(const Vector3& v) noexcept {
+	Vector3 left() const noexcept { return Vector3(-_11, -_12, -_13); }
+	void left(const Vector3& v) noexcept {
 		_11 = -v.x;
 		_12 = -v.y;
 		_13 = -v.z;
 	}
 
-	Vector3 Forward() const noexcept { return Vector3(-_31, -_32, -_33); }
-	void Forward(const Vector3& v) noexcept {
+	Vector3 forward() const noexcept { return Vector3(-_31, -_32, -_33); }
+	void forward(const Vector3& v) noexcept {
 		_31 = -v.x;
 		_32 = -v.y;
 		_33 = -v.z;
 	}
 
-	Vector3 Backward() const noexcept { return Vector3(_31, _32, _33); }
-	void Backward(const Vector3& v) noexcept {
+	Vector3 backward() const noexcept { return Vector3(_31, _32, _33); }
+	void backward(const Vector3& v) noexcept {
 		_31 = v.x;
 		_32 = v.y;
 		_33 = v.z;
 	}
 
-	Vector3 Translation() const noexcept { return Vector3(_41, _42, _43); }
-	void Translation(const Vector3& v) noexcept {
+	Vector3 translation() const noexcept { return Vector3(_41, _42, _43); }
+	void translation(const Vector3& v) noexcept {
 		_41 = v.x;
 		_42 = v.y;
 		_43 = v.z;
 	}
 
 	// Matrix operations
-	bool Decompose(Vector3& scale, Quaternion& rotation, Vector3& translation) noexcept;
+	bool decompose(Vector3& scale, Quaternion& rotation, Vector3& translation) noexcept;
 
-	Matrix Transpose() const noexcept;
-	void Transpose(Matrix& result) const noexcept;
+	Matrix transpose() const noexcept;
+	void transpose(Matrix& result) const noexcept;
 
-	Matrix Invert() const noexcept;
-	void Invert(Matrix& result) const noexcept;
+	Matrix invert() const noexcept;
+	void invert(Matrix& result) const noexcept;
 
-	float Determinant() const noexcept;
+	float determinant() const noexcept;
 
 	// Computes rotation about y-axis (y), then x-axis (x), then z-axis (z)
-	Vector3 ToEuler() const noexcept;
+	Vector3 to_euler() const noexcept;
 
 	// Static functions
-	static Matrix CreateBillboard(
-			const Vector3& object, const Vector3& cameraPosition, const Vector3& cameraUp, _In_opt_ const Vector3* cameraForward = nullptr) noexcept;
+	static Matrix create_billboard(
+			const Vector3& object, const Vector3& camera_position, const Vector3& camera_up, _In_opt_ const Vector3* camera_forward = nullptr) noexcept;
 
-	static Matrix CreateConstrainedBillboard(
-			const Vector3& object, const Vector3& cameraPosition, const Vector3& rotateAxis,
-			_In_opt_ const Vector3* cameraForward = nullptr, _In_opt_ const Vector3* objectForward = nullptr) noexcept;
+	static Matrix create_constrained_billboard(
+			const Vector3& object, const Vector3& camera_position, const Vector3& rotate_axis,
+			_In_opt_ const Vector3* camera_forward = nullptr, _In_opt_ const Vector3* object_forward = nullptr) noexcept;
 
-	static Matrix CreateTranslation(const Vector3& position) noexcept;
-	static Matrix CreateTranslation(float x, float y, float z) noexcept;
+	static Matrix create_translation(const Vector3& position) noexcept;
+	static Matrix create_translation(float x, float y, float z) noexcept;
 
-	static Matrix CreateScale(const Vector3& scales) noexcept;
-	static Matrix CreateScale(float xs, float ys, float zs) noexcept;
-	static Matrix CreateScale(float scale) noexcept;
+	static Matrix create_scale(const Vector3& scales) noexcept;
+	static Matrix create_scale(float xs, float ys, float zs) noexcept;
+	static Matrix create_scale(float scale) noexcept;
 
-	static Matrix CreateRotationX(float radians) noexcept;
-	static Matrix CreateRotationY(float radians) noexcept;
-	static Matrix CreateRotationZ(float radians) noexcept;
+	static Matrix create_rotation_x(float radians) noexcept;
+	static Matrix create_rotation_y(float radians) noexcept;
+	static Matrix create_rotation_z(float radians) noexcept;
 
-	static Matrix CreateFromAxisAngle(const Vector3& axis, float angle) noexcept;
+	static Matrix create_from_axis_angle(const Vector3& axis, float angle) noexcept;
 
-	static Matrix CreatePerspectiveFieldOfView(float fov, float aspectRatio, float nearPlane, float farPlane) noexcept;
-	static Matrix CreatePerspective(float width, float height, float nearPlane, float farPlane) noexcept;
-	static Matrix CreatePerspectiveOffCenter(float left, float right, float bottom, float top, float nearPlane, float farPlane) noexcept;
-	static Matrix CreateOrthographic(float width, float height, float zNearPlane, float zFarPlane) noexcept;
-	static Matrix CreateOrthographicOffCenter(float left, float right, float bottom, float top, float zNearPlane, float zFarPlane) noexcept;
+	static Matrix create_perspective_field_of_view(float fov, float aspect_ratio, float near_plane, float far_plane) noexcept;
+	static Matrix create_perspective(float width, float height, float near_plane, float far_plane) noexcept;
+	static Matrix create_perspective_off_center(float left, float right, float bottom, float top, float near_plane, float far_plane) noexcept;
+	static Matrix create_orthographic(float width, float height, float z_near_plane, float z_far_plane) noexcept;
+	static Matrix create_orthographic_off_center(float left, float right, float bottom, float top, float z_near_plane, float z_far_plane) noexcept;
 
-	static Matrix CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up) noexcept;
-	static Matrix CreateWorld(const Vector3& position, const Vector3& forward, const Vector3& up) noexcept;
+	static Matrix create_look_at(const Vector3& position, const Vector3& target, const Vector3& up) noexcept;
+	static Matrix create_world(const Vector3& position, const Vector3& forward, const Vector3& up) noexcept;
 
-	static Matrix CreateFromQuaternion(const Quaternion& quat) noexcept;
+	static Matrix create_from_quaternion(const Quaternion& quat) noexcept;
 
 	// Rotates about y-axis (yaw), then x-axis (pitch), then z-axis (roll)
-	static Matrix CreateFromYawPitchRoll(float yaw, float pitch, float roll) noexcept;
+	static Matrix create_from_yaw_pitch_roll(float yaw, float pitch, float roll) noexcept;
 
 	// Rotates about y-axis (angles.y), then x-axis (angles.x), then z-axis (angles.z)
-	static Matrix CreateFromYawPitchRoll(const Vector3& angles) noexcept;
+	static Matrix create_from_yaw_pitch_roll(const Vector3& angles) noexcept;
 
-	static Matrix CreateShadow(const Vector3& lightDir, const Plane& plane) noexcept;
+	static Matrix create_shadow(const Vector3& light_dir, const Plane& plane) noexcept;
 
-	static Matrix CreateReflection(const Plane& plane) noexcept;
+	static Matrix create_reflection(const Plane& plane) noexcept;
 
-	static void Lerp(const Matrix& M1, const Matrix& M2, float t, Matrix& result) noexcept;
-	static Matrix Lerp(const Matrix& M1, const Matrix& M2, float t) noexcept;
+	static void lerp(const Matrix& m1, const Matrix& m2, float t, Matrix& result) noexcept;
+	static Matrix lerp(const Matrix& m1, const Matrix& m2, float t) noexcept;
 
-	static void Transform(const Matrix& M, const Quaternion& rotation, Matrix& result) noexcept;
-	static Matrix Transform(const Matrix& M, const Quaternion& rotation) noexcept;
+	static void transform(const Matrix& m, const Quaternion& rotation, Matrix& result) noexcept;
+	static Matrix transform(const Matrix& m, const Quaternion& rotation) noexcept;
 
 	// Constants
-	static const Matrix Identity;
+	static const Matrix IDENTITY;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API Matrix operator+(const Matrix& M1, const Matrix& M2) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator-(const Matrix& M1, const Matrix& M2) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator*(const Matrix& M1, const Matrix& M2) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator*(const Matrix& M, float S) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator*(float S, const Matrix& M) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& M, float S) noexcept;
-DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& M1, const Matrix& M2) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator+(const Matrix& m1, const Matrix& m2) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator-(const Matrix& m1, const Matrix& m2) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator*(const Matrix& m1, const Matrix& m2) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator*(const Matrix& m, float s) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator*(float s, const Matrix& m) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& m, float s) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator/(const Matrix& m1, const Matrix& m2) noexcept;
 // Element-wise divide
-DIRECTX_TOOLKIT_API Matrix operator/(float S, const Matrix& M) noexcept;
+DIRECTX_TOOLKIT_API Matrix operator/(float s, const Matrix& m) noexcept;
 
 //-----------------------------------------------------------------------------
 // Plane
@@ -821,20 +821,20 @@ struct DIRECTX_TOOLKIT_API Plane : public XMFLOAT4 {
 	Plane(const Vector3& point, const Vector3& normal) noexcept;
 	explicit Plane(const Vector4& v) noexcept :
 			XMFLOAT4(v.x, v.y, v.z, v.w) {}
-	explicit Plane(_In_reads_(4) const float* pArray) noexcept :
-			XMFLOAT4(pArray) {}
-	Plane(FXMVECTOR V) noexcept { XMStoreFloat4(this, V); }
+	explicit Plane(_In_reads_(4) const float* p_array) noexcept :
+			XMFLOAT4(p_array) {}
+	Plane(FXMVECTOR v) noexcept { XMStoreFloat4(this, v); }
 	Plane(const XMFLOAT4& p) noexcept {
 		this->x = p.x;
 		this->y = p.y;
 		this->z = p.z;
 		this->w = p.w;
 	}
-	explicit Plane(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
-		this->z = F.f[2];
-		this->w = F.f[3];
+	explicit Plane(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
+		this->z = f.f[2];
+		this->w = f.f[3];
 	}
 
 	Plane(const Plane&) = default;
@@ -850,39 +850,39 @@ struct DIRECTX_TOOLKIT_API Plane : public XMFLOAT4 {
 	bool operator!=(const Plane& p) const noexcept;
 
 	// Assignment operators
-	Plane& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
-		z = F.f[2];
-		w = F.f[3];
+	Plane& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
+		z = f.f[2];
+		w = f.f[3];
 		return *this;
 	}
 
 	// Properties
-	Vector3 Normal() const noexcept { return Vector3(x, y, z); }
-	void Normal(const Vector3& normal) noexcept {
+	Vector3 normal() const noexcept { return Vector3(x, y, z); }
+	void normal(const Vector3& normal) noexcept {
 		x = normal.x;
 		y = normal.y;
 		z = normal.z;
 	}
 
-	float D() const noexcept { return w; }
-	void D(float d) noexcept { w = d; }
+	float d() const noexcept { return w; }
+	void d(float d) noexcept { w = d; }
 
 	// Plane operations
-	void Normalize() noexcept;
-	void Normalize(Plane& result) const noexcept;
+	void normalize() noexcept;
+	void normalize(Plane& result) const noexcept;
 
-	float Dot(const Vector4& v) const noexcept;
-	float DotCoordinate(const Vector3& position) const noexcept;
-	float DotNormal(const Vector3& normal) const noexcept;
+	float dot(const Vector4& v) const noexcept;
+	float dot_coordinate(const Vector3& position) const noexcept;
+	float dot_normal(const Vector3& normal) const noexcept;
 
 	// Static functions
-	static void Transform(const Plane& plane, const Matrix& M, Plane& result) noexcept;
-	static Plane Transform(const Plane& plane, const Matrix& M) noexcept;
+	static void transform(const Plane& plane, const Matrix& m, Plane& result) noexcept;
+	static Plane transform(const Plane& plane, const Matrix& m) noexcept;
 
-	static void Transform(const Plane& plane, const Quaternion& rotation, Plane& result) noexcept;
-	static Plane Transform(const Plane& plane, const Quaternion& rotation) noexcept;
+	static void transform(const Plane& plane, const Quaternion& rotation, Plane& result) noexcept;
+	static Plane transform(const Plane& plane, const Quaternion& rotation) noexcept;
 	// Input quaternion must be the inverse transpose of the transformation
 };
 
@@ -897,20 +897,20 @@ struct DIRECTX_TOOLKIT_API Quaternion : public XMFLOAT4 {
 			XMFLOAT4(v.x, v.y, v.z, scalar) {}
 	explicit Quaternion(const Vector4& v) noexcept :
 			XMFLOAT4(v.x, v.y, v.z, v.w) {}
-	explicit Quaternion(_In_reads_(4) const float* pArray) noexcept :
-			XMFLOAT4(pArray) {}
-	Quaternion(FXMVECTOR V) noexcept { XMStoreFloat4(this, V); }
+	explicit Quaternion(_In_reads_(4) const float* p_array) noexcept :
+			XMFLOAT4(p_array) {}
+	Quaternion(FXMVECTOR v) noexcept { XMStoreFloat4(this, v); }
 	Quaternion(const XMFLOAT4& q) noexcept {
 		this->x = q.x;
 		this->y = q.y;
 		this->z = q.z;
 		this->w = q.w;
 	}
-	explicit Quaternion(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
-		this->z = F.f[2];
-		this->w = F.f[3];
+	explicit Quaternion(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
+		this->z = f.f[2];
+		this->w = f.f[3];
 	}
 
 	Quaternion(const Quaternion&) = default;
@@ -926,17 +926,17 @@ struct DIRECTX_TOOLKIT_API Quaternion : public XMFLOAT4 {
 	bool operator!=(const Quaternion& q) const noexcept;
 
 	// Assignment operators
-	Quaternion& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
-		z = F.f[2];
-		w = F.f[3];
+	Quaternion& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
+		z = f.f[2];
+		w = f.f[3];
 		return *this;
 	}
 	Quaternion& operator+=(const Quaternion& q) noexcept;
 	Quaternion& operator-=(const Quaternion& q) noexcept;
 	Quaternion& operator*=(const Quaternion& q) noexcept;
-	Quaternion& operator*=(float S) noexcept;
+	Quaternion& operator*=(float s) noexcept;
 	Quaternion& operator/=(const Quaternion& q) noexcept;
 
 	// Unary operators
@@ -944,99 +944,99 @@ struct DIRECTX_TOOLKIT_API Quaternion : public XMFLOAT4 {
 	Quaternion operator-() const noexcept { return Quaternion(-x, -y, -z, -w); }
 
 	// Quaternion operations
-	float Length() const noexcept;
-	float LengthSquared() const noexcept;
+	float length() const noexcept;
+	float length_squared() const noexcept;
 
-	void Normalize() noexcept;
-	void Normalize(Quaternion& result) const noexcept;
+	void normalize() noexcept;
+	void normalize(Quaternion& result) const noexcept;
 
-	void Conjugate() noexcept;
-	void Conjugate(Quaternion& result) const noexcept;
+	void conjugate() noexcept;
+	void conjugate(Quaternion& result) const noexcept;
 
-	void Inverse(Quaternion& result) const noexcept;
+	void inverse(Quaternion& result) const noexcept;
 
-	float Dot(const Quaternion& Q) const noexcept;
+	float dot(const Quaternion& q) const noexcept;
 
-	void RotateTowards(const Quaternion& target, float maxAngle) noexcept;
-	void __cdecl RotateTowards(const Quaternion& target, float maxAngle, Quaternion& result) const noexcept;
+	void rotate_towards(const Quaternion& target, float max_angle) noexcept;
+	void __cdecl rotate_towards(const Quaternion& target, float max_angle, Quaternion& result) const noexcept;
 
 	// Computes rotation about y-axis (y), then x-axis (x), then z-axis (z)
-	Vector3 ToEuler() const noexcept;
+	Vector3 to_euler() const noexcept;
 
 	// Static functions
-	static Quaternion CreateFromAxisAngle(const Vector3& axis, float angle) noexcept;
+	static Quaternion create_from_axis_angle(const Vector3& axis, float angle) noexcept;
 
 	// Rotates about y-axis (yaw), then x-axis (pitch), then z-axis (roll)
-	static Quaternion CreateFromYawPitchRoll(float yaw, float pitch, float roll) noexcept;
+	static Quaternion create_from_yaw_pitch_roll(float yaw, float pitch, float roll) noexcept;
 
 	// Rotates about y-axis (angles.y), then x-axis (angles.x), then z-axis (angles.z)
-	static Quaternion CreateFromYawPitchRoll(const Vector3& angles) noexcept;
+	static Quaternion create_from_yaw_pitch_roll(const Vector3& angles) noexcept;
 
-	static Quaternion CreateFromRotationMatrix(const Matrix& M) noexcept;
+	static Quaternion create_from_rotation_matrix(const Matrix& m) noexcept;
 
-	static void Lerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) noexcept;
-	static Quaternion Lerp(const Quaternion& q1, const Quaternion& q2, float t) noexcept;
+	static void lerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) noexcept;
+	static Quaternion lerp(const Quaternion& q1, const Quaternion& q2, float t) noexcept;
 
-	static void Slerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) noexcept;
-	static Quaternion Slerp(const Quaternion& q1, const Quaternion& q2, float t) noexcept;
+	static void slerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) noexcept;
+	static Quaternion slerp(const Quaternion& q1, const Quaternion& q2, float t) noexcept;
 
-	static void Concatenate(const Quaternion& q1, const Quaternion& q2, Quaternion& result) noexcept;
-	static Quaternion Concatenate(const Quaternion& q1, const Quaternion& q2) noexcept;
+	static void concatenate(const Quaternion& q1, const Quaternion& q2, Quaternion& result) noexcept;
+	static Quaternion concatenate(const Quaternion& q1, const Quaternion& q2) noexcept;
 
-	static void __cdecl FromToRotation(const Vector3& fromDir, const Vector3& toDir, Quaternion& result) noexcept;
-	static Quaternion FromToRotation(const Vector3& fromDir, const Vector3& toDir) noexcept;
+	static void __cdecl from_to_rotation(const Vector3& from_dir, const Vector3& to_dir, Quaternion& result) noexcept;
+	static Quaternion from_to_rotation(const Vector3& from_dir, const Vector3& to_dir) noexcept;
 
-	static void __cdecl LookRotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept;
-	static Quaternion LookRotation(const Vector3& forward, const Vector3& up) noexcept;
+	static void __cdecl look_rotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept;
+	static Quaternion look_rotation(const Vector3& forward, const Vector3& up) noexcept;
 
-	static float Angle(const Quaternion& q1, const Quaternion& q2) noexcept;
+	static float angle(const Quaternion& q1, const Quaternion& q2) noexcept;
 
 	// Constants
-	static const Quaternion Identity;
+	static const Quaternion IDENTITY;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API Quaternion operator+(const Quaternion& Q1, const Quaternion& Q2) noexcept;
-DIRECTX_TOOLKIT_API Quaternion operator-(const Quaternion& Q1, const Quaternion& Q2) noexcept;
-DIRECTX_TOOLKIT_API Quaternion operator*(const Quaternion& Q1, const Quaternion& Q2) noexcept;
-DIRECTX_TOOLKIT_API Quaternion operator*(const Quaternion& Q, float S) noexcept;
-DIRECTX_TOOLKIT_API Quaternion operator*(float S, const Quaternion& Q) noexcept;
-DIRECTX_TOOLKIT_API Quaternion operator/(const Quaternion& Q1, const Quaternion& Q2) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator+(const Quaternion& q1, const Quaternion& q2) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator-(const Quaternion& q1, const Quaternion& q2) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator*(const Quaternion& q1, const Quaternion& q2) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator*(const Quaternion& q, float s) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator*(float s, const Quaternion& q) noexcept;
+DIRECTX_TOOLKIT_API Quaternion operator/(const Quaternion& q1, const Quaternion& q2) noexcept;
 
 //------------------------------------------------------------------------------
 // Color
 struct DIRECTX_TOOLKIT_API Color : public XMFLOAT4 {
 	Color() noexcept :
 			XMFLOAT4(0, 0, 0, 1.f) {}
-	constexpr Color(float _r, float _g, float _b) noexcept :
-			XMFLOAT4(_r, _g, _b, 1.f) {}
-	constexpr Color(float _r, float _g, float _b, float _a) noexcept :
-			XMFLOAT4(_r, _g, _b, _a) {}
+	constexpr Color(float r, float g, float b) noexcept :
+			XMFLOAT4(r, g, b, 1.f) {}
+	constexpr Color(float r, float g, float b, float a) noexcept :
+			XMFLOAT4(r, g, b, a) {}
 	explicit Color(const Vector3& clr) noexcept :
 			XMFLOAT4(clr.x, clr.y, clr.z, 1.f) {}
 	explicit Color(const Vector4& clr) noexcept :
 			XMFLOAT4(clr.x, clr.y, clr.z, clr.w) {}
-	explicit Color(_In_reads_(4) const float* pArray) noexcept :
-			XMFLOAT4(pArray) {}
-	Color(FXMVECTOR V) noexcept { XMStoreFloat4(this, V); }
+	explicit Color(_In_reads_(4) const float* p_array) noexcept :
+			XMFLOAT4(p_array) {}
+	Color(FXMVECTOR v) noexcept { XMStoreFloat4(this, v); }
 	Color(const XMFLOAT4& c) noexcept {
 		this->x = c.x;
 		this->y = c.y;
 		this->z = c.z;
 		this->w = c.w;
 	}
-	explicit Color(const XMVECTORF32& F) noexcept {
-		this->x = F.f[0];
-		this->y = F.f[1];
-		this->z = F.f[2];
-		this->w = F.f[3];
+	explicit Color(const XMVECTORF32& f) noexcept {
+		this->x = f.f[0];
+		this->y = f.f[1];
+		this->z = f.f[2];
+		this->w = f.f[3];
 	}
 
 	// BGRA Direct3D 9 D3DCOLOR packed color
-	explicit Color(const DirectX::PackedVector::XMCOLOR& Packed) noexcept;
+	explicit Color(const DirectX::PackedVector::XMCOLOR& packed) noexcept;
 
 	// RGBA XNA Game Studio packed color
-	explicit Color(const DirectX::PackedVector::XMUBYTEN4& Packed) noexcept;
+	explicit Color(const DirectX::PackedVector::XMUBYTEN4& packed) noexcept;
 
 	Color(const Color&) = default;
 	Color& operator=(const Color&) = default;
@@ -1052,19 +1052,19 @@ struct DIRECTX_TOOLKIT_API Color : public XMFLOAT4 {
 	bool operator!=(const Color& c) const noexcept;
 
 	// Assignment operators
-	Color& operator=(const XMVECTORF32& F) noexcept {
-		x = F.f[0];
-		y = F.f[1];
-		z = F.f[2];
-		w = F.f[3];
+	Color& operator=(const XMVECTORF32& f) noexcept {
+		x = f.f[0];
+		y = f.f[1];
+		z = f.f[2];
+		w = f.f[3];
 		return *this;
 	}
-	Color& operator=(const DirectX::PackedVector::XMCOLOR& Packed) noexcept;
-	Color& operator=(const DirectX::PackedVector::XMUBYTEN4& Packed) noexcept;
+	Color& operator=(const DirectX::PackedVector::XMCOLOR& packed) noexcept;
+	Color& operator=(const DirectX::PackedVector::XMUBYTEN4& packed) noexcept;
 	Color& operator+=(const Color& c) noexcept;
 	Color& operator-=(const Color& c) noexcept;
 	Color& operator*=(const Color& c) noexcept;
-	Color& operator*=(float S) noexcept;
+	Color& operator*=(float s) noexcept;
 	Color& operator/=(const Color& c) noexcept;
 
 	// Unary operators
@@ -1072,55 +1072,55 @@ struct DIRECTX_TOOLKIT_API Color : public XMFLOAT4 {
 	Color operator-() const noexcept { return Color(-x, -y, -z, -w); }
 
 	// Properties
-	float R() const noexcept { return x; }
-	void R(float r) noexcept { x = r; }
+	float r() const noexcept { return x; }
+	void r(float r) noexcept { x = r; }
 
-	float G() const noexcept { return y; }
-	void G(float g) noexcept { y = g; }
+	float g() const noexcept { return y; }
+	void g(float g) noexcept { y = g; }
 
-	float B() const noexcept { return z; }
-	void B(float b) noexcept { z = b; }
+	float b() const noexcept { return z; }
+	void b(float b) noexcept { z = b; }
 
-	float A() const noexcept { return w; }
-	void A(float a) noexcept { w = a; }
+	float a() const noexcept { return w; }
+	void a(float a) noexcept { w = a; }
 
 	// Color operations
-	DirectX::PackedVector::XMCOLOR BGRA() const noexcept;
-	DirectX::PackedVector::XMUBYTEN4 RGBA() const noexcept;
+	DirectX::PackedVector::XMCOLOR bgra() const noexcept;
+	DirectX::PackedVector::XMUBYTEN4 rgba() const noexcept;
 
-	Vector3 ToVector3() const noexcept { return Vector3(x, y, z); }
-	Vector4 ToVector4() const noexcept { return Vector4(x, y, z, w); }
+	Vector3 to_vector3() const noexcept { return Vector3(x, y, z); }
+	Vector4 to_vector4() const noexcept { return Vector4(x, y, z, w); }
 
-	void Negate() noexcept;
-	void Negate(Color& result) const noexcept;
+	void negate() noexcept;
+	void negate(Color& result) const noexcept;
 
-	void Saturate() noexcept;
-	void Saturate(Color& result) const noexcept;
+	void saturate() noexcept;
+	void saturate(Color& result) const noexcept;
 
-	void Premultiply() noexcept;
-	void Premultiply(Color& result) const noexcept;
+	void premultiply() noexcept;
+	void premultiply(Color& result) const noexcept;
 
-	void AdjustSaturation(float sat) noexcept;
-	void AdjustSaturation(float sat, Color& result) const noexcept;
+	void adjust_saturation(float sat) noexcept;
+	void adjust_saturation(float sat, Color& result) const noexcept;
 
-	void AdjustContrast(float contrast) noexcept;
-	void AdjustContrast(float contrast, Color& result) const noexcept;
+	void adjust_contrast(float contrast) noexcept;
+	void adjust_contrast(float contrast, Color& result) const noexcept;
 
 	// Static functions
-	static void Modulate(const Color& c1, const Color& c2, Color& result) noexcept;
-	static Color Modulate(const Color& c1, const Color& c2) noexcept;
+	static void modulate(const Color& c1, const Color& c2, Color& result) noexcept;
+	static Color modulate(const Color& c1, const Color& c2) noexcept;
 
-	static void Lerp(const Color& c1, const Color& c2, float t, Color& result) noexcept;
-	static Color Lerp(const Color& c1, const Color& c2, float t) noexcept;
+	static void lerp(const Color& c1, const Color& c2, float t, Color& result) noexcept;
+	static Color lerp(const Color& c1, const Color& c2, float t) noexcept;
 };
 
 // Binary operators
-DIRECTX_TOOLKIT_API Color operator+(const Color& C1, const Color& C2) noexcept;
-DIRECTX_TOOLKIT_API Color operator-(const Color& C1, const Color& C2) noexcept;
-DIRECTX_TOOLKIT_API Color operator*(const Color& C1, const Color& C2) noexcept;
-DIRECTX_TOOLKIT_API Color operator*(const Color& C, float S) noexcept;
-DIRECTX_TOOLKIT_API Color operator*(float S, const Color& C) noexcept;
-DIRECTX_TOOLKIT_API Color operator/(const Color& C1, const Color& C2) noexcept;
+DIRECTX_TOOLKIT_API Color operator+(const Color& c1, const Color& c2) noexcept;
+DIRECTX_TOOLKIT_API Color operator-(const Color& c1, const Color& c2) noexcept;
+DIRECTX_TOOLKIT_API Color operator*(const Color& c1, const Color& c2) noexcept;
+DIRECTX_TOOLKIT_API Color operator*(const Color& c, float s) noexcept;
+DIRECTX_TOOLKIT_API Color operator*(float s, const Color& c) noexcept;
+DIRECTX_TOOLKIT_API Color operator/(const Color& c1, const Color& c2) noexcept;
 
 //------------------------------------------------------------------------------
 // Ray
@@ -1145,10 +1145,10 @@ public:
 	bool operator!=(const Ray& r) const noexcept;
 
 	// Ray operations
-	bool Intersects(const BoundingSphere& sphere, _Out_ float& Dist) const noexcept;
-	bool Intersects(const BoundingBox& box, _Out_ float& Dist) const noexcept;
-	bool Intersects(const Vector3& tri0, const Vector3& tri1, const Vector3& tri2, _Out_ float& Dist) const noexcept;
-	bool Intersects(const Plane& plane, _Out_ float& Dist) const noexcept;
+	bool intersects(const BoundingSphere& sphere, _Out_ float& dist) const noexcept;
+	bool intersects(const BoundingBox& box, _Out_ float& dist) const noexcept;
+	bool intersects(const Vector3& tri0, const Vector3& tri1, const Vector3& tri2, _Out_ float& dist) const noexcept;
+	bool intersects(const Plane& plane, _Out_ float& dist) const noexcept;
 };
 
 //------------------------------------------------------------------------------
@@ -1159,15 +1159,15 @@ public:
 	float y;
 	float width;
 	float height;
-	float minDepth;
-	float maxDepth;
+	float min_depth;
+	float max_depth;
 
 	Viewport() noexcept :
-			x(0.f), y(0.f), width(0.f), height(0.f), minDepth(0.f), maxDepth(1.f) {}
+			x(0.f), y(0.f), width(0.f), height(0.f), min_depth(0.f), max_depth(1.f) {}
 	constexpr Viewport(float ix, float iy, float iw, float ih, float iminz = 0.f, float imaxz = 1.f) noexcept :
-			x(ix), y(iy), width(iw), height(ih), minDepth(iminz), maxDepth(imaxz) {}
+			x(ix), y(iy), width(iw), height(ih), min_depth(iminz), max_depth(imaxz) {}
 	explicit Viewport(const RECT& rct) noexcept :
-			x(float(rct.left)), y(float(rct.top)), width(float(rct.right - rct.left)), height(float(rct.bottom - rct.top)), minDepth(0.f), maxDepth(1.f) {}
+			x(float(rct.left)), y(float(rct.top)), width(float(rct.right - rct.left)), height(float(rct.bottom - rct.top)), min_depth(0.f), max_depth(1.f) {}
 
 #if defined(__d3d11_h__) || defined(__d3d11_x_h__)
 	// Direct3D 11 interop
@@ -1208,19 +1208,19 @@ public:
 	Viewport& operator=(const RECT& rct) noexcept;
 
 	// Viewport operations
-	float AspectRatio() const noexcept;
+	float aspect_ratio() const noexcept;
 
-	Vector3 Project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) const noexcept;
-	void Project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) const noexcept;
+	Vector3 project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) const noexcept;
+	void project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) const noexcept;
 
-	Vector3 Unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) const noexcept;
-	void Unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) const noexcept;
+	Vector3 unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) const noexcept;
+	void unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) const noexcept;
 
 	// Static methods
 #if defined(__dxgi1_2_h__) || defined(__d3d11_x_h__) || defined(__d3d12_x_h__) || defined(__XBOX_D3D12_X__)
 	static RECT __cdecl ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UINT backBufferHeight, int outputWidth, int outputHeight) noexcept;
 #endif
-	static RECT __cdecl ComputeTitleSafeArea(UINT backBufferWidth, UINT backBufferHeight) noexcept;
+	static RECT __cdecl compute_title_safe_area(UINT back_buffer_width, UINT back_buffer_height) noexcept;
 };
 
 #include "SimpleMath.inl"
@@ -1242,60 +1242,60 @@ struct less<DirectX::SimpleMath::Rectangle> {
 
 template <>
 struct less<DirectX::SimpleMath::Vector2> {
-	bool operator()(const DirectX::SimpleMath::Vector2& V1, const DirectX::SimpleMath::Vector2& V2) const noexcept {
-		return ((V1.x < V2.x) || ((V1.x == V2.x) && (V1.y < V2.y)));
+	bool operator()(const DirectX::SimpleMath::Vector2& v1, const DirectX::SimpleMath::Vector2& v2) const noexcept {
+		return ((v1.x < v2.x) || ((v1.x == v2.x) && (v1.y < v2.y)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Vector3> {
-	bool operator()(const DirectX::SimpleMath::Vector3& V1, const DirectX::SimpleMath::Vector3& V2) const noexcept {
-		return ((V1.x < V2.x) || ((V1.x == V2.x) && (V1.y < V2.y)) || ((V1.x == V2.x) && (V1.y == V2.y) && (V1.z < V2.z)));
+	bool operator()(const DirectX::SimpleMath::Vector3& v1, const DirectX::SimpleMath::Vector3& v2) const noexcept {
+		return ((v1.x < v2.x) || ((v1.x == v2.x) && (v1.y < v2.y)) || ((v1.x == v2.x) && (v1.y == v2.y) && (v1.z < v2.z)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Vector4> {
-	bool operator()(const DirectX::SimpleMath::Vector4& V1, const DirectX::SimpleMath::Vector4& V2) const noexcept {
-		return ((V1.x < V2.x) || ((V1.x == V2.x) && (V1.y < V2.y)) || ((V1.x == V2.x) && (V1.y == V2.y) && (V1.z < V2.z)) || ((V1.x == V2.x) && (V1.y == V2.y) && (V1.z == V2.z) && (V1.w < V2.w)));
+	bool operator()(const DirectX::SimpleMath::Vector4& v1, const DirectX::SimpleMath::Vector4& v2) const noexcept {
+		return ((v1.x < v2.x) || ((v1.x == v2.x) && (v1.y < v2.y)) || ((v1.x == v2.x) && (v1.y == v2.y) && (v1.z < v2.z)) || ((v1.x == v2.x) && (v1.y == v2.y) && (v1.z == v2.z) && (v1.w < v2.w)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Matrix> {
-	bool operator()(const DirectX::SimpleMath::Matrix& M1, const DirectX::SimpleMath::Matrix& M2) const noexcept {
-		if (M1._11 != M2._11)
-			return M1._11 < M2._11;
-		if (M1._12 != M2._12)
-			return M1._12 < M2._12;
-		if (M1._13 != M2._13)
-			return M1._13 < M2._13;
-		if (M1._14 != M2._14)
-			return M1._14 < M2._14;
-		if (M1._21 != M2._21)
-			return M1._21 < M2._21;
-		if (M1._22 != M2._22)
-			return M1._22 < M2._22;
-		if (M1._23 != M2._23)
-			return M1._23 < M2._23;
-		if (M1._24 != M2._24)
-			return M1._24 < M2._24;
-		if (M1._31 != M2._31)
-			return M1._31 < M2._31;
-		if (M1._32 != M2._32)
-			return M1._32 < M2._32;
-		if (M1._33 != M2._33)
-			return M1._33 < M2._33;
-		if (M1._34 != M2._34)
-			return M1._34 < M2._34;
-		if (M1._41 != M2._41)
-			return M1._41 < M2._41;
-		if (M1._42 != M2._42)
-			return M1._42 < M2._42;
-		if (M1._43 != M2._43)
-			return M1._43 < M2._43;
-		if (M1._44 != M2._44)
-			return M1._44 < M2._44;
+	bool operator()(const DirectX::SimpleMath::Matrix& m1, const DirectX::SimpleMath::Matrix& m2) const noexcept {
+		if (m1._11 != m2._11)
+			return m1._11 < m2._11;
+		if (m1._12 != m2._12)
+			return m1._12 < m2._12;
+		if (m1._13 != m2._13)
+			return m1._13 < m2._13;
+		if (m1._14 != m2._14)
+			return m1._14 < m2._14;
+		if (m1._21 != m2._21)
+			return m1._21 < m2._21;
+		if (m1._22 != m2._22)
+			return m1._22 < m2._22;
+		if (m1._23 != m2._23)
+			return m1._23 < m2._23;
+		if (m1._24 != m2._24)
+			return m1._24 < m2._24;
+		if (m1._31 != m2._31)
+			return m1._31 < m2._31;
+		if (m1._32 != m2._32)
+			return m1._32 < m2._32;
+		if (m1._33 != m2._33)
+			return m1._33 < m2._33;
+		if (m1._34 != m2._34)
+			return m1._34 < m2._34;
+		if (m1._41 != m2._41)
+			return m1._41 < m2._41;
+		if (m1._42 != m2._42)
+			return m1._42 < m2._42;
+		if (m1._43 != m2._43)
+			return m1._43 < m2._43;
+		if (m1._44 != m2._44)
+			return m1._44 < m2._44;
 
 		return false;
 	}
@@ -1303,41 +1303,41 @@ struct less<DirectX::SimpleMath::Matrix> {
 
 template <>
 struct less<DirectX::SimpleMath::Plane> {
-	bool operator()(const DirectX::SimpleMath::Plane& P1, const DirectX::SimpleMath::Plane& P2) const noexcept {
-		return ((P1.x < P2.x) || ((P1.x == P2.x) && (P1.y < P2.y)) || ((P1.x == P2.x) && (P1.y == P2.y) && (P1.z < P2.z)) || ((P1.x == P2.x) && (P1.y == P2.y) && (P1.z == P2.z) && (P1.w < P2.w)));
+	bool operator()(const DirectX::SimpleMath::Plane& p1, const DirectX::SimpleMath::Plane& p2) const noexcept {
+		return ((p1.x < p2.x) || ((p1.x == p2.x) && (p1.y < p2.y)) || ((p1.x == p2.x) && (p1.y == p2.y) && (p1.z < p2.z)) || ((p1.x == p2.x) && (p1.y == p2.y) && (p1.z == p2.z) && (p1.w < p2.w)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Quaternion> {
-	bool operator()(const DirectX::SimpleMath::Quaternion& Q1, const DirectX::SimpleMath::Quaternion& Q2) const noexcept {
-		return ((Q1.x < Q2.x) || ((Q1.x == Q2.x) && (Q1.y < Q2.y)) || ((Q1.x == Q2.x) && (Q1.y == Q2.y) && (Q1.z < Q2.z)) || ((Q1.x == Q2.x) && (Q1.y == Q2.y) && (Q1.z == Q2.z) && (Q1.w < Q2.w)));
+	bool operator()(const DirectX::SimpleMath::Quaternion& q1, const DirectX::SimpleMath::Quaternion& q2) const noexcept {
+		return ((q1.x < q2.x) || ((q1.x == q2.x) && (q1.y < q2.y)) || ((q1.x == q2.x) && (q1.y == q2.y) && (q1.z < q2.z)) || ((q1.x == q2.x) && (q1.y == q2.y) && (q1.z == q2.z) && (q1.w < q2.w)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Color> {
-	bool operator()(const DirectX::SimpleMath::Color& C1, const DirectX::SimpleMath::Color& C2) const noexcept {
-		return ((C1.x < C2.x) || ((C1.x == C2.x) && (C1.y < C2.y)) || ((C1.x == C2.x) && (C1.y == C2.y) && (C1.z < C2.z)) || ((C1.x == C2.x) && (C1.y == C2.y) && (C1.z == C2.z) && (C1.w < C2.w)));
+	bool operator()(const DirectX::SimpleMath::Color& c1, const DirectX::SimpleMath::Color& c2) const noexcept {
+		return ((c1.x < c2.x) || ((c1.x == c2.x) && (c1.y < c2.y)) || ((c1.x == c2.x) && (c1.y == c2.y) && (c1.z < c2.z)) || ((c1.x == c2.x) && (c1.y == c2.y) && (c1.z == c2.z) && (c1.w < c2.w)));
 	}
 };
 
 template <>
 struct less<DirectX::SimpleMath::Ray> {
-	bool operator()(const DirectX::SimpleMath::Ray& R1, const DirectX::SimpleMath::Ray& R2) const noexcept {
-		if (R1.position.x != R2.position.x)
-			return R1.position.x < R2.position.x;
-		if (R1.position.y != R2.position.y)
-			return R1.position.y < R2.position.y;
-		if (R1.position.z != R2.position.z)
-			return R1.position.z < R2.position.z;
+	bool operator()(const DirectX::SimpleMath::Ray& r1, const DirectX::SimpleMath::Ray& r2) const noexcept {
+		if (r1.position.x != r2.position.x)
+			return r1.position.x < r2.position.x;
+		if (r1.position.y != r2.position.y)
+			return r1.position.y < r2.position.y;
+		if (r1.position.z != r2.position.z)
+			return r1.position.z < r2.position.z;
 
-		if (R1.direction.x != R2.direction.x)
-			return R1.direction.x < R2.direction.x;
-		if (R1.direction.y != R2.direction.y)
-			return R1.direction.y < R2.direction.y;
-		if (R1.direction.z != R2.direction.z)
-			return R1.direction.z < R2.direction.z;
+		if (r1.direction.x != r2.direction.x)
+			return r1.direction.x < r2.direction.x;
+		if (r1.direction.y != r2.direction.y)
+			return r1.direction.y < r2.direction.y;
+		if (r1.direction.z != r2.direction.z)
+			return r1.direction.z < r2.direction.z;
 
 		return false;
 	}
@@ -1356,10 +1356,10 @@ struct less<DirectX::SimpleMath::Viewport> {
 		if (vp1.height != vp2.height)
 			return (vp1.height < vp2.height);
 
-		if (vp1.minDepth != vp2.minDepth)
-			return (vp1.minDepth < vp2.minDepth);
-		if (vp1.maxDepth != vp2.maxDepth)
-			return (vp1.maxDepth < vp2.maxDepth);
+		if (vp1.min_depth != vp2.min_depth)
+			return (vp1.min_depth < vp2.min_depth);
+		if (vp1.max_depth != vp2.max_depth)
+			return (vp1.max_depth < vp2.max_depth);
 
 		return false;
 	}
