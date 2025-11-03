@@ -2,7 +2,6 @@
 #include <DirectXMath.h>
 #include <SimpleMath.h>
 
-#include <format>
 #include <utility>
 
 namespace feather {
@@ -26,24 +25,24 @@ using IntVector2 = DirectX::XMINT2;
 
 // Helper Functions
 float deg_to_rad(float degrees);
-float RadToDeg(float radians);
+float rad_to_deg(float radians);
 
-Vector3 DegToRad(const Vector3& degrees);
-Vector3 RadToDeg(const Vector3& radians);
+Vector3 deg_to_rad(const Vector3& degrees);
+Vector3 rad_to_deg(const Vector3& radians);
 
-uint32_t RoundUpToNextPow2(uint32_t x);
+uint32_t round_up_to_next_pow_2(uint32_t x);
 
 template <class T>
 	requires std::is_integral_v<T>
-bool IsPowerOfTwo(T x) {
+bool is_power_of_two(T x) {
 	return (x & (x - 1)) == 0;
 }
 
 constexpr uint32_t RaiseToNextMultipleOf(uint32_t val, uint32_t multiple);
 
-Matrix ConvertDirectionVectorToRotationMatrix(Vector3 forward);
+Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
 
-bool IsPowerOfTwo(int n) {
+inline bool is_power_of_two(int n) {
 	if (n == 0)
 		return false;
 
@@ -70,7 +69,7 @@ inline void RemoveScaling(Matrix& m) {
 	m.m[2][2] *= scale2;
 }
 
-inline void SetAxis(Matrix& m, uint32_t i, const Vector3& axis) {
+inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
 	m.m[i][0] = axis.x;
 	m.m[i][1] = axis.y;
 	m.m[i][2] = axis.z;
@@ -82,12 +81,12 @@ enum class Axis : uint8_t {
 	Z
 };
 
-inline Vector3 GetAxis(const Matrix& mat, Axis axis) {
+inline Vector3 get_axis(const Matrix& mat, Axis axis) {
 	const uint8_t i = std::to_underlying(axis);
 	return { mat.m[i][0], mat.m[i][1], mat.m[i][2] };
 }
 
-inline Vector3 GetOrigin(const Matrix& mat) {
+inline Vector3 get_origin(const Matrix& mat) {
 	return { mat.m[3][0], mat.m[3][1], mat.m[3][2] };
 }
 

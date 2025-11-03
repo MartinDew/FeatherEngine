@@ -12,9 +12,9 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set default build type to Release if not specified
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
+endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -27,22 +27,22 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(PROJECT_HEADERS
-    core/launch_settings.h
-    core/window.h
-    core/engine.h
-    # core/transform.h
-    core/math.h
+        core/launch_settings.h
+        core/window.h
+        core/engine.h
+        # core/transform.h
+        core/math.h
 )
 
 # Source files (shared between both targets)
 set(PROJECT_SOURCES
-    core/main.cpp
-    core/launch_settings.cpp
-    core/window.cpp
-    core/engine.cpp
-    # core/transform.cpp
-    core/math.cpp
- )
+        core/main.cpp
+        core/launch_settings.cpp
+        core/window.cpp
+        core/engine.cpp
+        # core/transform.cpp
+        core/math.cpp
+)
 
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
@@ -52,9 +52,9 @@ target_link_libraries(Editor PUBLIC ${THIRDPARTIES})
 
 # Compiler options for Editor
 target_compile_options(Editor PRIVATE
-    $<$<CONFIG:Debug>:-g -O0>
-    $<$<CONFIG:Release>:-O3 -DNDEBUG>
-    $<$<CONFIG:Development>:-g -O2>
+        $<$<CONFIG:Debug>:-g -O0>
+        $<$<CONFIG:Release>:-O3 -DNDEBUG>
+        $<$<CONFIG:Development>:-g -O2>
 )
 
 # Standalone target
@@ -64,31 +64,35 @@ target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
 
 # Compiler options for Standalone
 target_compile_options(Standalone PRIVATE
-    $<$<CONFIG:Debug>:-g -O0>
-    $<$<CONFIG:Release>:-O3 -DNDEBUG>
-    $<$<CONFIG:Development>:-g -O2>
+        $<$<CONFIG:Debug>:-g -O0>
+        $<$<CONFIG:Release>:-O3 -DNDEBUG>
+        $<$<CONFIG:Development>:-g -O2>
 )
 
 # Platform-specific settings
-if(MSVC)
+if (MSVC)
     target_compile_options(Editor PRIVATE /W4 /wd4100)
     target_compile_options(Standalone PRIVATE /W4 /wd4100)
-    
+
     # MSVC-specific config flags
     target_compile_options(Editor PRIVATE
-        $<$<CONFIG:Debug>:/Od /Zi>
-        $<$<CONFIG:Release>:/O2 /DNDEBUG>
-        $<$<CONFIG:Development>:/O2 /Zi>
+            $<$<CONFIG:Debug>:/Od /Zi>
+            $<$<CONFIG:Release>:/O2 /DNDEBUG>
+            $<$<CONFIG:Development>:/O2 /Zi>
     )
     target_compile_options(Standalone PRIVATE
-        $<$<CONFIG:Debug>:/Od /Zi>
-        $<$<CONFIG:Release>:/O2 /DNDEBUG>
-        $<$<CONFIG:Development>:/O2 /Zi>
+            $<$<CONFIG:Debug>:/Od /Zi>
+            $<$<CONFIG:Release>:/O2 /DNDEBUG>
+            $<$<CONFIG:Development>:/O2 /Zi>
     )
-else()
+
+    # NOMINMAX and LEAN_AND_MEAN to reduce Windows headers bloat
+    target_compile_definitions(Editor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
-endif()
+endif ()
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -97,15 +101,15 @@ message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 # Clang-Tidy integration
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 
-if(ENABLE_CLANG_TIDY)
+if (ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
-    if(CLANG_TIDY_EXE)
+    if (CLANG_TIDY_EXE)
         set(CMAKE_CXX_CLANG_TIDY
                 ${CLANG_TIDY_EXE};
                 -header-filter=.*;
         )
         message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-    else()
+    else ()
         message(WARNING "clang-tidy not found!")
-    endif()
-endif()
+    endif ()
+endif ()

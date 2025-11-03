@@ -60,10 +60,15 @@
 
 #ifndef _MSC_VER
 
+#ifndef __cdecl
 #define __cdecl
+
+#endif
 
 using UINT = uint32_t;
 using LONG = long;
+
+#ifndef WIN32
 
 typedef struct tagRECT {
 	long left;
@@ -71,6 +76,8 @@ typedef struct tagRECT {
 	long right;
 	long bottom;
 } RECT, *PRECT, *NPRECT, *LPRECT;
+
+#endif
 
 #endif
 
