@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
+
+include(tools/options.cmake)
+
 project(Feather VERSION 1.0.0 LANGUAGES CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-include(tools/options.cmake)
 
 add_subdirectory(thirdparty)
 
