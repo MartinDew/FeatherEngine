@@ -15,13 +15,13 @@ using Quaternion = DirectX::SimpleMath::Quaternion;
 using UByteColor = std::array<uint8_t, 4>;
 
 // // TODO: Add better support for math and conversion operations using these types
-using UIntVector4 = DirectX::XMUINT4;
-using UIntVector3 = DirectX::XMUINT3;
-using UIntVector2 = DirectX::XMUINT2;
+using Vector4ui = DirectX::XMUINT4;
+using Vector3ui = DirectX::XMUINT3;
+using Vector2ui = DirectX::XMUINT2;
 
-using IntVector4 = DirectX::XMINT4;
-using IntVector3 = DirectX::XMINT3;
-using IntVector2 = DirectX::XMINT2;
+using Vector4i = DirectX::XMINT4;
+using Vector3i = DirectX::XMINT3;
+using Vector2i = DirectX::XMINT2;
 
 // Helper Functions
 float deg_to_rad(float degrees);
@@ -90,7 +90,7 @@ inline Vector3 get_origin(const Matrix& mat) {
 	return { mat.m[3][0], mat.m[3][1], mat.m[3][2] };
 }
 
-} //namespace Math::Matrices
+} //namespace math::matrices
 
 inline constexpr float SMALL_NUMBER = 1.e-4f;
 inline constexpr float QUATERNION_NORMALIZE_THRESHHOLD = 0.01f;
