@@ -38,7 +38,7 @@ bool is_power_of_two(T x) {
 	return (x & (x - 1)) == 0;
 }
 
-constexpr uint32_t RaiseToNextMultipleOf(uint32_t val, uint32_t multiple);
+constexpr uint32_t raise_to_next_multiple_of(uint32_t val, uint32_t multiple);
 
 Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
 
@@ -49,24 +49,24 @@ inline bool is_power_of_two(int n) {
 	return ceil(log2(n)) == floor(log2(n));
 }
 
-namespace Math::Matrices {
+namespace math::matrices {
 
-inline void RemoveScaling(Matrix& m) {
-	const float squareSum0 = (m.m[0][0] * m.m[0][0]) + (m.m[0][1] * m.m[0][1]) + (m.m[0][2] * m.m[0][2]);
-	const float squareSum1 = (m.m[1][0] * m.m[1][0]) + (m.m[1][1] * m.m[1][1]) + (m.m[1][2] * m.m[1][2]);
-	const float squareSum2 = (m.m[2][0] * m.m[2][0]) + (m.m[2][1] * m.m[2][1]) + (m.m[2][2] * m.m[2][2]);
-	const float scale0 = squareSum0 >= 0 ? std::sqrt(squareSum0) : 1;
-	const float scale1 = squareSum1 >= 0 ? std::sqrt(squareSum1) : 1;
-	const float scale2 = squareSum2 >= 0 ? std::sqrt(squareSum2) : 1;
-	m.m[0][0] *= scale0;
-	m.m[0][1] *= scale0;
-	m.m[0][2] *= scale0;
-	m.m[1][0] *= scale1;
-	m.m[1][1] *= scale1;
-	m.m[1][2] *= scale1;
-	m.m[2][0] *= scale2;
-	m.m[2][1] *= scale2;
-	m.m[2][2] *= scale2;
+inline void remove_scaling(Matrix& m) {
+	const float SQUARE_SUM0 = (m.m[0][0] * m.m[0][0]) + (m.m[0][1] * m.m[0][1]) + (m.m[0][2] * m.m[0][2]);
+	const float SQUARE_SUM1 = (m.m[1][0] * m.m[1][0]) + (m.m[1][1] * m.m[1][1]) + (m.m[1][2] * m.m[1][2]);
+	const float SQUARE_SUM2 = (m.m[2][0] * m.m[2][0]) + (m.m[2][1] * m.m[2][1]) + (m.m[2][2] * m.m[2][2]);
+	const float SCALE0 = SQUARE_SUM0 >= 0 ? std::sqrt(SQUARE_SUM0) : 1;
+	const float SCALE1 = SQUARE_SUM1 >= 0 ? std::sqrt(SQUARE_SUM1) : 1;
+	const float SCALE2 = SQUARE_SUM2 >= 0 ? std::sqrt(SQUARE_SUM2) : 1;
+	m.m[0][0] *= SCALE0;
+	m.m[0][1] *= SCALE0;
+	m.m[0][2] *= SCALE0;
+	m.m[1][0] *= SCALE1;
+	m.m[1][1] *= SCALE1;
+	m.m[1][2] *= SCALE1;
+	m.m[2][0] *= SCALE2;
+	m.m[2][1] *= SCALE2;
+	m.m[2][2] *= SCALE2;
 }
 
 inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
