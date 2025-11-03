@@ -18,38 +18,38 @@
 
 namespace DirectX {
 namespace SimpleMath {
-const Vector2 Vector2::ZERO = { 0.f, 0.f };
-const Vector2 Vector2::ONE = { 1.f, 1.f };
-const Vector2 Vector2::UNIT_X = { 1.f, 0.f };
-const Vector2 Vector2::UNIT_Y = { 0.f, 1.f };
+const Vector2 Vector2::zero = { 0.f, 0.f };
+const Vector2 Vector2::one = { 1.f, 1.f };
+const Vector2 Vector2::unit_x = { 1.f, 0.f };
+const Vector2 Vector2::unit_y = { 0.f, 1.f };
 
-const Vector3 Vector3::ZERO = { 0.f, 0.f, 0.f };
-const Vector3 Vector3::ONE = { 1.f, 1.f, 1.f };
-const Vector3 Vector3::UNIT_X = { 1.f, 0.f, 0.f };
-const Vector3 Vector3::UNIT_Y = { 0.f, 1.f, 0.f };
-const Vector3 Vector3::UNIT_Z = { 0.f, 0.f, 1.f };
-const Vector3 Vector3::UP = { 0.f, 1.f, 0.f };
-const Vector3 Vector3::DOWN = { 0.f, -1.f, 0.f };
-const Vector3 Vector3::RIGHT = { 1.f, 0.f, 0.f };
-const Vector3 Vector3::LEFT = { -1.f, 0.f, 0.f };
-const Vector3 Vector3::FORWARD = { 0.f, 0.f, -1.f };
-const Vector3 Vector3::BACKWARD = { 0.f, 0.f, 1.f };
+const Vector3 Vector3::zero = { 0.f, 0.f, 0.f };
+const Vector3 Vector3::one = { 1.f, 1.f, 1.f };
+const Vector3 Vector3::unit_x = { 1.f, 0.f, 0.f };
+const Vector3 Vector3::unit_y = { 0.f, 1.f, 0.f };
+const Vector3 Vector3::unit_z = { 0.f, 0.f, 1.f };
+const Vector3 Vector3::up = { 0.f, 1.f, 0.f };
+const Vector3 Vector3::down = { 0.f, -1.f, 0.f };
+const Vector3 Vector3::right = { 1.f, 0.f, 0.f };
+const Vector3 Vector3::left = { -1.f, 0.f, 0.f };
+const Vector3 Vector3::forward = { 0.f, 0.f, -1.f };
+const Vector3 Vector3::backward = { 0.f, 0.f, 1.f };
 
-const Vector4 Vector4::ZERO = { 0.f, 0.f, 0.f, 0.f };
-const Vector4 Vector4::ONE = { 1.f, 1.f, 1.f, 1.f };
-const Vector4 Vector4::UNIT_X = { 1.f, 0.f, 0.f, 0.f };
-const Vector4 Vector4::UNIT_Y = { 0.f, 1.f, 0.f, 0.f };
-const Vector4 Vector4::UNIT_Z = { 0.f, 0.f, 1.f, 0.f };
-const Vector4 Vector4::UNIT_W = { 0.f, 0.f, 0.f, 1.f };
+const Vector4 Vector4::zero = { 0.f, 0.f, 0.f, 0.f };
+const Vector4 Vector4::one = { 1.f, 1.f, 1.f, 1.f };
+const Vector4 Vector4::unit_x = { 1.f, 0.f, 0.f, 0.f };
+const Vector4 Vector4::unit_y = { 0.f, 1.f, 0.f, 0.f };
+const Vector4 Vector4::unit_z = { 0.f, 0.f, 1.f, 0.f };
+const Vector4 Vector4::unit_w = { 0.f, 0.f, 0.f, 1.f };
 
-const Matrix Matrix::IDENTITY = {
+const Matrix Matrix::identity = {
 	1.f, 0.f, 0.f, 0.f,
 	0.f, 1.f, 0.f, 0.f,
 	0.f, 0.f, 1.f, 0.f,
 	0.f, 0.f, 0.f, 1.f
 };
 
-const Quaternion Quaternion::IDENTITY = { 0.f, 0.f, 0.f, 1.f };
+const Quaternion Quaternion::identity = { 0.f, 0.f, 0.f, 1.f };
 } //namespace SimpleMath
 } //namespace DirectX
 
@@ -90,12 +90,12 @@ void Quaternion::from_to_rotation(const Vector3& fromDir, const Vector3& toDir, 
 
 	const float dot = XMVectorGetX(XMVector3Dot(F, T));
 	if (dot >= 1.f) {
-		result = IDENTITY;
+		result = identity;
 	}
 	else if (dot <= -1.f) {
-		XMVECTOR axis = XMVector3Cross(F, Vector3::RIGHT);
+		XMVECTOR axis = XMVector3Cross(F, Vector3::right);
 		if (XMVector3NearEqual(XMVector3LengthSq(axis), g_XMZero, g_XMEpsilon)) {
-			axis = XMVector3Cross(F, Vector3::UP);
+			axis = XMVector3Cross(F, Vector3::up);
 		}
 
 		const XMVECTOR Q = XMQuaternionRotationAxis(axis, XM_PI);
@@ -115,7 +115,7 @@ void Quaternion::from_to_rotation(const Vector3& fromDir, const Vector3& toDir, 
 
 void Quaternion::look_rotation(const Vector3& forward, const Vector3& up, Quaternion& result) noexcept {
 	Quaternion q1;
-	from_to_rotation(Vector3::FORWARD, forward, q1);
+	from_to_rotation(Vector3::forward, forward, q1);
 
 	const XMVECTOR C = XMVector3Cross(forward, up);
 	if (XMVector3NearEqual(XMVector3LengthSq(C), g_XMZero, g_XMEpsilon)) {
@@ -124,7 +124,7 @@ void Quaternion::look_rotation(const Vector3& forward, const Vector3& up, Quater
 		return;
 	}
 
-	const XMVECTOR U = XMQuaternionMultiply(q1, Vector3::UP);
+	const XMVECTOR U = XMQuaternionMultiply(q1, Vector3::up);
 
 	Quaternion q2;
 	from_to_rotation(U, up, q2);

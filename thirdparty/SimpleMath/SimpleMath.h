@@ -306,10 +306,10 @@ struct DIRECTX_TOOLKIT_API Vector2 : public XMFLOAT2 {
 	static void transform_normal(_In_reads_(count) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector2* result_array) noexcept;
 
 	// Constants
-	static const Vector2 ZERO;
-	static const Vector2 ONE;
-	static const Vector2 UNIT_X;
-	static const Vector2 UNIT_Y;
+	static const Vector2 zero;
+	static const Vector2 one;
+	static const Vector2 unit_x;
+	static const Vector2 unit_y;
 };
 
 // Binary operators
@@ -465,17 +465,17 @@ struct DIRECTX_TOOLKIT_API Vector3 : public XMFLOAT3 {
 	static void transform_normal(_In_reads_(count) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector3* result_array) noexcept;
 
 	// Constants
-	static const Vector3 ZERO;
-	static const Vector3 ONE;
-	static const Vector3 UNIT_X;
-	static const Vector3 UNIT_Y;
-	static const Vector3 UNIT_Z;
-	static const Vector3 UP;
-	static const Vector3 DOWN;
-	static const Vector3 RIGHT;
-	static const Vector3 LEFT;
-	static const Vector3 FORWARD;
-	static const Vector3 BACKWARD;
+	static const Vector3 zero;
+	static const Vector3 one;
+	static const Vector3 unit_x;
+	static const Vector3 unit_y;
+	static const Vector3 unit_z;
+	static const Vector3 up;
+	static const Vector3 down;
+	static const Vector3 right;
+	static const Vector3 left;
+	static const Vector3 forward;
+	static const Vector3 backward;
 };
 
 // Binary operators
@@ -604,12 +604,12 @@ struct DIRECTX_TOOLKIT_API Vector4 : public XMFLOAT4 {
 	static void transform(_In_reads_(count) const Vector4* varray, size_t count, const Matrix& m, _Out_writes_(count) Vector4* result_array) noexcept;
 
 	// Constants
-	static const Vector4 ZERO;
-	static const Vector4 ONE;
-	static const Vector4 UNIT_X;
-	static const Vector4 UNIT_Y;
-	static const Vector4 UNIT_Z;
-	static const Vector4 UNIT_W;
+	static const Vector4 zero;
+	static const Vector4 one;
+	static const Vector4 unit_x;
+	static const Vector4 unit_y;
+	static const Vector4 unit_z;
+	static const Vector4 unit_w;
 };
 
 // Binary operators
@@ -801,7 +801,7 @@ struct DIRECTX_TOOLKIT_API Matrix : public XMFLOAT4X4 {
 	static Matrix transform(const Matrix& m, const Quaternion& rotation) noexcept;
 
 	// Constants
-	static const Matrix IDENTITY;
+	static const Matrix identity;
 };
 
 // Binary operators
@@ -999,7 +999,7 @@ struct DIRECTX_TOOLKIT_API Quaternion : public XMFLOAT4 {
 	static float angle(const Quaternion& q1, const Quaternion& q2) noexcept;
 
 	// Constants
-	static const Quaternion IDENTITY;
+	static const Quaternion identity;
 };
 
 // Binary operators

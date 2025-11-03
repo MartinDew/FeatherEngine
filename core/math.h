@@ -44,8 +44,9 @@ constexpr uint32_t raise_to_next_multiple_of(uint32_t val, uint32_t multiple);
 Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
 
 inline bool is_power_of_two(int n) {
-	if (n == 0)
+	if (n == 0) {
 		return false;
+}
 
 	return ceil(log2(n)) == floor(log2(n));
 }
@@ -53,21 +54,21 @@ inline bool is_power_of_two(int n) {
 namespace math::matrices {
 
 inline void remove_scaling(Matrix& m) {
-	const float SQUARE_SUM0 = (m.m[0][0] * m.m[0][0]) + (m.m[0][1] * m.m[0][1]) + (m.m[0][2] * m.m[0][2]);
-	const float SQUARE_SUM1 = (m.m[1][0] * m.m[1][0]) + (m.m[1][1] * m.m[1][1]) + (m.m[1][2] * m.m[1][2]);
-	const float SQUARE_SUM2 = (m.m[2][0] * m.m[2][0]) + (m.m[2][1] * m.m[2][1]) + (m.m[2][2] * m.m[2][2]);
-	const float SCALE0 = SQUARE_SUM0 >= 0 ? std::sqrt(SQUARE_SUM0) : 1;
-	const float SCALE1 = SQUARE_SUM1 >= 0 ? std::sqrt(SQUARE_SUM1) : 1;
-	const float SCALE2 = SQUARE_SUM2 >= 0 ? std::sqrt(SQUARE_SUM2) : 1;
-	m.m[0][0] *= SCALE0;
-	m.m[0][1] *= SCALE0;
-	m.m[0][2] *= SCALE0;
-	m.m[1][0] *= SCALE1;
-	m.m[1][1] *= SCALE1;
-	m.m[1][2] *= SCALE1;
-	m.m[2][0] *= SCALE2;
-	m.m[2][1] *= SCALE2;
-	m.m[2][2] *= SCALE2;
+	const float square_su_m0 = (m.m[0][0] * m.m[0][0]) + (m.m[0][1] * m.m[0][1]) + (m.m[0][2] * m.m[0][2]);
+	const float square_su_m1 = (m.m[1][0] * m.m[1][0]) + (m.m[1][1] * m.m[1][1]) + (m.m[1][2] * m.m[1][2]);
+	const float square_su_m2 = (m.m[2][0] * m.m[2][0]) + (m.m[2][1] * m.m[2][1]) + (m.m[2][2] * m.m[2][2]);
+	const float scal_e0 = square_su_m0 >= 0 ? std::sqrt(square_su_m0) : 1;
+	const float scal_e1 = square_su_m1 >= 0 ? std::sqrt(square_su_m1) : 1;
+	const float scal_e2 = square_su_m2 >= 0 ? std::sqrt(square_su_m2) : 1;
+	m.m[0][0] *= scal_e0;
+	m.m[0][1] *= scal_e0;
+	m.m[0][2] *= scal_e0;
+	m.m[1][0] *= scal_e1;
+	m.m[1][1] *= scal_e1;
+	m.m[1][2] *= scal_e1;
+	m.m[2][0] *= scal_e2;
+	m.m[2][1] *= scal_e2;
+	m.m[2][2] *= scal_e2;
 }
 
 inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
@@ -93,62 +94,62 @@ inline Vector3 get_origin(const Matrix& mat) {
 
 } //namespace math::matrices
 
-inline constexpr float SMALL_NUMBER = 1.e-4f;
-inline constexpr float QUATERNION_NORMALIZE_THRESHHOLD = 0.01f;
+inline constexpr float small_number = 1.e-4f;
+inline constexpr float quaternion_normalize_threshhold = 0.01f;
 
 } //namespace feather
 
 template <>
 struct std::formatter<feather::Quaternion> {
-	constexpr auto parse(std::format_parse_context& ctx) {
+	static constexpr auto parse(std::format_parse_context& ctx) {
 		return ctx.begin();
 	}
 
-	auto format(const feather::Quaternion& quat, std::format_context& ctx) const {
+	static auto format(const feather::Quaternion& quat, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}, W={}", quat.x, quat.y, quat.z, quat.w);
 	}
 };
 
 template <>
 struct std::formatter<feather::Vector4> {
-	constexpr auto parse(std::format_parse_context& ctx) {
+	static constexpr auto parse(std::format_parse_context& ctx) {
 		return ctx.begin();
 	}
 
-	auto format(const feather::Vector4& vec, std::format_context& ctx) const {
+	static auto format(const feather::Vector4& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}, W={}", vec.x, vec.y, vec.z, vec.w);
 	}
 };
 
 template <>
 struct std::formatter<feather::Vector3> {
-	constexpr auto parse(std::format_parse_context& ctx) {
+	static constexpr auto parse(std::format_parse_context& ctx) {
 		return ctx.begin();
 	}
 
-	auto format(const feather::Vector3& vec, std::format_context& ctx) const {
+	static auto format(const feather::Vector3& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}", vec.x, vec.y, vec.z);
 	}
 };
 
 template <>
 struct std::formatter<feather::Vector2> {
-	constexpr auto parse(std::format_parse_context& ctx) {
+	static constexpr auto parse(std::format_parse_context& ctx) {
 		return ctx.begin();
 	}
 
-	auto format(const feather::Vector2& vec, std::format_context& ctx) const {
+	static auto format(const feather::Vector2& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}", vec.x, vec.y);
 	}
 };
 
 template <>
 struct std::formatter<feather::Color> {
-	constexpr auto parse(std::format_parse_context& ctx) {
+	static constexpr auto parse(std::format_parse_context& ctx) {
 		return ctx.begin();
 	}
 
-	auto format(const feather::Color& col, std::format_context& ctx) const {
+	static auto format(const feather::Color& col, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "R={}, G={}, B={}, A={}", col.x, col.y, col.z, col.w);
 	}
 };

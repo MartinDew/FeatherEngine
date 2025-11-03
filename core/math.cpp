@@ -38,13 +38,13 @@ uint32_t round_up_to_next_pow_2(uint32_t x) {
 }
 
 Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward) {
-	Vector3 WorldUp = Vector3::UNIT_Y;
+	Vector3 WorldUp = Vector3::unit_y;
 	forward.normalize();
 
 	// Make sure side vector is valid (direction could be close to WorldUp)
 	Vector3 right = forward.cross(WorldUp);
 	if (right.length_squared() < 0.001f) {
-		Vector3 WorldRight = Vector3::RIGHT;
+		Vector3 WorldRight = Vector3::right;
 		right = forward.cross(WorldRight);
 	}
 	right.normalize();

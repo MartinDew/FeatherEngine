@@ -31,15 +31,15 @@ Vector3 GetReciprocalSafe(const Vector3& inVec, T tolerance) {
 
 namespace feather {
 
-Transform Transform::Multiply(const Transform& a, const Transform& b) {
+Transform Transform::multiply(const Transform& a, const Transform& b) {
 #ifdef SC_DEV_VERSION
-	Assert(a.IsRotationNormalized());
-	Assert(b.IsRotationNormalized());
+	assert(a.is_rotation_normalized());
+	assert(b.is_rotation_normalized());
 #endif
 
 	// check if negative scale
 	if (HasNegativeScale(a.scale, b.scale)) {
-		return MultiplyUsingMatrixWithScale(a, b);
+		return multiply_using_matrix_with_scale(a, b);
 	}
 
 	// else
@@ -61,30 +61,30 @@ Transform Transform::Multiply(const Transform& a, const Transform& b) {
 	return out;
 }
 
-Transform Transform::MultiplyUsingMatrixWithScale(const Transform& a, const Transform& b) {
-	return ConstructFromMatricesAndScale(a.ToMatrixWithScale(), b.ToMatrixWithScale(), a.scale * b.scale);
+Transform Transform::multiply_using_matrix_with_scale(const Transform& a, const Transform& b) {
+	return construct_from_matrices_and_scale(a.to_matrix_with_scale(), b.to_matrix_with_scale(), a.scale * b.scale);
 }
 
-Matrix Transform::ToMatrixWithScale() const noexcept {
-	return Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+Matrix Transform::to_matrix_with_scale() const noexcept {
+	return Matrix::create_scale(scale) * Matrix::create_from_quaternion(rotation) * Matrix::create_translation(position);
 }
 
-Matrix Transform::ToMatrixNoScale() const noexcept {
-	return Matrix::CreateFromQuaternion(rotation) * Matrix::CreateTranslation(position);
+Matrix Transform::to_matrix_no_scale() const noexcept {
+	return Matrix::create_from_quaternion(rotation) * Matrix::create_translation(position);
 }
 
-Vector3 Transform::GetForwardVector() const noexcept { return Vector3::Transform(Vector3::Forward, rotation); }
+Vector3 Transform::get_forward_vector() const noexcept { return Vector3::transform(Vector3::forward, rotation); }
 
-Vector3 Transform::GetUpVector() const noexcept {
-	Assert(IsRotationNormalized());
-	return Vector3::Transform(Vector3::Up, rotation);
+Vector3 Transform::get_up_vector() const noexcept {
+	assert(is_rotation_normalized());
+	return Vector3::transform(Vector3::up, rotation);
 }
 
-Vector3 Transform::GetRightVector() const noexcept { return Vector3::Transform(Vector3::Right, rotation); }
+Vector3 Transform::get_right_vector() const noexcept { return Vector3::transform(Vector3::right, rotation); }
 
-Transform Transform::Inverse() const noexcept {
+Transform Transform::inverse() const noexcept {
 	Quaternion invRot;
-	rotation.Inverse(invRot);
+	rotation.inverse(invRot);
 
 	const Vector3 invScale = XMVectorReciprocal(scale);
 
@@ -96,94 +96,94 @@ Transform Transform::Inverse() const noexcept {
 	return { invTranslation, invRot, invScale };
 }
 
-void Transform::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) {
+void Transform::look_at(const Vector3& eye, const Vector3& target, const Vector3& up) {
 	position = eye;
-	LookAt(target, up);
+	look_at(target, up);
 }
 
-void Transform::LookAt(const Vector3& target, const Vector3& up) {
-	const Matrix mat = Matrix::CreateLookAt(position, target, up);
-	Quaternion quat = Quaternion::CreateFromRotationMatrix(mat);
-	quat.Inverse(quat);
+void Transform::look_at(const Vector3& target, const Vector3& up) {
+	const Matrix mat = Matrix::create_look_at(position, target, up);
+	Quaternion quat = Quaternion::create_from_rotation_matrix(mat);
+	quat.inverse(quat);
 	rotation = quat;
 }
 
-void Transform::LookTowards(const Vector3& direction, const Vector3& up) {
-	LookAt(position + direction, up);
+void Transform::look_towards(const Vector3& direction, const Vector3& up) {
+	look_at(position + direction, up);
 }
 
-void Transform::Rotate(const int dx, const int dy) {
-	const Quaternion rotx = Quaternion::CreateFromAxisAngle(Vector3::UnitY, -dx / 1000.0f);
-	const Quaternion roty = Quaternion::CreateFromAxisAngle(GetRightVector(), -dy / 1000.0f);
+void Transform::rotate(const int dx, const int dy) {
+	const Quaternion rotx = Quaternion::create_from_axis_angle(Vector3::unit_y, -dx / 1000.0f);
+	const Quaternion roty = Quaternion::create_from_axis_angle(get_right_vector(), -dy / 1000.0f);
 	rotation *= roty * rotx;
-	rotation.Normalize();
+	rotation.normalize();
 }
 
-void Transform::Rotate(const Quaternion& rotation) noexcept {
+void Transform::rotate(const Quaternion& rotation) noexcept {
 	this->rotation *= XMQuaternionNormalize(rotation);
 }
 
-void Transform::RotateTo(const Vector3& eulerAngles) {
+void Transform::rotate_to(const Vector3& eulerAngles) {
 	// Convert Euler angles (in radians)
-	auto targetRotation = Quaternion::CreateFromYawPitchRoll(eulerAngles.y, eulerAngles.x, eulerAngles.z);
+	auto targetRotation = Quaternion::create_from_yaw_pitch_roll(eulerAngles.y, eulerAngles.x, eulerAngles.z);
 
 	// Normalize current and target rotations
-	rotation.Normalize();
-	targetRotation.Normalize();
+	rotation.normalize();
+	targetRotation.normalize();
 
 	// Use spherical linear interpolation to prevent gimbal lock
-	rotation = Quaternion::Slerp(rotation, targetRotation, 1.0f);
+	rotation = Quaternion::slerp(rotation, targetRotation, 1.0f);
 }
 
-bool Transform::IsRotationNormalized() const {
-	const auto TestValue = DirectX::XMVectorAbs(DirectX::XMVectorSubtract(Vector3::One, DirectX::XMVector4Dot(rotation, rotation)));
-	return !DirectX::XMVector4Greater(TestValue, Quaternion{ QuaternionNormalizedTreshhold, QuaternionNormalizedTreshhold, QuaternionNormalizedTreshhold, QuaternionNormalizedTreshhold });
+bool Transform::is_rotation_normalized() const {
+	const auto TestValue = DirectX::XMVectorAbs(DirectX::XMVectorSubtract(Vector3::one, DirectX::XMVector4Dot(rotation, rotation)));
+	return !DirectX::XMVector4Greater(TestValue, Quaternion{ quaternion_normalize_threshhold, quaternion_normalize_threshhold, quaternion_normalize_threshhold, quaternion_normalize_threshhold });
 }
 
-std::tuple<Vector3, Vector3, Vector3> Transform::GetAxis() const noexcept {
-	return { GetUpVector(), GetRightVector(), GetForwardVector() };
+std::tuple<Vector3, Vector3, Vector3> Transform::get_axis() const noexcept {
+	return { get_up_vector(), get_right_vector(), get_forward_vector() };
 }
 
-Transform Transform::CreateLookAt(const Vector3& eye, const Vector3& target, const Vector3& up) {
+Transform Transform::create_look_at(const Vector3& eye, const Vector3& target, const Vector3& up) {
 	Transform t;
-	t.LookAt(eye, target, up);
+	t.look_at(eye, target, up);
 	return t;
 }
 
 Transform::Transform(const Matrix& transformationMat) {
 	Matrix copy = transformationMat;
-	Assert(copy.Decompose(scale, rotation, position));
+	assert(copy.decompose(scale, rotation, position));
 }
 
 Transform::Transform(const Vector3& position, const Quaternion& rotation, const Vector3& scale) :
 		position(position), rotation(rotation), scale(scale) {}
 
-Transform Transform::ConstructFromMatricesAndScale(const Matrix& mat1, const Matrix& mat2, Vector3 desiredScale) {
-	using namespace Math::Matrices;
+Transform Transform::construct_from_matrices_and_scale(const Matrix& mat1, const Matrix& mat2, Vector3 desiredScale) {
+	using namespace math::matrices;
 	Transform result;
 	Matrix mat = mat1 * mat2;
-	RemoveScaling(mat);
+	math::matrices::remove_scaling(mat);
 
 	Vector3 signedScale = desiredScale;
 
-	SetAxis(mat, 0, signedScale.x * Math::Matrices::GetAxis(mat, Math::Matrices::Axis::X));
-	SetAxis(mat, 1, signedScale.y * Math::Matrices::GetAxis(mat, Math::Matrices::Axis::Y));
-	SetAxis(mat, 2, signedScale.z * Math::Matrices::GetAxis(mat, Math::Matrices::Axis::Z));
+	set_axis(mat, 0, signedScale.x * math::matrices::get_axis(mat, math::matrices::Axis::X));
+	set_axis(mat, 1, signedScale.y * math::matrices::get_axis(mat, math::matrices::Axis::Y));
+	set_axis(mat, 2, signedScale.z * math::matrices::get_axis(mat, math::matrices::Axis::Z));
 
-	Quaternion rot = Quaternion::CreateFromRotationMatrix(mat);
-	rot.Normalize();
+	Quaternion rot = Quaternion::create_from_rotation_matrix(mat);
+	rot.normalize();
 
 	result.scale = desiredScale;
 	result.rotation = rot;
 
-	result.position = GetOrigin(mat);
+	result.position = get_origin(mat);
 	return result;
 }
 
-Transform MakeTransformScreenSpaceSizedBillboard(Transform objectTransform, Vector3 cameraPosition, float fovDeg, Vector2 minScreenSpaceSize, Vector2 screenSize) {
+Transform make_transform_screen_space_sized_billboard(Transform objectTransform, Vector3 cameraPosition, float fovDeg, Vector2 minScreenSpaceSize, Vector2 screenSize) {
 	Vector3 pos = objectTransform.position;
-	objectTransform.rotation = Quaternion::CreateFromRotationMatrix(Matrix::CreateLookAt(pos, cameraPosition, objectTransform.GetUpVector()).Invert());
-	float distanceToObject = Vector3::Distance(cameraPosition, pos);
+	objectTransform.rotation = Quaternion::create_from_rotation_matrix(Matrix::create_look_at(pos, cameraPosition, objectTransform.get_up_vector()).invert());
+	float distanceToObject = Vector3::distance(cameraPosition, pos);
 	const float maxConstantSizeDistance = 200.0f; // After this distance, object will scale with perspective
 
 	float effectiveDistance = distanceToObject;
@@ -207,9 +207,9 @@ Transform MakeTransformScreenSpaceSizedBillboard(Transform objectTransform, Vect
 	return objectTransform;
 }
 
-Transform MakeTransformBillboard(Transform objectTransform, Vector3 cameraPosition) {
+Transform make_transform_billboard(Transform objectTransform, Vector3 cameraPosition) {
 	Vector3 pos = objectTransform.position;
-	objectTransform.rotation = Quaternion::CreateFromRotationMatrix(Matrix::CreateLookAt(pos, cameraPosition, objectTransform.GetUpVector()).Invert());
+	objectTransform.rotation = Quaternion::create_from_rotation_matrix(Matrix::create_look_at(pos, cameraPosition, objectTransform.get_up_vector()).invert());
 	return objectTransform;
 }
 
@@ -217,17 +217,17 @@ bool Transform::operator==(const Transform& other) const {
 	return std::tie(position, scale, rotation) == std::tie(other.position, other.scale, other.rotation);
 }
 
-Transform Transform::GetRelativeTransform(const Transform& other) const {
+Transform Transform::get_relative_transform(const Transform& other) const {
 	Transform result;
 
-	if (!other.IsRotationNormalized())
+	if (!other.is_rotation_normalized())
 		return Transform{};
 
 	if (HasNegativeScale(scale, other.scale)) {
-		return MultiplyUsingMatrixWithScale(*this, other);
+		return multiply_using_matrix_with_scale(*this, other);
 	}
 
-	Vector3 safeScale = GetReciprocalSafe(other.scale, FloatSmallNumber);
+	Vector3 safeScale = GetReciprocalSafe(other.scale, small_number);
 
 	Vector3 desiredScale = scale * safeScale;
 
@@ -247,22 +247,22 @@ Transform Transform::GetRelativeTransform(const Transform& other) const {
 	return result;
 }
 
-Transform Transform::GetRelativeTransformReverse(const Transform& other) const {
-	return other.GetRelativeTransform({ *this });
+Transform Transform::get_relative_transform_reverse(const Transform& other) const {
+	return other.get_relative_transform({ *this });
 }
 
-void Transform::SetToRelativeTransform(const Transform& parent) {
-	*this = GetRelativeTransform(parent);
+void Transform::set_to_relative_transform(const Transform& parent) {
+	*this = get_relative_transform(parent);
 }
 
-Transform Transform::GetRelativeTransformUsingMatrixWithScale(const Transform& base, const Transform& relative) {
-	Matrix A = base.ToMatrixWithScale();
-	Matrix B = relative.ToMatrixWithScale();
+Transform Transform::get_relative_transform_using_matrix_with_scale(const Transform& base, const Transform& relative) {
+	Matrix A = base.to_matrix_with_scale();
+	Matrix B = relative.to_matrix_with_scale();
 
 	Vector3 scale = DirectX::XMVectorReciprocal(relative.scale);
 	Vector3 desiredScale = base.scale * scale;
 
-	return ConstructFromMatricesAndScale(A, B.Invert(), desiredScale);
+	return construct_from_matrices_and_scale(A, B.invert(), desiredScale);
 }
 
 } //namespace feather
