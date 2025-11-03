@@ -64,11 +64,11 @@ CheckOptions:
 
   # Constants: CAPS_SNAKE_CASE
   - key: readability-identifier-naming.ConstantCase
-    value: UPPER_CASE
+    value: PascalCase
   - key: readability-identifier-naming.ConstexprVariableCase
-    value: UPPER_CASE
+    value: PascalCase
   - key: readability-identifier-naming.StaticConstantCase
-    value: UPPER_CASE
+    value: PascalCase
 
   # Enum names: PascalCase
   - key: readability-identifier-naming.EnumCase

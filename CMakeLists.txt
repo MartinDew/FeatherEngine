@@ -31,7 +31,7 @@ set(PROJECT_HEADERS
         core/launch_settings.h
         core/window.h
         core/engine.h
-        # core/transform.h
+        core/transform.h
         core/math.h
 )
 
@@ -41,7 +41,7 @@ set(PROJECT_SOURCES
         core/launch_settings.cpp
         core/window.cpp
         core/engine.cpp
-        # core/transform.cpp
+        core/transform.cpp
         core/math.cpp
 )
 
@@ -98,19 +98,3 @@ endif ()
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
-
-# Clang-Tidy integration
-option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
-
-if (ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
-    if (CLANG_TIDY_EXE)
-        set(CMAKE_CXX_CLANG_TIDY
-                ${CLANG_TIDY_EXE};
-                -header-filter=.*;
-        )
-        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-    else ()
-        message(WARNING "clang-tidy not found!")
-    endif ()
-endif ()

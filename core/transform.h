@@ -5,7 +5,7 @@
 namespace feather {
 
 struct Transform {
-	// ScytheEngine uses right-handed chirality
+	// Feather uses right-handed coordinates
 	// up = Y
 	// right = X
 	// forward = -Z
