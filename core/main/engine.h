@@ -25,7 +25,7 @@ public:
 
 	static Engine& get() { return *_instance; }
 
-#ifndef EDITOR_MODE
+#if !EDITOR_BUILD
 	static constexpr bool is_editor() {
 		return false;
 	}

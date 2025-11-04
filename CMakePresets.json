@@ -86,6 +86,24 @@
       "displayName": "Development Build",
       "configurePreset": "development",
       "configuration": "Development"
+    },
+    {
+      "name": "multi-development",
+      "displayName": "Development Build",
+      "configurePreset": "multi",
+      "configuration": "Development"
+    },
+    {
+      "name": "multi-debug",
+      "displayName": "Debug Build",
+      "configurePreset": "multi",
+      "configuration": "Debug"
+    },
+    {
+      "name": "multi-release",
+      "displayName": "Release Build",
+      "configurePreset": "multi",
+      "configuration": "Release"
     }
   ]
 }

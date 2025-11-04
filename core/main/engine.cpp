@@ -1,8 +1,8 @@
 #include "engine.h"
-#include "SDL3/SDL_assert.h"
 #include "launch_settings.h"
 
-#include <SDL3/SDL_init.h>
+#include <framework/assert.hpp>
+
 #include <chrono>
 
 namespace feather {
@@ -17,7 +17,7 @@ Engine* Engine::_instance = nullptr;
 
 Engine::Engine() {
 	// Todo replace sdl assert by custom one
-	SDL_assert(!_instance);
+	fassert(!_instance);
 
 	_instance = this;
 }

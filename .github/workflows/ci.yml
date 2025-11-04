@@ -43,6 +43,12 @@ jobs:
         version: 3-latest
         version-sdl-image: 3-latest
 
+    - name : Setup Vulkan SDK
+      uses : humbletim/setup-vulkan-sdk@v1.2.1
+      with : 
+        vulkan-use-cache : true
+        vulkan-query-version : latest
+
     - name: Configure CMake
       run: |
         cmake --version

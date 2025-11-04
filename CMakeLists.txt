@@ -27,29 +27,51 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+# Glob core folder headers and sources
+
 set(PROJECT_HEADERS
-        core/launch_settings.h
-        core/window.h
-        core/engine.h
-        core/transform.h
-        core/math.h
+        # Root Core files
+        # main
+        core/main/launch_settings.h
+        core/main/window.h
+        core/main/engine.h
+        # Math
+        core/math/transform.h
+        core/math/math_defs.h
+        #Framework
+        core/framework/assert.hpp
+        core/framework/static_string.hpp
+
+        #Rendering
+        core/rendering/rendering_server.h
+        core/rendering/renderer.h
 )
 
 # Source files (shared between both targets)
 set(PROJECT_SOURCES
-        core/main.cpp
-        core/launch_settings.cpp
-        core/window.cpp
-        core/engine.cpp
-        core/transform.cpp
-        core/math.cpp
+        # Root
+        core/main/main.cpp
+        core/main/launch_settings.cpp
+        core/main/window.cpp
+        core/main/engine.cpp
+        # Math
+        core/math/transform.cpp
+        core/math/math_defs.cpp
+        # Rendering
+        core/rendering/renderer.cpp
+        core/rendering/rendering_server.cpp
 )
 
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
-target_compile_definitions(Editor PRIVATE EDITOR_MODE)
+target_compile_definitions(Editor PRIVATE EDITOR_BUILD=1 
+        $<$<CONFIG:Debug>:BETA>
+        $<$<CONFIG:Development>:BETA>
+)
+
+target_include_directories(Editor PRIVATE core)
 target_link_libraries(Editor PUBLIC ${THIRDPARTIES})
 
 # Compiler options for Editor
@@ -59,10 +81,16 @@ target_compile_options(Editor PRIVATE
         $<$<CONFIG:Development>:-g -O2>
 )
 
+
 # Standalone target
 add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+target_include_directories(Standalone PRIVATE core)
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
-target_compile_definitions(Standalone PRIVATE STANDALONE_MODE)
+target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
+        $<$<CONFIG:Debug>:BETA>
+        $<$<CONFIG:Development>:BETA>
+)
+
 target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
 
 # Compiler options for Standalone
@@ -71,6 +99,8 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
         $<$<CONFIG:Development>:-g -O2>
 )
+
+set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
 # Platform-specific settings
 if (MSVC)
