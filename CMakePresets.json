@@ -5,7 +5,6 @@
     "minor": 25,
     "patch": 0
   },
-  "include": [],
   "configurePresets": [
     {
       "name": "default",
@@ -51,8 +50,15 @@
       }
     },
     {
+      "name": "multi",
+      "displayName": "Multi",
+      "description": "Multi config build",
+      "inherits": "default",
+      "generator": "Ninja Multi-Config"
+    },
+    {
       "name": "windows",
-      "displayName": "Windows",
+      "displayName": "Windows VS",
       "description": "Multi config build for Windows with MSVC",
       "inherits": "default",
       "generator": "Visual Studio 17 2022",
@@ -68,19 +74,35 @@
     {
       "name": "debug",
       "displayName": "Debug Build",
-      "configurePreset": "debug",
-      "configuration": "Debug"
+      "configurePreset": "debug"
     },
     {
       "name": "release",
       "displayName": "Release Build",
-      "configurePreset": "release",
-      "configuration": "Release"
+      "configurePreset": "release"
     },
     {
       "name": "development",
       "displayName": "Development Build",
       "configurePreset": "development",
+      "configuration": "Development"
+    },
+    {
+      "name": "debug-multi",
+      "displayName": "Debug Build",
+      "configurePreset": "multi",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release-multi",
+      "displayName": "Release Build",
+      "configurePreset": "multi",
+      "configuration": "Release"
+    },
+    {
+      "name": "development-multi",
+      "displayName": "Development Build",
+      "configurePreset": "multi",
       "configuration": "Development"
     }
   ]
