@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 include(tools/options.cmake)
 
-project(Feather VERSION 1.0.0 LANGUAGES CXX)
+project(feather VERSION 1.0.0 LANGUAGES CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -48,6 +48,7 @@ set(PROJECT_SOURCES
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
+set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 target_compile_definitions(Editor PRIVATE EDITOR_MODE)
 target_link_libraries(Editor PUBLIC ${THIRDPARTIES})
 
@@ -60,6 +61,7 @@ target_compile_options(Editor PRIVATE
 
 # Standalone target
 add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
 target_compile_definitions(Standalone PRIVATE STANDALONE_MODE)
 target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
 
