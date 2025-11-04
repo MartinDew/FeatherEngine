@@ -61,8 +61,7 @@ jobs:
       with:
         name: linux-${{ matrix.config }}-binaries
         path: |
-          build/*/bin/Editor
-          build/*/bin/Standalone
+          build/*/bin/*
         retention-days: 7
 
   build-windows:
@@ -117,8 +116,7 @@ jobs:
       with:
         name: windows-${{ matrix.config }}-binaries
         path: |
-          build/windows/bin/${{ matrix.config }}/Editor.exe
-          build/windows/bin/${{ matrix.config }}/Standalone.exe
+          build/windows/bin/${{ matrix.config }}/*
         retention-days: 7
 
   build-macos:
@@ -165,8 +163,7 @@ jobs:
       with:
         name: macos-${{ matrix.config }}-binaries
         path: |
-          build/*/bin/Editor
-          build/*/bin/Standalone
+          build/*/bin/*
         retention-days: 7
 
   build-summary:
