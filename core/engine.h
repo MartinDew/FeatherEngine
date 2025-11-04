@@ -3,7 +3,6 @@
 #include "launch_settings.h"
 #include "window.h"
 
-#include <SDL3/SDL_assert.h>
 #include <chrono>
 
 namespace feather {

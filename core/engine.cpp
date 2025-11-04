@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "SDL3/SDL_assert.h"
 #include "launch_settings.h"
 
 #include <SDL3/SDL_init.h>

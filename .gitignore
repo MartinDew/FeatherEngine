@@ -17,11 +17,6 @@
 .vs/
 compile_commands.json
 
-# Ignore files used when running build_tool with -hidevsfiles=false
-Engine/Source/Scythe.vcxproj
-Engine/Source/Scythe.vcxproj.filters
-Engine/Source/compile_commands.json
-
 *runtimedependencies.txt
 *imgui.ini
 
@@ -30,12 +25,6 @@ Engine/Source/ThirdParty/DirectXTK/Src/Shaders/Compiled/*
 Engine/Source/ThirdParty/DirectXTex/Shaders/Compiled/*
 
 # bazel files
-bazel-bin/
-bazel-out/
-bazel-testlogs/
-bazel-*/
-
-MODULE.bazel.lock
 env/
 build/
 ConanPresets.json

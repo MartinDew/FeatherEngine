@@ -1,8 +1,9 @@
 FetchContent_Declare(args
     GIT_REPOSITORY https://github.com/Taywee/args.git
     GIT_TAG 6.4.7
+    EXCLUDE_FROM_ALL
 )
 
-list(APPEND THIRDPARTY_PACKAGES args)
-list(APPEND THIRDPARTIES taywee::args)
+FetchContent_MakeAvailable(args)
+RegisterThirdparty(taywee::args)
 
