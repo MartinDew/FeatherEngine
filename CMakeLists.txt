@@ -33,6 +33,7 @@ set(PROJECT_HEADERS
         core/engine.h
         core/transform.h
         core/math.h
+        core/rendering/rendering_server.h
 )
 
 # Source files (shared between both targets)
@@ -43,6 +44,7 @@ set(PROJECT_SOURCES
         core/engine.cpp
         core/transform.cpp
         core/math.cpp
+        core/rendering/rendering_server.cpp
 )
 
 # Editor target
