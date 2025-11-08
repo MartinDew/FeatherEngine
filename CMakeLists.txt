@@ -7,6 +7,7 @@ project(feather VERSION 1.0.0 LANGUAGES CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(thirdparty)
+add_subdirectory(modules)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 26)
@@ -66,13 +67,16 @@ set(PROJECT_SOURCES
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
-target_compile_definitions(Editor PRIVATE EDITOR_BUILD=1 
+target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
 )
 
 target_include_directories(Editor PRIVATE core)
-target_link_libraries(Editor PUBLIC ${THIRDPARTIES})
+target_link_libraries(Editor PUBLIC
+        ${THIRDPARTIES}
+        ${EDITOR_MODULES}
+)
 
 # Compiler options for Editor
 target_compile_options(Editor PRIVATE
@@ -91,7 +95,7 @@ target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
         $<$<CONFIG:Development>:BETA>
 )
 
-target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
+target_link_libraries(Standalone PRIVATE ${THIRDPARTIES} ${STANDALONE_MODULES})
 
 # Compiler options for Standalone
 target_compile_options(Standalone PRIVATE

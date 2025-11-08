@@ -1,4 +1,10 @@
 option(STATIC_CPP "STATIC_CPP" ON)
+if (STATIC_CPP)
+    set(FEATHER_BUILD_TYPE_SYMBOL STATIC CACHE STRING "Build type symbol to define")
+else ()
+    set(FEATHER_BUILD_TYPE_SYMBOL SHARED CACHE STRING "Build type symbol to define")
+endif ()
+
 
 option(USE_LLVM "USE_LLVM" OFF)
 
