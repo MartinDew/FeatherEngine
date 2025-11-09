@@ -5,6 +5,13 @@ else ()
     set(FEATHER_BUILD_TYPE_SYMBOL SHARED CACHE STRING "Build type symbol to define")
 endif ()
 
+if (NOT WIN32)
+    option(USE_MINGW "USE_MINGW" OFF)
+
+    if (${USE_MINGW})
+        set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/tools/toolchain-mingw64.cmake" CACHE STRING "Toolchain file for MinGW-w64 cross-compilation")
+    endif ()
+endif ()
 
 option(USE_LLVM "USE_LLVM" OFF)
 
