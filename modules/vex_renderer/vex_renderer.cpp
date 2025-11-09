@@ -1,4 +1,5 @@
 #include "vex_renderer.h"
+#include <math/math_defs.h>
 
 namespace feather {
 

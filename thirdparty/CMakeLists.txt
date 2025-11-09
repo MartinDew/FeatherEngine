@@ -30,7 +30,7 @@ macro(RegisterThirdparty)
 
     foreach (TP ${ARGV})
         # Try and extract real target name if alias
-        ConfigureTarget(${TP})
+        # ConfigureTarget(${TP})
     endforeach ()
 
 

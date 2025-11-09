@@ -1,5 +1,6 @@
 #pragma once
 #include <format>
+#include <type_traits>
 #include <utility>
 
 #include <DirectXMath.h>
@@ -46,7 +47,7 @@ Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
 inline bool is_power_of_two(int n) {
 	if (n == 0) {
 		return false;
-}
+	}
 
 	return ceil(log2(n)) == floor(log2(n));
 }

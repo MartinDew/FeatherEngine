@@ -17,13 +17,13 @@ function(feather_module module_name enabled_by_default)
 
         # Editor module
         add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${module_name})
-        target_compile_definitions(${module_name}_editor PRIVATE EDITOR_BUILD=1)
-        target_link_libraries(${module_name}_editor PRIVATE ${module_name} Editor)
+        #        target_compile_definitions(${module_name}_editor PRIVATE EDITOR_BUILD=1)
+        target_link_libraries(${module_name}_editor PRIVATE ${module_name} Editor ${THIRDPARTIES})
 
         # Standalone module
         add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${module_name})
-        target_compile_definitions(${module_name}_standalone PRIVATE EDITOR_BUILD=0)
-        target_link_libraries(${module_name}_standalone PRIVATE ${module_name} Standalone)
+        #        target_compile_definitions(${module_name}_standalone PRIVATE EDITOR_BUILD=0)
+        target_link_libraries(${module_name}_standalone PRIVATE ${module_name} Standalone ${THIRDPARTIES})
 
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)
         list(APPEND EDITOR_MODULES ${module_name}_editor)

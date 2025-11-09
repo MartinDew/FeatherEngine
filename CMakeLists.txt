@@ -6,9 +6,6 @@ project(feather VERSION 1.0.0 LANGUAGES CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-add_subdirectory(thirdparty)
-add_subdirectory(modules)
-
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,7 +25,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Glob core folder headers and sources
+set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
+
+add_subdirectory(thirdparty)
+add_subdirectory(modules)
 
 set(PROJECT_HEADERS
         # Root Core files
@@ -103,8 +103,6 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
         $<$<CONFIG:Development>:-g -O2>
 )
-
-set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
 # Platform-specific settings
 if (MSVC)

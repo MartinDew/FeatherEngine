@@ -1,5 +1,4 @@
 #pragma once
-#include <math/math_defs.h>
 #include <rendering/renderer.h>
 #include <array>
 
