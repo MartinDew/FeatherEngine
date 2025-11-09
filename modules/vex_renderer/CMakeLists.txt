@@ -7,5 +7,6 @@ feather_module(vex_renderer ${enable_by_default}
         vex_renderer.cpp
         vex_renderer.h
 )
-
-target_link_libraries(vex_renderer INTERFACE Vex)
+if(enable_vex_renderer)
+    target_link_libraries(vex_renderer INTERFACE Vex)
+endif()

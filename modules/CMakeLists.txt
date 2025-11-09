@@ -1,6 +1,6 @@
 function(feather_module module_name enabled_by_default)
-    option(ENABLE_${module_name} "Enable the ${module_name} module" ${enabled_by_default})
-    if (ENABLE_${module_name})
+    option(enable_${module_name} "Enable the ${module_name} module" ${enabled_by_default})
+    if (enable_${module_name})
         add_library(${module_name} INTERFACE ${ARGN})
         target_compile_definitions(${module_name} INTERFACE ${module_name}_EXPORTS)
 
