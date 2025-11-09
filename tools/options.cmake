@@ -13,6 +13,18 @@ if (NOT WIN32)
     endif ()
 endif ()
 
+option(USE_ANDROID "USE_ANDROID" OFF)
+if (${USE_ANDROID})
+    # get ANDROID_NDK_HOME from environment variable
+    if (NOT DEFINED ENV{ANDROID_NDK_HOME})
+        message(FATAL_ERROR "ANDROID_NDK_HOME environment variable not set")
+    endif ()
+    #    set(ANDROID_NDK_HOME $ENV{ANDROID_NDK_HOME} PATH "Path to Android NDK")
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake" CACHE STRING "Toolchain file for Android NDK")
+    set(ANDROID_ABI "arm64-v8a" CACHE STRING "Android ABI")
+    set(ANDROID_PLATFORM 21 CACHE STRING "Android platform version")
+endif ()
+
 option(USE_LLVM "USE_LLVM" OFF)
 
 if (${USE_LLVM})
