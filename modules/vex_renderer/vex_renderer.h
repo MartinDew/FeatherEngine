@@ -2,11 +2,22 @@
 #include <rendering/renderer.h>
 #include <array>
 
+#include <Vex.h>
+
 namespace feather {
 
 class VexRenderer : public Renderer {
+	vex::Texture depthTexture;
+	vex::Texture uvGuideTexture;
+
+	vex::Buffer vertexBuffer;
+	vex::Buffer indexBuffer;
+
 protected:
-	void _render_scene(double dt) override;
+	VexRenderer();
+
+	void _render_scene() override;
+	void _on_resize() override;
 };
 
 } //namespace feather

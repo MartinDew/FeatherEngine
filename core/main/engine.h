@@ -34,6 +34,8 @@ public:
 		return LaunchSettings::get().editor_mode.Get();
 	}
 #endif
+
+	Window& get_main_window() { return _main_window; }
 };
 
 } //namespace feather

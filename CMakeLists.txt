@@ -42,10 +42,15 @@ set(PROJECT_HEADERS
         #Framework
         core/framework/assert.hpp
         core/framework/static_string.hpp
+        core/framework/delegate.h
+        core/framework/containers.h
+        core/framework/static_indexed_array.h
+        core/framework/functions.h
 
         #Rendering
         core/rendering/rendering_server.h
         core/rendering/renderer.h
+        core/main/notification.h
 )
 
 # Source files (shared between both targets)
