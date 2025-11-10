@@ -13,6 +13,10 @@ class VexRenderer : public Renderer {
 	vex::Buffer vertexBuffer;
 	vex::Buffer indexBuffer;
 
+	vex::Graphics graphics;
+
+	static vex::PlatformWindowHandle _create_vex_window(Window& window);
+
 protected:
 	VexRenderer();
 

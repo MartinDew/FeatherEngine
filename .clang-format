@@ -34,7 +34,7 @@ AllowAllParametersOfDeclarationOnNextLine: false
 BraceWrapping:
 #   AfterCaseLabel:  false
 #   AfterClass:      false
-#   AfterControlStatement: Never
+  AfterControlStatement: MultiLine
 #   AfterEnum:       false
 #   AfterFunction:   false
 #   AfterNamespace:  false
@@ -57,9 +57,9 @@ BreakBeforeBraces: Custom
 # BreakInheritanceList: BeforeColon
 # BreakBeforeTernaryOperators: true
 # BreakConstructorInitializersBeforeComma: false
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializers: BeforeComma
 # BreakStringLiterals: true
-ColumnLimit:     0
+ColumnLimit:     120
 # CommentPragmas:  '^ IWYU pragma:'
 # QualifierAlignment: Leave
 # CompactNamespaces: false
@@ -72,8 +72,8 @@ Cpp11BracedListStyle: false
 # EmptyLineAfterAccessModifier: Never
 # EmptyLineBeforeAccessModifier: LogicalBlock
 # ExperimentalAutoDetectBinPacking: false
-# PackConstructorInitializers: BinPack
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
+PackConstructorInitializers: CurrentLine
+# ConstructorInitializerAllOnOneLineOrOnePerLine: true
 # AllowAllConstructorInitializersOnNextLine: true
 # FixNamespaceComments: true
 # ForEachMacros:

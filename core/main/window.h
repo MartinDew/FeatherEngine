@@ -10,6 +10,8 @@ struct SDL_Window;
 namespace feather {
 
 class Window {
+	friend class Renderer;
+
 public:
 	struct WindowProperties {
 		int width;
