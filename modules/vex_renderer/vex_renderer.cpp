@@ -12,7 +12,7 @@
 namespace {
 // clang-format off
 static constexpr char shader[] {
-	#embed <example_cube.hlsl>
+	#embed<example_cube.hlsl>
 };
 // clang-format on
 } //namespace

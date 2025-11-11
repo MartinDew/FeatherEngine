@@ -1,7 +1,8 @@
 #pragma once
 
+#include "renderer.h"
+
 #include <memory>
-#include <variant>
 
 namespace feather {
 
@@ -10,7 +11,7 @@ class Renderer;
 class RenderingServer {
 	static RenderingServer* _instance;
 
-	std::unique_ptr<Renderer> _renderer;
+	std::unique_ptr<Renderer> _renderer = nullptr;
 
 public:
 	RenderingServer();
@@ -20,10 +21,7 @@ public:
 	void update(double dt);
 
 	// Should change accessibility later
-	template <class T>
-	void use_renderer() {
-		_renderer = std::make_unique<T>();
-	}
+	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }
 };
 
 } //namespace feather

@@ -9,6 +9,6 @@ feather_module(vex_renderer ${enable_by_default}
 )
 
 if(enable_vex_renderer)
-    target_link_libraries(vex_renderer_editor PUBLIC Vex)
-    target_link_libraries(vex_renderer_standalone PUBLIC Vex)
+    target_link_libraries(vex_renderer_editor INTERFACE Vex)
+    target_link_libraries(vex_renderer_standalone INTERFACE Vex)
 endif()

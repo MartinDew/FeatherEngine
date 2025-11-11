@@ -6,7 +6,7 @@ namespace feather {
 RenderingServer* RenderingServer::_instance = nullptr;
 
 RenderingServer::RenderingServer() {
-	fassert(_instance);
+	fassert(!_instance);
 
 	_instance = this;
 }

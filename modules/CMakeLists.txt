@@ -20,15 +20,17 @@ function(feather_module module_name enabled_by_default)
         )
 
         # Editor module
-        add_library(${module_name}_editor ${FEATHER_BUILD_TYPE_SYMBOL} ${ARGN})
+        add_library(${module_name}_editor STATIC ${ARGN})
         target_link_libraries(${module_name}_editor PUBLIC ${module_name})
-        target_link_libraries(${module_name}_editor INTERFACE Editor ${THIRDPARTIES})
+        target_link_libraries(${module_name}_editor PRIVATE ${THIRDPARTIES})
+        target_link_libraries(${module_name}_editor INTERFACE Editor)
         target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
 
         # Standalone module
-        add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE_SYMBOL} ${ARGN})
+        add_library(${module_name}_standalone STATIC ${ARGN})
         target_link_libraries(${module_name}_standalone PUBLIC ${module_name})
-        target_link_libraries(${module_name}_standalone INTERFACE Standalone ${THIRDPARTIES})
+        target_link_libraries(${module_name}_standalone INTERFACE Standalone )
+        target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
         target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
 
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)
