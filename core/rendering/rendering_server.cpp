@@ -11,7 +11,10 @@ RenderingServer::RenderingServer() {
 	_instance = this;
 }
 
-void update(double dt) {
+void RenderingServer::update(double dt) {
+	fassert(_renderer.get(), "no renderer set");
+
+	_renderer->_render_scene();
 }
 
 } //namespace feather

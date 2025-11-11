@@ -2,45 +2,25 @@ include(FetchContent)
 
 set(THIRDPARTIES "")
 
-macro(ConfigureTarget)
-    get_target_property(OG ${ARGV0} ALIASED_TARGET)
-    if (OG)
-        set_target_properties(${OG} PROPERTIES MAP_IMPORTED_CONFIG_DEVELOPMENT "RelWithDebInfo")
-        # suppress all warnings
-        if (MSVC)
-            target_compile_options(${OG} INTERFACE "/w")
-        else ()
-            target_compile_options(${OG} INTERFACE "-w")
-        endif ()
-        list(APPEND LOCAL_ARGV ${OG})
-    else ()
-        set_target_properties(${TP} PROPERTIES MAP_IMPORTED_CONFIG_DEVELOPMENT "RelWithDebInfo")
-        # suppress all warnings
-        if (MSVC)
-            target_compile_options(${TP} INTERFACE "/w")
-        else ()
-            target_compile_options(${TP} INTERFACE "-w")
-        endif ()
-        list(APPEND LOCAL_ARGV ${TP})
-    endif ()
-endmacro()
+if (MSVC)
+    add_compile_options("/w")
+else ()
+    add_compile_options("-w")
+endif ()
 
-macro(RegisterThirdparty)
+function(RegisterThirdparty ACCESS)
     set(LOCAL_ARGV "")
 
-    foreach (TP ${ARGV})
-        # Try and extract real target name if alias
-        ConfigureTarget(${TP})
-    endforeach ()
-
-
-    list(APPEND THIRDPARTIES ${ARGV})
+    list(APPEND THIRDPARTIES ${ARGN})
     set(THIRDPARTIES ${THIRDPARTIES} PARENT_SCOPE)
-endmacro()
+
+    target_link_libraries(Editor ${ACCESS} ${ARGN})
+    target_link_libraries(Standalone ${ACCESS} ${ARGN})
+endfunction()
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Runtime output directory")
-# set(CMAKE_MAP_IMPORTED_CONFIG_Development "RelWithDebInfo" CACHE STRING "" FORCE)
+set(CMAKE_MAP_IMPORTED_CONFIG_Development "RelWithDebInfo" CACHE STRING "" FORCE)
 
 # Setup so that development build matches RelWithDebInfo
 if (CMAKE_BUILD_TYPE STREQUAL "Development")
@@ -55,6 +35,12 @@ foreach (CM_FILE ${SUBDIR_CMAKELISTS})
 endforeach ()
 
 set(THIRDPARTIES ${THIRDPARTIES} PARENT_SCOPE)
+# target_link_libraries(Editor PRIVATE ${THIRDPARTIES})
+# target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
+
+# target_link_libraries(Editor PUBLIC SimpleMath)
+# target_link_libraries(Standalone PUBLIC SimpleMath)
+
 
 if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     set(CMAKE_BUILD_TYPE "Development" CACHE STRING "")

@@ -27,9 +27,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
-add_subdirectory(thirdparty)
-add_subdirectory(modules)
-
 set(PROJECT_HEADERS
         # Root Core files
         # main
@@ -68,20 +65,19 @@ set(PROJECT_SOURCES
         core/rendering/rendering_server.cpp
 )
 
+add_compile_options("--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+
 # Editor target
-add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
+# set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
 target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
 )
 
-target_include_directories(Editor PRIVATE core)
-target_link_libraries(Editor PUBLIC
-        ${THIRDPARTIES}
-        ${EDITOR_MODULES}
-)
+target_include_directories(Editor PUBLIC ${CMAKE_SOURCE_DIR} core)
 
 # Compiler options for Editor
 target_compile_options(Editor PRIVATE
@@ -92,15 +88,16 @@ target_compile_options(Editor PRIVATE
 
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
-target_include_directories(Standalone PRIVATE core)
+add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
+target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
+
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
+# set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
+
 target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
 )
-
-target_link_libraries(Standalone PRIVATE ${THIRDPARTIES} ${STANDALONE_MODULES})
 
 # Compiler options for Standalone
 target_compile_options(Standalone PRIVATE
@@ -108,6 +105,9 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
         $<$<CONFIG:Development>:-g -O2>
 )
+
+add_subdirectory(thirdparty)
+add_subdirectory(modules)
 
 # Platform-specific settings
 if (MSVC)
@@ -129,6 +129,8 @@ if (MSVC)
     # NOMINMAX and LEAN_AND_MEAN to reduce Windows headers bloat
     target_compile_definitions(Editor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
     target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+
+    # embed internal_resources folder
 else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)

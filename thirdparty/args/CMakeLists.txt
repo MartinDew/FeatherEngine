@@ -9,5 +9,5 @@ FetchContent_MakeAvailable(args)
 get_target_property(underlying taywee::args ALIASED_TARGET)
 target_compile_definitions(${underlying} INTERFACE ARGS_NOEXCEPT)
 
-RegisterThirdparty(taywee::args)
+RegisterThirdparty(PRIVATE taywee::args)
 

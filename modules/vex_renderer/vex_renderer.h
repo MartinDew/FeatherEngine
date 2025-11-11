@@ -1,5 +1,5 @@
 #pragma once
-#include <rendering/renderer.h>
+#include <core/rendering/renderer.h>
 #include <array>
 
 #include <Vex.h>
@@ -19,9 +19,11 @@ class VexRenderer : public Renderer {
 
 protected:
 	VexRenderer();
-
 	void _render_scene() override;
 	void _on_resize() override;
+
+public:
+	~VexRenderer() override;
 };
 
 } //namespace feather

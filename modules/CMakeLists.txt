@@ -1,12 +1,16 @@
+get_target_property(EDITOR_INCLUDES Editor INCLUDE_DIRECTORIES)
+get_target_property(STANDALONE_INCLUDES Standalone INCLUDE_DIRECTORIES)
+
+
 function(feather_module module_name enabled_by_default)
-    option(enable_${module_name} "Enable the ${module_name} module" ${enabled_by_default})
+    option("enable_${module_name}" "Enable the ${module_name} module" ${enabled_by_default})
     if (enable_${module_name})
         add_library(${module_name} INTERFACE ${ARGN})
         target_compile_definitions(${module_name} INTERFACE ${module_name}_EXPORTS)
 
         target_include_directories(
                 ${module_name} INTERFACE
-                ${CMAKE_SOURCE_DIR}/core
+                ${CMAKE_SOURCE_DIR}
                 ${CMAKE_CURRENT_SOURCE_DIR}>
         )
 
@@ -16,14 +20,16 @@ function(feather_module module_name enabled_by_default)
         )
 
         # Editor module
-        add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${module_name})
-        #        target_compile_definitions(${module_name}_editor PRIVATE EDITOR_BUILD=1)
-        target_link_libraries(${module_name}_editor PRIVATE ${module_name} Editor ${THIRDPARTIES})
+        add_library(${module_name}_editor ${FEATHER_BUILD_TYPE_SYMBOL} ${ARGN})
+        target_link_libraries(${module_name}_editor PUBLIC ${module_name})
+        target_link_libraries(${module_name}_editor INTERFACE Editor ${THIRDPARTIES})
+        target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
 
         # Standalone module
-        add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${module_name})
-        #        target_compile_definitions(${module_name}_standalone PRIVATE EDITOR_BUILD=0)
-        target_link_libraries(${module_name}_standalone PRIVATE ${module_name} Standalone ${THIRDPARTIES})
+        add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE_SYMBOL} ${ARGN})
+        target_link_libraries(${module_name}_standalone PUBLIC ${module_name})
+        target_link_libraries(${module_name}_standalone INTERFACE Standalone ${THIRDPARTIES})
+        target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
 
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)
         list(APPEND EDITOR_MODULES ${module_name}_editor)
@@ -45,6 +51,8 @@ foreach (CM_FILE ${SUBDIR_CMAKELISTS})
 endforeach ()
 
 message(STATUS "Enabled EDITOR modules: ${EDITOR_MODULES}")
+target_link_libraries(Editor PUBLIC ${EDITOR_MODULES})
 message(STATUS "Enabled STANDALONE modules: ${EDITOR_MODULES}")
+target_link_libraries(Standalone PUBLIC ${STANDALONE_MODULES})
 
 #set(MODULES ${MODULES} CACHE INTERNAL "List of enabled modules" PARENT_SCOPE)

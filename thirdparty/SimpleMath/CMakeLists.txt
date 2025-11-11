@@ -24,4 +24,4 @@ if (MSVC)
     target_compile_definitions(SimpleMath PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif ()
 
-RegisterThirdparty(SimpleMath)
+RegisterThirdparty(PUBLIC SimpleMath)

@@ -31,4 +31,4 @@ set(SDL_SENSOR   OFF)
 set(SDL_DIALOG   OFF)
 
 FetchContent_MakeAvailable(SDL3)
-RegisterThirdparty(SDL3::SDL3)
+RegisterThirdparty(PRIVATE SDL3::SDL3)
