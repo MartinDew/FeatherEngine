@@ -109,6 +109,9 @@ target_compile_options(Standalone PRIVATE
 add_subdirectory(thirdparty)
 add_subdirectory(modules)
 
+vex_setup_runtime(Editor)
+vex_setup_runtime(Standalone)
+
 # Platform-specific settings
 if (MSVC)
     target_compile_options(Editor PRIVATE /W4 /wd4100)

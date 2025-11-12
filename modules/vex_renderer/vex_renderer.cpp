@@ -12,7 +12,8 @@
 namespace {
 // clang-format off
 static constexpr char shader[] {
-	#embed<example_cube.hlsl>
+#embed "example_cube.hlsl"
+	,'\0'
 };
 // clang-format on
 } //namespace
@@ -27,7 +28,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 
 	PlatformWindowHandle vex_window;
 	auto pid = SDL_GetWindowProperties(internal_window);
-#if(__linux__)
+#if (__linux__)
 	using NativeWindow = ::Window;
 	if (SDL_HasProperty(pid, SDL_PROP_WINDOW_X11_WINDOW_NUMBER)) {
 		vex_window = {
@@ -35,7 +36,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 			.display = static_cast<Display*>(SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr)),
 		};
 	}
-#elif(_WIN32)
+#elif (_WIN32)
 	using NativeWindow = HWND;
 	vex_window = { .window = static_cast<NativeWindow>(
 						   SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)) };
@@ -58,16 +59,16 @@ VexRenderer::VexRenderer()
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
 				  .enableGPUBasedValidation = !VEX_SHIPPING }) {
 	auto main_window = Engine::get().get_main_window();
-	auto width = main_window.properties.width;
-	auto height = main_window.properties.height;
+	uint32_t width = main_window.properties.width;
+	uint32_t height = main_window.properties.height;
 
 	// Depth texture
 	depthTexture = graphics.CreateTexture({
 			.name = "Depth Texture",
 			.type = vex::TextureType::Texture2D,
 			.format = vex::TextureFormat::D32_FLOAT,
-			.width = static_cast<uint32_t>(width),
-			.height = static_cast<uint32_t>(height),
+			.width = (width),
+			.height = (height),
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
 					vex::TextureClearValue{
@@ -112,9 +113,9 @@ VexRenderer::VexRenderer()
 			.usage = vex::TextureUsage::ShaderRead | vex::TextureUsage::ShaderReadWrite });
 
 	// Upload only to the first mip
-	ctx.EnqueueDataUpload(uvGuideTexture,
-			std::as_bytes(std::span(fullImageData.begin(), fullImageData.begin() + width * height /** channels*/)),
-			vex::TextureRegion::SingleMip(0));
+	// ctx.EnqueueDataUpload(uvGuideTexture,
+	// 		std::as_bytes(std::span(fullImageData.begin(), fullImageData.begin() + width * height /** channels*/)),
+	// 		vex::TextureRegion::SingleMip(0));
 
 	// Fill in all mips using the first one.
 	ctx.GenerateMips(uvGuideTexture);
@@ -139,12 +140,13 @@ VexRenderer::VexRenderer()
 
 void VexRenderer::_render_scene() {
 	// Scoped command context will submit commands automatically upon destruction.
-	auto ctx = graphics.BeginScopedCommandContext(vex::QueueType::Graphics);
-
-	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
-	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 
 	{
+		auto ctx = graphics.BeginScopedCommandContext(vex::QueueType::Graphics);
+
+		ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
+
 		// Clear backbuffer.
 		vex::TextureClearValue clearValue{ .flags = vex::TextureClear::ClearColor, .color = { 0.2f, 0.2f, 0.2f, 1 } };
 		ctx.ClearTexture(
@@ -275,7 +277,29 @@ void VexRenderer::_render_scene() {
 	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);
 }
 
-void VexRenderer::_on_resize() {}
+void VexRenderer::_on_resize() {
+	auto width = _window->properties.width;
+	auto height = _window->properties.height;
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	graphics.DestroyTexture(depthTexture);
+
+	depthTexture = graphics.CreateTexture({
+			.name = "Depth Texture",
+			.type = vex::TextureType::Texture2D,
+			.format = vex::TextureFormat::D32_FLOAT,
+			.width = static_cast<vex::u32>(width),
+			.height = static_cast<vex::u32>(height),
+			.usage = vex::TextureUsage::DepthStencil,
+			.clearValue =
+					vex::TextureClearValue{
+							.flags = vex::TextureClear::ClearDepth,
+							.depth = 0,
+					},
+	});
+}
 
 VexRenderer::~VexRenderer() {
 	// Remove shader_file

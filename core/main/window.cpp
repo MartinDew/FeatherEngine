@@ -28,8 +28,7 @@ constexpr Notification to_notification(const SDL_Event& event) {
 
 } //namespace
 
-Window::Window() :
-		_internal_event(), _fullscreen_mode() {
+Window::Window() : _internal_event(), _fullscreen_mode() {
 	if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 		std::cerr << SDL_GetError() << std::endl;
 		assert(false);
@@ -57,7 +56,7 @@ Window::Window() :
 }
 
 void Window::_on_resize() {
-	SDL_GetWindowSize(_internal_window, &_properties.width, &_properties.height);
+	SDL_GetWindowSizeInPixels(_internal_window, &_properties.width, &_properties.height);
 	SDL_LogDebug(0, "Window resized to %dx%d", _properties.width, _properties.height);
 }
 
