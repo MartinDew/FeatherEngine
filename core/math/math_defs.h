@@ -52,6 +52,12 @@ inline bool is_power_of_two(int n) {
 	return ceil(log2(n)) == floor(log2(n));
 }
 
+#ifdef DOUBLE_PRECISION
+using real_t = double;
+#else
+using real_t = float;
+#endif
+
 namespace math::matrices {
 
 inline void remove_scaling(Matrix& m) {
@@ -78,20 +84,14 @@ inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
 	m.m[i][2] = axis.z;
 }
 
-enum class Axis : uint8_t {
-	X = 0,
-	Y,
-	Z
-};
+enum class Axis : uint8_t { X = 0, Y, Z };
 
 inline Vector3 get_axis(const Matrix& mat, Axis axis) {
 	const uint8_t i = std::to_underlying(axis);
 	return { mat.m[i][0], mat.m[i][1], mat.m[i][2] };
 }
 
-inline Vector3 get_origin(const Matrix& mat) {
-	return { mat.m[3][0], mat.m[3][1], mat.m[3][2] };
-}
+inline Vector3 get_origin(const Matrix& mat) { return { mat.m[3][0], mat.m[3][1], mat.m[3][2] }; }
 
 } //namespace math::matrices
 
@@ -100,55 +100,40 @@ inline constexpr float quaternion_normalize_threshhold = 0.01f;
 
 } //namespace feather
 
-template <>
-struct std::formatter<feather::Quaternion> {
-	static constexpr auto parse(std::format_parse_context& ctx) {
-		return ctx.begin();
-	}
+template <> struct std::formatter<feather::Quaternion> {
+	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 	static auto format(const feather::Quaternion& quat, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}, W={}", quat.x, quat.y, quat.z, quat.w);
 	}
 };
 
-template <>
-struct std::formatter<feather::Vector4> {
-	static constexpr auto parse(std::format_parse_context& ctx) {
-		return ctx.begin();
-	}
+template <> struct std::formatter<feather::Vector4> {
+	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 	static auto format(const feather::Vector4& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}, W={}", vec.x, vec.y, vec.z, vec.w);
 	}
 };
 
-template <>
-struct std::formatter<feather::Vector3> {
-	static constexpr auto parse(std::format_parse_context& ctx) {
-		return ctx.begin();
-	}
+template <> struct std::formatter<feather::Vector3> {
+	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 	static auto format(const feather::Vector3& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}, Z={}", vec.x, vec.y, vec.z);
 	}
 };
 
-template <>
-struct std::formatter<feather::Vector2> {
-	static constexpr auto parse(std::format_parse_context& ctx) {
-		return ctx.begin();
-	}
+template <> struct std::formatter<feather::Vector2> {
+	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 	static auto format(const feather::Vector2& vec, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}", vec.x, vec.y);
 	}
 };
 
-template <>
-struct std::formatter<feather::Color> {
-	static constexpr auto parse(std::format_parse_context& ctx) {
-		return ctx.begin();
-	}
+template <> struct std::formatter<feather::Color> {
+	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
 	static auto format(const feather::Color& col, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "R={}, G={}, B={}, A={}", col.x, col.y, col.z, col.w);

@@ -4,19 +4,9 @@
 
 namespace feather {
 
-#ifdef DOUBLE_PRECISION
-using real_t = double;
-#else
-using real_t = float;
-#endif
+real_t deg_to_rad(real_t degrees) { return degrees / 180.0f * std::numbers::pi; }
 
-real_t deg_to_rad(real_t degrees) {
-	return degrees / 180.0f * std::numbers::pi;
-}
-
-real_t rad_to_deg(real_t radians) {
-	return radians / std::numbers::pi * 180.0f;
-}
+real_t rad_to_deg(real_t radians) { return radians / std::numbers::pi * 180.0f; }
 
 Vector3 deg_to_rad(const Vector3& degrees) {
 	Vector3 result;

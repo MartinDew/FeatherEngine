@@ -1,6 +1,8 @@
 get_target_property(EDITOR_INCLUDES Editor INCLUDE_DIRECTORIES)
 get_target_property(STANDALONE_INCLUDES Standalone INCLUDE_DIRECTORIES)
 
+get_target_property(EDITOR_COMPILE_OPTIONS Editor COMPILE_OPTIONS)
+get_target_property(STANDALONE_COMPILE_OPTIONS Editor INTERFACE_COMPILE_OPTIONS)
 
 function(feather_module module_name enabled_by_default)
     option("enable_${module_name}" "Enable the ${module_name} module" ${enabled_by_default})
@@ -24,7 +26,12 @@ function(feather_module module_name enabled_by_default)
         target_link_libraries(${module_name}_editor PUBLIC ${module_name})
         target_link_libraries(${module_name}_editor PRIVATE ${THIRDPARTIES})
         target_link_libraries(${module_name}_editor INTERFACE Editor)
+        get_target_property(TO ${module_name}_editor INTERFACE_COMPILE_OPTIONS)
+
+        message(STATUS "Target options are ${TO}")
         target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
+
+        target_compile_options(${module_name}_editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
 
         # Standalone module
         add_library(${module_name}_standalone STATIC ${ARGN})
@@ -32,6 +39,7 @@ function(feather_module module_name enabled_by_default)
         target_link_libraries(${module_name}_standalone INTERFACE Standalone )
         target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
         target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
+        target_compile_options(${module_name}_standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
 
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)
         list(APPEND EDITOR_MODULES ${module_name}_editor)

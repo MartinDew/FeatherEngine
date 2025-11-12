@@ -10,22 +10,33 @@ namespace feather {
 
 class Window;
 
+// temp
+
+struct Vertex {
+	Vector3 position;
+	std::array<real_t, 2> uv;
+
+	constexpr Vertex() = default;
+	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv{ u, v } {}
+};
+
 class Renderer {
 	friend class RenderingServer;
 
 protected:
 	Renderer();
 
-	static constexpr std::array<Vector3, 8> example_cube{
-		Vector3(-1.0f, -1.0f, -1.0f),
-		Vector3(1.0f, -1.0f, -1.0f),
-		Vector3(1.0f, 1.0f, -1.0f),
-		Vector3(-1.0f, 1.0f, -1.0f),
-		Vector3(-1.0f, -1.0f, 1.0f),
-		Vector3(1.0f, -1.0f, 1.0f),
-		Vector3(1.0f, 1.0f, 1.0f),
-		Vector3(-1.0f, 1.0f, 1.0f),
+	static constexpr std::array<Vertex, 8> example_cube{
+		Vertex(-1.0f, -1.0f, -1.0f, 0.f, 0.f),
+		Vertex(1.0f, -1.0f, -1.0f, 1.f, 0.f),
+		Vertex(1.0f, 1.0f, -1.0f, 1.f, 1.f),
+		Vertex(-1.0f, 1.0f, -1.0f, 0.f, 1.f),
+		Vertex(-1.0f, -1.0f, 1.0f, 0.f, 0.f),
+		Vertex(1.0f, -1.0f, 1.0f, 1.f, 0.f),
+		Vertex(1.0f, 1.0f, 1.0f, 1.f, 1.f),
+		Vertex(-1.0f, 1.0f, 1.0f, 0.f, 1.f),
 	};
+
 	static constexpr std::array<uint32_t, 36> example_cube_indices{
 		0, 1, 2, 2, 3, 0, // Back face
 		4, 5, 6, 6, 7, 4, // Front face

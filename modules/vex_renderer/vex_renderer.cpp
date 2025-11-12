@@ -12,7 +12,7 @@
 namespace {
 // clang-format off
 static constexpr char shader[] {
-#embed "example_cube.hlsl"
+#embed <example_cube.hlsl>
 	,'\0'
 };
 // clang-format on
@@ -79,7 +79,7 @@ VexRenderer::VexRenderer()
 
 	// Vertex buffer
 	vertexBuffer = graphics.CreateBuffer(
-			vex::BufferDesc::CreateVertexBufferDesc("Vertex Buffer", sizeof(Vector3) * example_cube.size()));
+			vex::BufferDesc::CreateVertexBufferDesc("Vertex Buffer", sizeof(Vertex) * example_cube.size()));
 	// Index buffer
 	indexBuffer = graphics.CreateBuffer(
 			vex::BufferDesc::CreateIndexBufferDesc("Index Buffer", sizeof(uint32_t) * example_cube_indices.size()));
@@ -118,7 +118,7 @@ VexRenderer::VexRenderer()
 	// 		vex::TextureRegion::SingleMip(0));
 
 	// Fill in all mips using the first one.
-	ctx.GenerateMips(uvGuideTexture);
+	// ctx.GenerateMips(uvGuideTexture);
 
 	// The texture will now only be used as a read-only shader resource. Avoids having to place a barrier later on.
 	// We use PixelShader sync since it will only be used there.
@@ -255,7 +255,8 @@ void VexRenderer::_render_scene() {
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
-					vex::ConstantBinding(UniformData{ 0.0f, uvGuideHandle }), example_cube_indices.size());
+					vex::ConstantBinding(UniformData{ .currentTime = 0.0f, .uvGuideHandle = uvGuideHandle }),
+					example_cube_indices.size());
 		}
 
 		// #if VEX_SLANG

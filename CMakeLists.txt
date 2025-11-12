@@ -65,8 +65,6 @@ set(PROJECT_SOURCES
         core/rendering/rendering_server.cpp
 )
 
-add_compile_options("--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
-
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
 
@@ -85,7 +83,6 @@ target_compile_options(Editor PRIVATE
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
         $<$<CONFIG:Development>:-g -O2>
 )
-
 
 # Standalone target
 add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
@@ -106,11 +103,8 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Development>:-g -O2>
 )
 
-add_subdirectory(thirdparty)
-add_subdirectory(modules)
 
-vex_setup_runtime(Editor)
-vex_setup_runtime(Standalone)
+add_subdirectory(thirdparty)
 
 # Platform-specific settings
 if (MSVC)
@@ -134,10 +128,21 @@ if (MSVC)
     target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 
     # embed internal_resources folder
+    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+
 else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
+    # embed internal_resources folder
+    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
 endif ()
+
+add_subdirectory(modules)
+
+vex_setup_runtime(Editor)
+vex_setup_runtime(Standalone)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
