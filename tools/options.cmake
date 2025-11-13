@@ -1,8 +1,8 @@
 option(STATIC_CPP "STATIC_CPP" ON)
 if (${STATIC_CPP})
-    set(FEATHER_BUILD_TYPE_SYMBOL STATIC CACHE INTERNAL "Build type symbol for libraries")
+    set(FEATHER_BUILD_TYPE STATIC CACHE INTERNAL "Build type symbol for libraries")
 else ()
-    set(FEATHER_BUILD_TYPE_SYMBOL SHARED CACHE INTERNAL "Build type symbol for libraries")
+    set(FEATHER_BUILD_TYPE SHARED CACHE INTERNAL "Build type symbol for libraries")
 endif ()
 
 if (NOT WIN32)

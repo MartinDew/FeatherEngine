@@ -22,18 +22,14 @@ function(feather_module module_name enabled_by_default)
         )
 
         # Editor module
-        add_library(${module_name}_editor STATIC ${ARGN})
-        target_link_libraries(${module_name}_editor PUBLIC ${module_name})
-        target_link_libraries(${module_name}_editor PRIVATE ${THIRDPARTIES})
-        target_link_libraries(${module_name}_editor INTERFACE Editor)
+        add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${ARGN})
+        target_link_libraries(${module_name}_editor INTERFACE ${module_name} Editor PRIVATE ${THIRDPARTIES} )
         target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
         target_compile_options(${module_name}_editor PRIVATE ${EDITOR_COMPILE_OPTIONS})
 
         # Standalone module
-        add_library(${module_name}_standalone STATIC ${ARGN})
-        target_link_libraries(${module_name}_standalone PUBLIC ${module_name})
-        target_link_libraries(${module_name}_standalone INTERFACE Standalone )
-        target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
+        add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${ARGN})
+        target_link_libraries(${module_name}_standalone INTERFACE ${module_name} Standalone PRIVATE ${THIRDPARTIES})
         target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
         target_compile_options(${module_name}_standalone PRIVATE ${STANDALONE_COMPILE_OPTIONS})
 
@@ -50,6 +46,8 @@ endfunction()
 set(EDITOR_MODULES "" CACHE INTERNAL "List of enabled modules")
 set(STANDALONE_MODULES "" CACHE INTERNAL "List of enabled modules")
 
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 file(GLOB SUBDIR_CMAKELISTS "*/CMakeLists.txt")
 foreach (CM_FILE ${SUBDIR_CMAKELISTS})
     get_filename_component(SUBDIR_NAME ${CM_FILE} DIRECTORY)
@@ -58,7 +56,7 @@ endforeach ()
 
 message(STATUS "Enabled EDITOR modules: ${EDITOR_MODULES}")
 target_link_libraries(Editor PUBLIC ${EDITOR_MODULES})
-message(STATUS "Enabled STANDALONE modules: ${EDITOR_MODULES}")
+message(STATUS "Enabled STANDALONE modules: ${STANDALONE_MODULES}")
 target_link_libraries(Standalone PUBLIC ${STANDALONE_MODULES})
 
 #set(MODULES ${MODULES} CACHE INTERNAL "List of enabled modules" PARENT_SCOPE)
