@@ -69,7 +69,7 @@ set(PROJECT_SOURCES
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
-# set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
 target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
@@ -89,7 +89,7 @@ add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
-# set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
 
 target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
         $<$<CONFIG:Debug>:BETA>

@@ -26,12 +26,8 @@ function(feather_module module_name enabled_by_default)
         target_link_libraries(${module_name}_editor PUBLIC ${module_name})
         target_link_libraries(${module_name}_editor PRIVATE ${THIRDPARTIES})
         target_link_libraries(${module_name}_editor INTERFACE Editor)
-        get_target_property(TO ${module_name}_editor INTERFACE_COMPILE_OPTIONS)
-
-        message(STATUS "Target options are ${TO}")
         target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
-
-        target_compile_options(${module_name}_editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+        target_compile_options(${module_name}_editor PRIVATE ${EDITOR_COMPILE_OPTIONS})
 
         # Standalone module
         add_library(${module_name}_standalone STATIC ${ARGN})
@@ -39,7 +35,7 @@ function(feather_module module_name enabled_by_default)
         target_link_libraries(${module_name}_standalone INTERFACE Standalone )
         target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
         target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
-        target_compile_options(${module_name}_standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+        target_compile_options(${module_name}_standalone PRIVATE ${STANDALONE_COMPILE_OPTIONS})
 
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)
         list(APPEND EDITOR_MODULES ${module_name}_editor)
