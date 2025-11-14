@@ -16,7 +16,7 @@ struct Vertex {
 	Vector3 position;
 	std::array<real_t, 2> uv;
 
-	constexpr Vertex() = default;
+	Vertex() = default;
 	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv{ u, v } {}
 };
 
