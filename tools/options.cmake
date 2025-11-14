@@ -1,10 +1,13 @@
 option(STATIC_CPP "STATIC_CPP" ON)
-set(BUILD_SHARED_LIBS ${STATIC_CPP} CACHE INTERNAL "Build shared libraries")
+
+set(STATIC_CPP ${STATIC_CPP} CACHE BOOL "Build static C++ libraries")
 
 if (${STATIC_CPP})
     set(FEATHER_BUILD_TYPE STATIC CACHE INTERNAL "Build type symbol for libraries")
-else ()
+    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build shared libraries")
+    else ()
     set(FEATHER_BUILD_TYPE SHARED CACHE INTERNAL "Build type symbol for libraries")
+    set(BUILD_SHARED_LIBS ON CACHE INTERNAL "Build shared libraries")
 endif ()
 
 if (NOT WIN32)
@@ -29,19 +32,18 @@ endif ()
 
 option(USE_LLVM "USE_LLVM" OFF)
 
-if (${USE_LLVM})
-    if (WIN32 AND NOT MINGW)
-        if (${CMAKE_GENERATOR} EQUAL "Visual Studio 17 2022")
-            set(CMAKE_GENERATOR_TOOLSET "ClangCl")
-        else ()
-            set(CMAKE_C_COMPILER "clang-cl" CACHE STRING "The Cmake C Compiler")
-            set(CMAKE_CXX_COMPILER "clang-cl" CACHE STRING "The Cmake CXX Compiler")
-        endif ()
-    else ()
-        set(CMAKE_C_COMPILER "clang" CACHE STRING "The Cmake C Compiler")
-        set(CMAKE_CXX_COMPILER "clang++" CACHE STRING "The Cmake CXX Compiler")
-    endif ()
-endif ()
+if(${USE_LLVM})
+    # Check if we're using Visual Studio generator with toolset support
+    if(CMAKE_GENERATOR MATCHES "Visual Studio" AND WIN32)
+        # For Visual Studio generators, use toolset instead of toolchain file
+        set(CMAKE_GENERATOR_TOOLSET "ClangCl" CACHE STRING "Visual Studio toolset" FORCE)
+        message(STATUS "Using ClangCl toolset for Visual Studio generator")
+    else()
+        # For all other generators, use the toolchain file
+        set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/tools/toolchain-llvm.cmake" CACHE FILEPATH "LLVM toolchain file" FORCE)
+        message(STATUS "Using LLVM toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+    endif()
+endif()
 
 # Clang-Tidy integration
 option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)

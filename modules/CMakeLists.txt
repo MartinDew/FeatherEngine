@@ -13,7 +13,7 @@ function(feather_module module_name enabled_by_default)
         target_include_directories(
                 ${module_name} INTERFACE
                 ${CMAKE_SOURCE_DIR}
-                ${CMAKE_CURRENT_SOURCE_DIR}>
+                ${CMAKE_CURRENT_SOURCE_DIR}
         )
 
         target_compile_definitions(${module_name} INTERFACE
@@ -23,33 +23,60 @@ function(feather_module module_name enabled_by_default)
 
         # Editor module
         add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${ARGN})
-        target_link_libraries(${module_name}_editor INTERFACE ${module_name} Editor PRIVATE ${THIRDPARTIES} )
-        target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
-        target_compile_options(${module_name}_editor PRIVATE ${EDITOR_COMPILE_OPTIONS} )
+        target_link_libraries(${module_name}_editor INTERFACE ${module_name} PUBLIC ${THIRDPARTIES} )
+        
+         target_include_directories(${module_name}_editor PRIVATE
+            $<TARGET_PROPERTY:Editor,INCLUDE_DIRECTORIES>
+        )
+        target_compile_options(${module_name}_editor PRIVATE
+            $<TARGET_PROPERTY:Editor,COMPILE_OPTIONS>
+        )
+        target_compile_definitions(${module_name}_editor PUBLIC
+            EDITOR_BUILD=1
+            $<$<CONFIG:Debug>:BETA>
+            $<$<CONFIG:Development>:BETA>
+        )
+
 
         # Standalone module
         add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${ARGN})
-        target_link_libraries(${module_name}_standalone INTERFACE ${module_name} Standalone PRIVATE ${THIRDPARTIES})
-        target_include_directories(${module_name}_standalone PRIVATE ${STANDALONE_INCLUDES})
-        target_compile_options(${module_name}_standalone PRIVATE ${STANDALONE_COMPILE_OPTIONS})
+        
+        target_link_libraries(${module_name}_standalone 
+            INTERFACE ${module_name}
+            PRIVATE ${THIRDPARTIES}
+        )
+        
+        target_include_directories(${module_name}_standalone PRIVATE
+            $<TARGET_PROPERTY:Standalone,INCLUDE_DIRECTORIES>
+        )
+        target_compile_options(${module_name}_standalone PRIVATE
+            $<TARGET_PROPERTY:Standalone,COMPILE_OPTIONS>
+        )
+        target_compile_definitions(${module_name}_standalone PUBLIC
+            EDITOR_BUILD=0
+            $<$<CONFIG:Debug>:BETA>
+            $<$<CONFIG:Development>:BETA>
+        )
 
-        list(APPEND STANDALONE_MODULES ${module_name}_standalone)
-        list(APPEND EDITOR_MODULES ${module_name}_editor)
-
-        message(STATUS "Enabled module: ${module_name}")
-
-        if (NOT ${STATIC_CPP})
-            if (MSVC)
+        # ===== Handle Dynamic Library Linking =====
+        if(NOT STATIC_CPP)  # If building shared libraries
+            if(MSVC)
+                # Windows: Allow unresolved symbols (will be resolved from .exe)
                 target_link_options(${module_name}_editor PRIVATE /FORCE:UNRESOLVED)
                 target_link_options(${module_name}_standalone PRIVATE /FORCE:UNRESOLVED)
             else()
-                target_link_options(${module_name}_editor PRIVATE --allow-shlib-undefined)
-                target_link_options(${module_name}_standalone PRIVATE --allow-shlib-undefined)
+                # Linux/macOS: Allow undefined symbols in shared libraries
+                target_link_options(${module_name}_editor PRIVATE -Wl,--allow-shlib-undefined)
+                target_link_options(${module_name}_standalone PRIVATE -Wl,--allow-shlib-undefined)
             endif()
         endif()
 
-        set(STANDALONE_MODULES ${STANDALONE_MODULES} CACHE INTERNAL " List of enabled modules")
-        set(EDITOR_MODULES ${EDITOR_MODULES} CACHE INTERNAL " List of enabled modules")
+        # Add to module lists
+        list(APPEND EDITOR_MODULES ${module_name}_editor)
+        list(APPEND STANDALONE_MODULES ${module_name}_standalone)
+        
+        set(EDITOR_MODULES ${EDITOR_MODULES} CACHE INTERNAL "List of enabled editor modules")
+        set(STANDALONE_MODULES ${STANDALONE_MODULES} CACHE INTERNAL "List of enabled standalone modules")
     endif ()
 endfunction()
 
@@ -64,9 +91,13 @@ foreach (CM_FILE ${SUBDIR_CMAKELISTS})
     add_subdirectory(${SUBDIR_NAME})
 endforeach ()
 
-message(STATUS "Enabled EDITOR modules: ${EDITOR_MODULES}")
-target_link_libraries(Editor PUBLIC ${EDITOR_MODULES})
-message(STATUS "Enabled STANDALONE modules: ${STANDALONE_MODULES}")
-target_link_libraries(Standalone PUBLIC ${STANDALONE_MODULES})
+# Link modules to main targets
+message(STATUS "Linking EDITOR modules: ${EDITOR_MODULES}")
+if(EDITOR_MODULES)
+    target_link_libraries(Editor PUBLIC ${EDITOR_MODULES})
+endif()
 
-#set(MODULES ${MODULES} CACHE INTERNAL "List of enabled modules" PARENT_SCOPE)
+message(STATUS "Linking STANDALONE modules: ${STANDALONE_MODULES}")
+if(STANDALONE_MODULES)
+    target_link_libraries(Standalone PUBLIC ${STANDALONE_MODULES})
+endif()

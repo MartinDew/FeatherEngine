@@ -8,7 +8,7 @@ FetchContent_Declare(Vex
         EXCLUDE_FROM_ALL)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(VEX_ENABLE_SLANG ON)
+set(VEX_ENABLE_SLANG OFF)
 
 FetchContent_MakeAvailable(Vex)
 
@@ -16,4 +16,4 @@ target_compile_definitions(Vex PUBLIC
         $<$<CONFIG:Development>:VEX_DEBUG=0 VEX_DEVELOPMENT=1 VEX_SHIPPING=0>
 )
 
-# RegisterThirdparty(INTERFACE Vex)
+RegisterThirdparty(INTERFACE Vex)

@@ -49,9 +49,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 }
 
 VexRenderer::VexRenderer()
-		: depthTexture()
-		, uvGuideTexture()
-		, graphics(vex::GraphicsCreateDesc{
+		: graphics(vex::GraphicsCreateDesc{
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
