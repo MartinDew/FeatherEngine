@@ -142,7 +142,7 @@ endif ()
 
 add_subdirectory(modules)
 
-if (!${enable_vex_renderer}})
+if (${enable_vex_renderer}})
         vex_setup_runtime(Editor)
         vex_setup_runtime(Standalone)
 endif()

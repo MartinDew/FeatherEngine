@@ -1,4 +1,6 @@
 option(STATIC_CPP "STATIC_CPP" ON)
+set(BUILD_SHARED_LIBS ${STATIC_CPP} CACHE INTERNAL "Build shared libraries")
+
 if (${STATIC_CPP})
     set(FEATHER_BUILD_TYPE STATIC CACHE INTERNAL "Build type symbol for libraries")
 else ()

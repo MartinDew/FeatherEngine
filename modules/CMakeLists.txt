@@ -25,7 +25,7 @@ function(feather_module module_name enabled_by_default)
         add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${ARGN})
         target_link_libraries(${module_name}_editor INTERFACE ${module_name} Editor PRIVATE ${THIRDPARTIES} )
         target_include_directories(${module_name}_editor PRIVATE ${EDITOR_INCLUDES})
-        target_compile_options(${module_name}_editor PRIVATE ${EDITOR_COMPILE_OPTIONS})
+        target_compile_options(${module_name}_editor PRIVATE ${EDITOR_COMPILE_OPTIONS} )
 
         # Standalone module
         add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${ARGN})
@@ -37,6 +37,16 @@ function(feather_module module_name enabled_by_default)
         list(APPEND EDITOR_MODULES ${module_name}_editor)
 
         message(STATUS "Enabled module: ${module_name}")
+
+        if (NOT ${STATIC_CPP})
+            if (MSVC)
+                target_link_options(${module_name}_editor PRIVATE /FORCE:UNRESOLVED)
+                target_link_options(${module_name}_standalone PRIVATE /FORCE:UNRESOLVED)
+            else()
+                target_link_options(${module_name}_editor PRIVATE --allow-shlib-undefined)
+                target_link_options(${module_name}_standalone PRIVATE --allow-shlib-undefined)
+            endif()
+        endif()
 
         set(STANDALONE_MODULES ${STANDALONE_MODULES} CACHE INTERNAL " List of enabled modules")
         set(EDITOR_MODULES ${EDITOR_MODULES} CACHE INTERNAL " List of enabled modules")
