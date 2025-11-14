@@ -8,6 +8,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set default build type to Release if not specified
@@ -141,8 +142,10 @@ endif ()
 
 add_subdirectory(modules)
 
-vex_setup_runtime(Editor)
-vex_setup_runtime(Standalone)
+if (!${enable_vex_renderer}})
+        vex_setup_runtime(Editor)
+        vex_setup_runtime(Standalone)
+endif()
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
