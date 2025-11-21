@@ -1,6 +1,7 @@
 #pragma once
 
 #include "launch_settings.h"
+#include "rendering/rendering_server.h"
 #include "window.h"
 
 #include <chrono>
@@ -18,6 +19,8 @@ class Engine {
 
 	static Engine* _instance;
 
+	RenderingServer _rendering_server;
+
 public:
 	Engine();
 
@@ -25,15 +28,13 @@ public:
 
 	static Engine& get() { return *_instance; }
 
-#ifndef EDITOR_MODE
-	static constexpr bool is_editor() {
-		return false;
-	}
+#if !EDITOR_BUILD
+	static constexpr bool is_editor() { return false; }
 #else
-	static bool is_editor() {
-		return LaunchSettings::get().editor_mode.Get();
-	}
+	static bool is_editor() { return LaunchSettings::get().editor_mode.Get(); }
 #endif
+
+	Window& get_main_window() { return _main_window; }
 };
 
 } //namespace feather

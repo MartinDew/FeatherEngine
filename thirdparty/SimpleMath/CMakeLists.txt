@@ -18,8 +18,10 @@ target_compile_options(SimpleMath PRIVATE
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-w>
 )
 
+target_compile_definitions(SimpleMath PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
+
 if (MSVC)
     target_compile_definitions(SimpleMath PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif ()
 
-RegisterThirdparty(SimpleMath)
+RegisterThirdparty(PUBLIC SimpleMath)

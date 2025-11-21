@@ -1,9 +1,13 @@
 #include "engine.h"
-#include "SDL3/SDL_assert.h"
 #include "launch_settings.h"
 
-#include <SDL3/SDL_init.h>
+#include <framework/assert.hpp>
+
 #include <chrono>
+
+// temp. Need a way to have dynamic associations for object types
+#include "modules/vex_renderer/vex_renderer.h"
+#include "rendering/rendering_server.h"
 
 namespace feather {
 
@@ -17,9 +21,10 @@ Engine* Engine::_instance = nullptr;
 
 Engine::Engine() {
 	// Todo replace sdl assert by custom one
-	SDL_assert(!_instance);
+	fassert(!_instance);
 
 	_instance = this;
+	_rendering_server.use_renderer<VexRenderer>();
 }
 
 bool Engine::run() {
@@ -48,6 +53,7 @@ bool Engine::run() {
 		// Update here
 
 		// Tell the renderer to render here
+		_rendering_server.update(frame_time);
 	}
 
 	return true;
