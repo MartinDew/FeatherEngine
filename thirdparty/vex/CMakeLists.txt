@@ -16,4 +16,4 @@ target_compile_definitions(Vex PUBLIC
         $<$<CONFIG:Development>:VEX_DEBUG=0 VEX_DEVELOPMENT=1 VEX_SHIPPING=0>
 )
 
-RegisterThirdparty(INTERFACE Vex)
+RegisterThirdparty(PRIVATE Vex)

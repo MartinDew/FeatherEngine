@@ -23,7 +23,8 @@ function(feather_module module_name enabled_by_default)
 
         # Editor module
         add_library(${module_name}_editor ${FEATHER_BUILD_TYPE} ${ARGN})
-        target_link_libraries(${module_name}_editor INTERFACE ${module_name} PUBLIC ${THIRDPARTIES} )
+        target_link_libraries(${module_name}_editor INTERFACE ${module_name} )
+        target_link_libraries(${module_name}_editor PUBLIC ${THIRDPARTIES} )
         
          target_include_directories(${module_name}_editor PRIVATE
             $<TARGET_PROPERTY:Editor,INCLUDE_DIRECTORIES>
@@ -37,14 +38,11 @@ function(feather_module module_name enabled_by_default)
             $<$<CONFIG:Development>:BETA>
         )
 
-
         # Standalone module
         add_library(${module_name}_standalone ${FEATHER_BUILD_TYPE} ${ARGN})
         
-        target_link_libraries(${module_name}_standalone 
-            INTERFACE ${module_name}
-            PRIVATE ${THIRDPARTIES}
-        )
+        target_link_libraries(${module_name}_standalone INTERFACE ${module_name} )
+        target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
         
         target_include_directories(${module_name}_standalone PRIVATE
             $<TARGET_PROPERTY:Standalone,INCLUDE_DIRECTORIES>
