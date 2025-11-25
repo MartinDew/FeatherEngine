@@ -8,7 +8,9 @@ FetchContent_Declare(Vex
         EXCLUDE_FROM_ALL)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(VEX_ENABLE_SLANG OFF)
+set(VEX_ENABLE_SLANG ON)
+
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 FetchContent_MakeAvailable(Vex)
 

@@ -1,7 +1,5 @@
 option(STATIC_CPP "STATIC_CPP" ON)
 
-set(STATIC_CPP ${STATIC_CPP} CACHE BOOL "Build static C++ libraries")
-
 if (${STATIC_CPP})
     set(FEATHER_BUILD_TYPE STATIC CACHE INTERNAL "Build type symbol for libraries")
     set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build shared libraries")
