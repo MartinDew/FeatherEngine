@@ -83,5 +83,6 @@ SamplerState PointSampler;
 
 float4 PSMain(VSOutput input) : SV_Target
 {
-    return float4(UVGuideTexture.Sample(LinearSampler, input.uv).rgb, 1);
+    // return white for the drawn objects
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

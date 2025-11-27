@@ -17,7 +17,7 @@ struct Vertex {
 	std::array<real_t, 2> uv;
 
 	Vertex() = default;
-	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv{ u, v } {}
+	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv { u, v } {}
 };
 
 class Renderer {
@@ -26,24 +26,31 @@ class Renderer {
 protected:
 	Renderer();
 
-	static constexpr std::array<Vertex, 8> example_cube{
-		Vertex(-1.0f, -1.0f, -1.0f, 0.f, 0.f),
-		Vertex(1.0f, -1.0f, -1.0f, 1.f, 0.f),
-		Vertex(1.0f, 1.0f, -1.0f, 1.f, 1.f),
-		Vertex(-1.0f, 1.0f, -1.0f, 0.f, 1.f),
-		Vertex(-1.0f, -1.0f, 1.0f, 0.f, 0.f),
-		Vertex(1.0f, -1.0f, 1.0f, 1.f, 0.f),
-		Vertex(1.0f, 1.0f, 1.0f, 1.f, 1.f),
-		Vertex(-1.0f, 1.0f, 1.0f, 0.f, 1.f),
+	static constexpr std::array<Vertex, 8> example_cube {
+		// Front face
+		Vertex { -1.f, -1.f, 1.f, 0, 0 }, // 0: bottom-left
+		Vertex { 1.f, -1.f, 1.f, 1, 0 }, // 1: bottom-right
+		Vertex { 1.f, 1.f, 1.f, 1, 1 }, // 2: top-right
+		Vertex { -1.f, 1.f, 1.f, 0, 1 }, // 3: top-left
+		// Back face
+		Vertex { -1.f, -1.f, -1.f, 1, 0 }, // 4: bottom-left
+		Vertex { 1.f, -1.f, -1.f, 0, 0 }, // 5: bottom-right
+		Vertex { 1.f, 1.f, -1.f, 0, 1 }, // 6: top-right
+		Vertex { -1.f, 1.f, -1.f, 1, 1 }, // 7: top-left
 	};
 
-	static constexpr std::array<uint32_t, 36> example_cube_indices{
-		0, 1, 2, 2, 3, 0, // Back face
-		4, 5, 6, 6, 7, 4, // Front face
-		0, 4, 7, 7, 3, 0, // Left face
-		1, 5, 6, 6, 2, 1, // Right face
-		3, 2, 6, 6, 7, 3, // Top face
-		0, 1, 5, 5, 4, 0 // Bottom face
+	static constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
+		0, 1, 2, 2, 3, 0,
+		// Back face
+		4, 6, 5, 6, 4, 7,
+		// Left face
+		4, 0, 3, 3, 7, 4,
+		// Right face
+		1, 5, 6, 6, 2, 1,
+		// Top face
+		3, 2, 6, 6, 7, 3,
+		// Bottom face
+		4, 5, 1, 1, 0, 4
 	};
 
 	virtual void _on_resize() = 0;
@@ -57,4 +64,4 @@ public:
 	virtual ~Renderer() = default;
 };
 
-} //namespace feather
+} // namespace feather

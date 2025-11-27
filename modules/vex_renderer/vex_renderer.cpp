@@ -49,7 +49,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 }
 
 VexRenderer::VexRenderer()
-		: graphics(vex::GraphicsCreateDesc{
+		: graphics(vex::GraphicsCreateDesc {
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
@@ -69,7 +69,7 @@ VexRenderer::VexRenderer()
 			.height = (height),
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
-					vex::TextureClearValue{
+					vex::TextureClearValue {
 							.flags = vex::TextureClear::ClearDepth,
 							.depth = 0,
 					},
@@ -125,13 +125,13 @@ VexRenderer::VexRenderer()
 
 	// stbi_image_free(imageData);
 
-	std::array samplers{
+	std::array samplers {
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Linear, vex::AddressMode::Clamp),
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
 	};
 	graphics.SetSamplers(samplers);
 
-	std::ofstream shader_file{ "example_cube.hlsl" };
+	std::ofstream shader_file { "example_cube.hlsl" };
 	shader_file << shader;
 	shader_file.close();
 }
@@ -146,9 +146,9 @@ void VexRenderer::_render_scene() {
 		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 
 		// Clear backbuffer.
-		vex::TextureClearValue clearValue{ .flags = vex::TextureClear::ClearColor, .color = { 0.2f, 0.2f, 0.2f, 1 } };
+		vex::TextureClearValue clearValue { .flags = vex::TextureClear::ClearColor, .color = { 0.2f, 0.2f, 0.2f, 1 } };
 		ctx.ClearTexture(
-				vex::TextureBinding{
+				vex::TextureBinding {
 						.texture = graphics.GetCurrentPresentTexture(),
 				},
 				clearValue);
@@ -181,7 +181,7 @@ void VexRenderer::_render_scene() {
 		},
 	};
 
-		vex::DepthStencilState depthStencilState{
+		vex::DepthStencilState depthStencilState {
 			.depthTestEnabled = true,
 			.depthWriteEnabled = true,
 			.depthCompareOp = vex::CompareOp::GreaterEqual,
@@ -220,24 +220,24 @@ void VexRenderer::_render_scene() {
 		// 	};
 		// #endif
 		// ...and resources.
-		vex::BufferBinding vertexBufferBinding{
+		vex::BufferBinding vertexBufferBinding {
 			.buffer = vertexBuffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(Vector3)),
+			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
 		};
-		vex::BufferBinding indexBufferBinding{
+		vex::BufferBinding indexBufferBinding {
 			.buffer = indexBuffer,
 			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
 		};
 
 		// Setup our rendering pass.
-		std::array renderTargets = { vex::TextureBinding{
+		std::array renderTargets = { vex::TextureBinding {
 				.texture = graphics.GetCurrentPresentTexture(),
 		} };
 
 		// Usually you'd have to transition the uvGuideTexture (since we're using it bindless-ly), but since we
 		// already transitioned it to RHITextureState::ShaderResource after the texture upload we don't have to!
 		vex::BindlessHandle uvGuideHandle = ctx.GetBindlessHandle(
-				vex::TextureBinding{ .texture = uvGuideTexture, .usage = vex::TextureBindingUsage::ShaderRead });
+				vex::TextureBinding { .texture = uvGuideTexture, .usage = vex::TextureBindingUsage::ShaderRead });
 
 		struct UniformData {
 			float currentTime;
@@ -253,7 +253,7 @@ void VexRenderer::_render_scene() {
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
-					vex::ConstantBinding(UniformData{ .currentTime = 0.0f, .uvGuideHandle = uvGuideHandle }),
+					vex::ConstantBinding(UniformData { .currentTime = .5f, .uvGuideHandle = uvGuideHandle }),
 					example_cube_indices.size());
 		}
 
@@ -293,7 +293,7 @@ void VexRenderer::_on_resize() {
 			.height = static_cast<vex::u32>(height),
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
-					vex::TextureClearValue{
+					vex::TextureClearValue {
 							.flags = vex::TextureClear::ClearDepth,
 							.depth = 0,
 					},

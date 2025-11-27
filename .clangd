@@ -1,6 +1,6 @@
 CompileFlags:
   # Treat code as C++
-  Add: [-xc++, -Wall, -std=c++2b, -Wno-c++98-compat]
+  Add: [-xc++, -Wall, -std=c++2c, -Wno-c++98-compat]
 
   # Include directories
   # Adjust these paths based on your actual project structure

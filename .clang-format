@@ -137,7 +137,7 @@ ReferenceAlignment: Pointer
 # SpaceAfterTemplateKeyword: true
 # SpaceBeforeAssignmentOperators: true
 # SpaceBeforeCaseColon: false
-# SpaceBeforeCpp11BracedList: false
+SpaceBeforeCpp11BracedList: true
 # SpaceBeforeCtorInitializerColon: true
 # SpaceBeforeInheritanceColon: true
 # SpaceBeforeParens: ControlStatements
@@ -185,6 +185,9 @@ UseTab:          Always
 ### C++ specific config ###
 Language:        Cpp
 Standard:        c++20
+SpaceBeforeCpp11BracedList: true
+AllowShortBlocksOnASingleLine: Never
+# BreakBeforeCloseBracketBracedList: true
 ---
 ### ObjC specific config ###
 Language:        ObjC
