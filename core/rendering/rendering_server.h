@@ -2,6 +2,8 @@
 
 #include "renderer.h"
 
+#include <main/engine_settings.h>
+
 #include <memory>
 
 namespace feather {

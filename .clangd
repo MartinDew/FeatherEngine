@@ -1,16 +1,19 @@
 CompileFlags:
   # Treat code as C++
-  Add: [-xc++, -Wall, -std=c++2c, -Wno-c++98-compat]
+  Add: [-xc++, -Wall, -std=c++2c, "/std:c++latest"]
 
   # Include directories
-  Adjust these paths based on your actual project structure
+  # Adjust these paths based on your actual project structure
   Add: [
     -I.,
+    -Icore,
+    -Imodules/*
   ]
 
 Diagnostics:
   # Tweak specific diagnostics
   Suppress:
+    - c++98-compat
     - unused-parameter
     - unused-variable
 

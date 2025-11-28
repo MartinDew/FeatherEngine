@@ -5,8 +5,6 @@
 
 #include <chrono>
 
-// temp. Need a way to have dynamic associations for object types
-#include "modules/vex_renderer/vex_renderer.h"
 #include "rendering/rendering_server.h"
 
 namespace feather {
@@ -24,7 +22,6 @@ Engine::Engine() {
 	fassert(!_instance);
 
 	_instance = this;
-	_rendering_server.use_renderer<VexRenderer>();
 }
 
 bool Engine::run() {

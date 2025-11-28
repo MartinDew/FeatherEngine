@@ -27,6 +27,7 @@ AllowAllParametersOfDeclarationOnNextLine: false
 # AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
 # AlwaysBreakTemplateDeclarations: MultiLine
+AlwaysBreakTemplateDeclarations: Leave
 # AttributeMacros:
 #   - __capability
 # BinPackArguments: true

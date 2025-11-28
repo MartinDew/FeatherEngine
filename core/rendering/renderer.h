@@ -4,6 +4,8 @@
 
 #include <array>
 
+#include <main/engine_settings.h>
+
 class SDL_Window;
 
 namespace feather {
@@ -63,5 +65,8 @@ public:
 	virtual void _render_scene() = 0;
 	virtual ~Renderer() = default;
 };
+
+// Engine setting for which renderer to use
+inline static ResolverSetting<StaticString, std::unique_ptr<Renderer>> renderer_setting { "renderer", "sdl"_ss };
 
 } // namespace feather
