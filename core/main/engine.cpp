@@ -45,11 +45,13 @@ bool Engine::run() {
 		current_time = new_time;
 
 		accumulator += frame_time;
+		_current_dt = simulation_time;
 		while (accumulator >= simulation_time) {
 			accumulator -= simulation_time;
 			// _physics_update here
 		}
 
+		_current_dt = frame_time;
 		// Update here
 
 		// Tell the renderer to render here
@@ -58,5 +60,7 @@ bool Engine::run() {
 
 	return true;
 }
+
+double Engine::get_current_delta_time() const { return _current_dt; }
 
 } //namespace feather

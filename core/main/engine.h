@@ -21,6 +21,8 @@ class Engine {
 
 	RenderingServer _rendering_server;
 
+	double _current_dt = 0.f;
+
 public:
 	Engine();
 
@@ -35,6 +37,8 @@ public:
 #endif
 
 	Window& get_main_window() { return _main_window; }
+
+	double get_current_delta_time() const;
 };
 
 } //namespace feather

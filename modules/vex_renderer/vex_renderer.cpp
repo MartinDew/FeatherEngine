@@ -53,7 +53,6 @@ VexRenderer::VexRenderer()
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
-				  .swapChainFormat = vex::TextureFormat::BGRA8_UNORM,
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
 				  .enableGPUBasedValidation = !VEX_SHIPPING }) {
 	auto main_window = Engine::get().get_main_window();
@@ -246,6 +245,8 @@ void VexRenderer::_render_scene() {
 
 		{
 			VEX_GPU_SCOPED_EVENT(ctx, "HLSL Cube");
+			static float accum = 0;
+			accum += Engine::get().get_current_delta_time();
 			ctx.DrawIndexed(hlslDrawDesc,
 					{
 							.renderTargets = renderTargets,
@@ -253,7 +254,8 @@ void VexRenderer::_render_scene() {
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
-					vex::ConstantBinding(UniformData { .currentTime = .5f, .uvGuideHandle = uvGuideHandle }),
+
+					vex::ConstantBinding(UniformData { .currentTime = accum, .uvGuideHandle = uvGuideHandle }),
 					example_cube_indices.size());
 		}
 
