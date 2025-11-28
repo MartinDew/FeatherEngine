@@ -9,15 +9,6 @@
 #include <fstream>
 #include <ostream>
 
-namespace {
-// clang-format off
-static constexpr char shader[] {
-#embed <example_cube.hlsl>
-	,'\0'
-};
-// clang-format on
-} //namespace
-
 namespace feather {
 
 using namespace vex;
@@ -129,10 +120,6 @@ VexRenderer::VexRenderer()
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
 	};
 	graphics.SetSamplers(samplers);
-
-	std::ofstream shader_file { "example_cube.hlsl" };
-	shader_file << shader;
-	shader_file.close();
 }
 
 void VexRenderer::_render_scene() {
@@ -189,35 +176,34 @@ void VexRenderer::_render_scene() {
 		// Setup our draw call's description...
 		vex::DrawDesc hlslDrawDesc{
 			.vertexShader = {
-					.path = "example_cube.hlsl",
+					.path = "shaders/example_cube.hlsl",
 					.entryPoint = "VSMain",
 					.type = vex::ShaderType::VertexShader,
 			},
 			.pixelShader = {
-					.path = "example_cube.hlsl",
+					.path = "shaders/example_cube.hlsl",
 					.entryPoint = "PSMain",
 					.type = vex::ShaderType::PixelShader,
 			},
 			.vertexInputLayout = vertexLayout,
 			.depthStencilState = depthStencilState,
 		};
-		// #if VEX_SLANG
-		// 		vex::DrawDesc slangDrawDesc{
-		// 		.vertexShader = {
-		// 				.path = ExamplesDir / "hello_cube" /
-		// 						"HelloCubeShader.slang",
-		// 				.entryPoint = "VSMain",
-		// 				.type = vex::ShaderType::VertexShader,
-		// 		},
-		// 		.pixelShader = {
-		// 				.path = ExamplesDir / "hello_cube" / "HelloCubeShader.slang",
-		// 				.entryPoint = "PSMain",
-		// 				.type = vex::ShaderType::PixelShader,
-		// 		},
-		// 		.vertexInputLayout = vertexLayout,
-		// 		.depthStencilState = depthStencilState,
-		// 	};
-		// #endif
+#if VEX_SLANG
+		vex::DrawDesc slangDrawDesc{
+				.vertexShader = {
+						.path = "shaders/example_cube.slang",
+						.entryPoint = "VSMain",
+						.type = vex::ShaderType::VertexShader,
+				},
+				.pixelShader = {
+						.path = "shaders/example_cube.slang",
+						.entryPoint = "PSMain",
+						.type = vex::ShaderType::PixelShader,
+				},
+				.vertexInputLayout = vertexLayout,
+				.depthStencilState = depthStencilState,
+			};
+#endif
 		// ...and resources.
 		vex::BufferBinding vertexBufferBinding {
 			.buffer = vertexBuffer,
@@ -243,10 +229,10 @@ void VexRenderer::_render_scene() {
 			vex::BindlessHandle uvGuideHandle;
 		};
 
+		static float accum = 0;
+		accum += Engine::get().get_current_delta_time();
 		{
 			VEX_GPU_SCOPED_EVENT(ctx, "HLSL Cube");
-			static float accum = 0;
-			accum += Engine::get().get_current_delta_time();
 			ctx.DrawIndexed(hlslDrawDesc,
 					{
 							.renderTargets = renderTargets,
@@ -259,20 +245,20 @@ void VexRenderer::_render_scene() {
 					example_cube_indices.size());
 		}
 
-		// #if VEX_SLANG
-		// 		{
-		// 			VEX_GPU_SCOPED_EVENT(ctx, "Slang Cube");
-		// 			ctx.DrawIndexed(slangDrawDesc,
-		// 					{
-		// 							.renderTargets = renderTargets,
-		// 							.depthStencil = vex::TextureBinding(depthTexture),
-		// 							.vertexBuffers = { &vertexBufferBinding, 1 },
-		// 							.indexBuffer = indexBufferBinding,
-		// 					},
-		// 					vex::ConstantBinding(UniformData{ static_cast<float>(currentTime), uvGuideHandle }),
-		// IndexCount);
-		// 		}
-		// #endif
+#if VEX_SLANG
+		{
+			VEX_GPU_SCOPED_EVENT(ctx, "Slang Cube");
+			ctx.DrawIndexed(slangDrawDesc,
+					{
+							.renderTargets = renderTargets,
+							.depthStencil = vex::TextureBinding(depthTexture),
+							.vertexBuffers = { &vertexBufferBinding, 1 },
+							.indexBuffer = indexBufferBinding,
+					},
+					vex::ConstantBinding(UniformData { static_cast<float>(accum), uvGuideHandle }),
+					example_cube_indices.size());
+		}
+#endif
 	}
 
 	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);

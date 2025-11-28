@@ -3,14 +3,10 @@ CompileFlags:
   Add: [-xc++, -Wall, -std=c++2c, -Wno-c++98-compat]
 
   # Include directories
-  # Adjust these paths based on your actual project structure
-  # Add: [
-  #   -I.,
-  #   -I./src,
-  #   -I./godot-cpp/include,
-  #   -I./godot-cpp/gen/include,
-  #   -I./godot-cpp/gdextension,
-  # ]
+  Adjust these paths based on your actual project structure
+  Add: [
+    -I.,
+  ]
 
 Diagnostics:
   # Tweak specific diagnostics

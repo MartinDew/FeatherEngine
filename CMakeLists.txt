@@ -128,16 +128,16 @@ if (MSVC)
     target_compile_definitions(Editor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
     target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 
-    # embed internal_resources folder
-    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
-    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+    # embed raw_resources folder
+    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 
 else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
-    # embed internal_resources folder
-    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
-    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/internal_resources")
+    # embed raw_resources folder
+    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 endif ()
 
 add_subdirectory(modules)
@@ -146,6 +146,20 @@ if (${enable_vex_renderer})
         vex_setup_runtime(Editor)
         vex_setup_runtime(Standalone)
 endif()
+
+add_custom_command(
+         TARGET Editor POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E copy_directory              
+             ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Editor>/shaders
+         COMMENT "Copying shaders" VERBATIM
+)
+
+add_custom_command(
+         TARGET Standalone POST_BUILD
+         COMMAND ${CMAKE_COMMAND} -E copy_directory              
+             ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Standalone>/shaders
+         COMMENT "Copying shaders" VERBATIM
+)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
