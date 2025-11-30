@@ -25,6 +25,7 @@ class Engine {
 
 public:
 	Engine();
+	~Engine();
 
 	bool run();
 

@@ -14,4 +14,11 @@ Renderer::Renderer() {
 
 SDL_Window* Renderer::_extract_internal_window(Window& window) { return window._internal_window; }
 
+ResolverSetting<StaticString, std::unique_ptr<Renderer>>& get_renderer_setting() {
+	// Engine setting for which renderer to use
+	static ResolverSetting<StaticString, std::unique_ptr<Renderer>> renderer_setting { "renderer", "sdl"_ss };
+
+	return renderer_setting;
+}
+
 } //namespace feather

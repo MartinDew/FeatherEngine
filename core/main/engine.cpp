@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "launch_settings.h"
+#include "modules/modules.gen.h"
 
 #include <framework/assert.hpp>
 
@@ -22,6 +23,11 @@ Engine::Engine() {
 	fassert(!_instance);
 
 	_instance = this;
+	// register_modules();
+}
+
+Engine::~Engine() {
+	// unregister_modules();
 }
 
 bool Engine::run() {

@@ -16,7 +16,7 @@ RenderingServer::RenderingServer() {
 
 	_instance = this;
 
-	_renderer = renderer_setting.resolve();
+	_renderer = get_renderer_setting().resolve();
 }
 
 void RenderingServer::update(double dt) {

@@ -294,8 +294,4 @@ VexRenderer::~VexRenderer() {
 	std::remove("example_cube.hlsl");
 }
 
-REGISTRATION_SCOPE_BEGIN
-renderer_setting.register_resolver("vex"_ss, [] { return std::make_unique<VexRenderer>(); });
-REGISTRATION_SCOPE_END
-
 } //namespace feather

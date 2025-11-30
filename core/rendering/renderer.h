@@ -66,7 +66,6 @@ public:
 	virtual ~Renderer() = default;
 };
 
-// Engine setting for which renderer to use
-inline static ResolverSetting<StaticString, std::unique_ptr<Renderer>> renderer_setting { "renderer", "sdl"_ss };
+static ResolverSetting<StaticString, std::unique_ptr<Renderer>>& get_renderer_setting();
 
 } // namespace feather
