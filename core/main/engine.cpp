@@ -37,6 +37,9 @@ bool Engine::run() {
 
 	// initialization
 
+	// Todo, remove
+	_rendering_server.use_renderer("vex"_ss);
+
 	// update
 	double accumulator = 0.0;
 	while (keep_running) {

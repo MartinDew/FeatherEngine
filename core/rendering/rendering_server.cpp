@@ -1,4 +1,5 @@
 #include "rendering_server.h"
+#include "modules/vex_renderer/vex_renderer.h"
 #include "renderer.h"
 
 #include <main/engine_settings.h>
@@ -15,8 +16,6 @@ RenderingServer::RenderingServer() {
 	fassert(!_instance);
 
 	_instance = this;
-
-	_renderer = get_renderer_setting().resolve();
 }
 
 void RenderingServer::update(double dt) {
@@ -24,5 +23,20 @@ void RenderingServer::update(double dt) {
 
 	_renderer->_render_scene();
 }
+
+void RenderingServer::use_renderer(StaticString name) {
+	switch (name) {
+#ifdef vex_renderer_ENABLED
+	case "vex"_ss:
+		use_renderer<VexRenderer>();
+		break;
+#endif
+	}
+}
+
+RenderingServer* RenderingServer::get() {
+	fassert(_instance, "instance not yet initialized for RenderingServer");
+	return _instance;
+};
 
 } //namespace feather

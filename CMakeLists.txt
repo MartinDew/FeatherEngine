@@ -39,6 +39,8 @@ set(PROJECT_HEADERS
         # Math
         core/math/transform.h
         core/math/math_defs.h
+        core/main/notification.h
+        
         #Framework
         core/framework/assert.hpp
         core/framework/static_string.hpp
@@ -50,7 +52,7 @@ set(PROJECT_HEADERS
         #Rendering
         core/rendering/rendering_server.h
         core/rendering/renderer.h
-        core/main/notification.h
+        core/rendering/triangle_mesh.h
 )
 
 # Source files (shared between both targets)
@@ -67,6 +69,7 @@ set(PROJECT_SOURCES
         # Rendering
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
+        core/rendering/triangle_mesh.cpp
 )
 
 # Editor target

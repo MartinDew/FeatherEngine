@@ -66,19 +66,21 @@ VexRenderer::VexRenderer()
 					},
 	});
 
+	const auto& example_cube = get_example_cube();
+
 	// Vertex buffer
-	vertexBuffer = graphics.CreateBuffer(
-			vex::BufferDesc::CreateVertexBufferDesc("Vertex Buffer", sizeof(Vertex) * example_cube.size()));
+	vertexBuffer = graphics.CreateBuffer(vex::BufferDesc::CreateVertexBufferDesc(
+			"Vertex Buffer", sizeof(Vertex) * example_cube.get_vertices().size()));
 	// Index buffer
-	indexBuffer = graphics.CreateBuffer(
-			vex::BufferDesc::CreateIndexBufferDesc("Index Buffer", sizeof(uint32_t) * example_cube_indices.size()));
+	indexBuffer = graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc(
+			"Index Buffer", sizeof(uint32_t) * example_cube.get_indices().size()));
 
 	// Immediate submission means the commands are instantly submitted upon destruction.
 	vex::CommandContext ctx =
 			graphics.BeginScopedCommandContext(vex::QueueType::Graphics, vex::SubmissionPolicy::Immediate);
 
-	ctx.EnqueueDataUpload(vertexBuffer, std::as_bytes(std::span(example_cube)));
-	ctx.EnqueueDataUpload(indexBuffer, std::as_bytes(std::span(example_cube_indices)));
+	ctx.EnqueueDataUpload(vertexBuffer, std::as_bytes(std::span(example_cube.get_vertices())));
+	ctx.EnqueueDataUpload(indexBuffer, std::as_bytes(std::span(example_cube.get_indices())));
 
 	// Use the loaded image for mip index 0.
 	// const std::filesystem::path uvImagePath = ExamplesDir / "uv-guide.png";
@@ -125,6 +127,8 @@ VexRenderer::VexRenderer()
 
 void VexRenderer::_render_scene() {
 	// Scoped command context will submit commands automatically upon destruction.
+
+	const auto& example_cube = get_example_cube();
 
 	{
 		auto ctx = graphics.BeginScopedCommandContext(vex::QueueType::Graphics);
@@ -243,7 +247,7 @@ void VexRenderer::_render_scene() {
 					},
 
 					vex::ConstantBinding(UniformData { .currentTime = accum, .uvGuideHandle = uvGuideHandle }),
-					example_cube_indices.size());
+					example_cube.get_indices().size());
 		}
 
 #if VEX_SLANG
@@ -257,7 +261,7 @@ void VexRenderer::_render_scene() {
 							.indexBuffer = indexBufferBinding,
 					},
 					vex::ConstantBinding(UniformData { static_cast<float>(accum), uvGuideHandle }),
-					example_cube_indices.size());
+					example_cube.get_indices().size());
 		}
 #endif
 	}

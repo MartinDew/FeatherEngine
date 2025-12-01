@@ -44,11 +44,7 @@ Window::Window() : _internal_event(), _fullscreen_mode() {
 	_properties.width = dm->w / 2;
 	_properties.height = dm->h / 2;
 
-	auto window_flags = SDL_WINDOW_MOUSE_CAPTURE;
-
-	if (Engine::is_editor()) {
-		window_flags |= SDL_WINDOW_RESIZABLE;
-	}
+	auto window_flags = SDL_WINDOW_MOUSE_CAPTURE | SDL_WINDOW_RESIZABLE;
 
 	_internal_window = SDL_CreateWindow("Feather", _properties.width, _properties.height, window_flags);
 

@@ -18,12 +18,14 @@ class RenderingServer {
 public:
 	RenderingServer();
 
-	static RenderingServer* get() { return _instance; };
+	static RenderingServer* get();
 
 	void update(double dt);
 
 	// Should change accessibility later
 	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }
+
+	void use_renderer(StaticString name);
 };
 
 } //namespace feather

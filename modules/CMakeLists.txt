@@ -39,7 +39,7 @@ function(feather_module module_name enabled_by_default)
         )
 
         # Standalone module
-        add_library(${module_name}_standalone OBJECT ${ARGN})
+        add_library(${module_name}_standalone STATIC ${ARGN})
 
         target_link_libraries(${module_name}_standalone INTERFACE ${module_name})
         target_link_libraries(${module_name}_standalone PRIVATE ${THIRDPARTIES})
