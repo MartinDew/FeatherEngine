@@ -45,8 +45,8 @@ VexRenderer::VexRenderer()
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
-				  .enableGPUDebugLayer = !VEX_SHIPPING,
-				  .enableGPUBasedValidation = !VEX_SHIPPING }) {
+				  .enableGPUDebugLayer = BETA,
+				  .enableGPUBasedValidation = BETA }) {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
@@ -226,7 +226,7 @@ void VexRenderer::_render_scene() {
 
 		// Usually you'd have to transition the uvGuideTexture (since we're using it bindless-ly), but since we
 		// already transitioned it to RHITextureState::ShaderResource after the texture upload we don't have to!
-		vex::BindlessHandle uvGuideHandle = ctx.GetBindlessHandle(
+		vex::BindlessHandle uvGuideHandle = graphics.GetBindlessHandle(
 				vex::TextureBinding { .texture = uvGuideTexture, .usage = vex::TextureBindingUsage::ShaderRead });
 
 		struct UniformData {

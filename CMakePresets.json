@@ -107,25 +107,25 @@
       "configuration": "Debug"
     },
     {
-      "name": "multi-llvm-release",
+      "name": "multi-release",
       "displayName": "Release Build",
       "configurePreset": "multi",
       "configuration": "Release"
     },
     {
-      "name": "multi-llvm-development",
+      "name": "llvm-multi-development",
       "displayName": "Development Build",
       "configurePreset": "multi-llvm",
       "configuration": "Development"
     },
     {
-      "name": "multi-llvm-debug",
+      "name": "llvm-multi-debug",
       "displayName": "Debug Build",
       "configurePreset": "multi-llvm",
       "configuration": "Debug"
     },
     {
-      "name": "multi-release-debug",
+      "name": "llvm-multi-release",
       "displayName": "Release Build",
       "configurePreset": "multi-llvm",
       "configuration": "Release"

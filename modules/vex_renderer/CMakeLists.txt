@@ -3,8 +3,6 @@ if (APPLE)
     set(enable_by_default OFF)
 endif ()
 
-set(VEX_ENABLE_SLANG OFF CACHE BOOL "Enable Slang support in Vex")
-
 feather_module(vex_renderer ${enable_by_default}
         register_module.cpp
         vex_renderer.cpp

@@ -5,7 +5,7 @@ get_target_property(EDITOR_COMPILE_OPTIONS Editor COMPILE_OPTIONS)
 get_target_property(STANDALONE_COMPILE_OPTIONS Editor INTERFACE_COMPILE_OPTIONS)
 
 function(feather_module module_name enabled_by_default)
-    option("${module_name}_ENABLED" "Enable the ${module_name} module" ${enabled_by_default})
+    option("enable_${module_name}" "Enable the ${module_name} module" ${enabled_by_default})
     if (enable_${module_name})
         add_library(${module_name} INTERFACE ${ARGN})
         target_compile_definitions(${module_name} INTERFACE ${module_name}_ENABLED)
