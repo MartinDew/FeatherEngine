@@ -135,16 +135,16 @@ if (MSVC)
     target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 
     # embed raw_resources folder
-#     target_compile_options(Editor PUBLIC "\/clang:--embed-directory=${CMAKE_SOURCE_DIR}/raw_resources")
-#     target_compile_options(Standalone PUBLIC "\/clang:--embed-directory=${CMAKE_SOURCE_DIR}/raw_resources")
+#    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+#    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 
 else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     # embed raw_resources folder
     
-#     target_compile_options(Editor PUBLIC "--embed-directory=${CMAKE_SOURCE_DIR}/raw_resources")
-#     target_compile_options(Standalone PUBLIC "--embed-directory=${CMAKE_SOURCE_DIR}/raw_resources")
+#    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+#    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 endif ()
 
 add_subdirectory(modules)
