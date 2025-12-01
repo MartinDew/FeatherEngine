@@ -31,9 +31,10 @@ jobs:
           cmake-version: '4.1.x'
 
       - name: Setup CPP
-        uses: KyleMayes/install-llvm-action@v2.0.8
-        with:
-          version: 21.1.3
+        run: |
+          sudo apt-get install -y gcc-15 g++-15 libc++-15-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - name: Setup SDL
         uses: libsdl-org/setup-sdl@main
@@ -63,7 +64,7 @@ jobs:
       - name: Configure CMake
         run: |
           cmake --version
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}
+          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DCMAKE_CXX_FLAGS="-stdlib=libc++"
 
       - name: Build Editor
         run: |

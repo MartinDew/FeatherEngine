@@ -45,8 +45,8 @@ VexRenderer::VexRenderer()
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
-				  .enableGPUDebugLayer = BETA,
-				  .enableGPUBasedValidation = BETA }) {
+				  .enableGPUDebugLayer = !VEX_SHIPPING,
+				  .enableGPUBasedValidation = !VEX_SHIPPING }) {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
