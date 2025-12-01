@@ -1,5 +1,4 @@
 #include "rendering_server.h"
-#include "modules/vex_renderer/vex_renderer.h"
 #include "renderer.h"
 
 #include <main/engine_settings.h>
@@ -8,6 +7,9 @@
 
 #include <string_view>
 
+#if vex_renderer_ENABLED
+#include "modules/vex_renderer/vex_renderer.h"
+#endif
 namespace feather {
 
 RenderingServer* RenderingServer::_instance = nullptr;
