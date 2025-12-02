@@ -24,17 +24,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build
+          sudo apt-get install -y gcc-15 g++-15 libc++-15-dev
+          
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '4.1.x'
-
-      - name: Setup CPP
-        run: |
-          sudo apt-get install -y gcc-15 g++-15 libc++-15-dev
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
 
       - name: Setup SDL
         uses: libsdl-org/setup-sdl@main
