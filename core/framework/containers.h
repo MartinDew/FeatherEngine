@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 
 namespace feather {
@@ -10,7 +11,7 @@ void swap_remove(std::vector<T, U>& vec, size_t index) {
 		return;
 	}
 
-	vec[index] = vec.back();
+	std::swap(vec[index], vec.back());
 	vec.pop_back();
 }
 

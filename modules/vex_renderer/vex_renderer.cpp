@@ -51,6 +51,8 @@ VexRenderer::VexRenderer()
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
 
+	// TODO Setup error handling
+
 	// Depth texture
 	depthTexture = graphics.CreateTexture({
 			.name = "Depth Texture",
