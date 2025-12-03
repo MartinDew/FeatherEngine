@@ -49,7 +49,7 @@ set(PROJECT_HEADERS
         core/framework/container_utils.h
         core/framework/static_indexed_array.h
         core/framework/functions.h
-        core/framework/vector.h
+        core/framework/cow_vector.h
         core/framework/variant.h
 
         #Rendering
