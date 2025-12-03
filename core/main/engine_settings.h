@@ -90,7 +90,7 @@ private:
 
 public:
 	Setting(std::string_view name, T default_val = {}) : _name(name) {
-		auto storage = std::make_unique<Storage>(default_val);
+		auto storage = std::make_unique<Storage>(std::move(default_val));
 		storage_ = storage.get();
 		register_self(std::move(storage));
 	}

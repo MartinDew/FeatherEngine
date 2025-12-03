@@ -295,9 +295,4 @@ void VexRenderer::_on_resize() {
 	graphics.OnWindowResized(width, height);
 }
 
-VexRenderer::~VexRenderer() {
-	// Remove shader_file
-	std::remove("example_cube.hlsl");
-}
-
 } //namespace feather
