@@ -35,6 +35,7 @@ set(PROJECT_HEADERS
         core/main/window.h
         core/main/engine.h
         core/main/engine_settings.h
+        core/main/class_db.h
 
         # Math
         core/math/transform.h
@@ -42,12 +43,14 @@ set(PROJECT_HEADERS
         core/main/notification.h
         
         #Framework
-        core/framework/assert.hpp
+        core/framework/assert.h
         core/framework/static_string.hpp
         core/framework/delegate.h
-        core/framework/containers.h
+        core/framework/container_utils.h
         core/framework/static_indexed_array.h
         core/framework/functions.h
+        core/framework/vector.h
+        core/framework/variant.h
 
         #Rendering
         core/rendering/rendering_server.h
@@ -63,6 +66,7 @@ set(PROJECT_SOURCES
         core/main/window.cpp
         core/main/engine.cpp
         core/main/engine_settings.cpp
+        core/main/class_db.cpp
         # Math
         core/math/transform.cpp
         core/math/math_defs.cpp

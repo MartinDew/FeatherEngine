@@ -1,6 +1,6 @@
 #pragma once
 
-#include "assert.hpp"
+#include "assert.h"
 
 #include <cstdint>
 
@@ -30,9 +30,7 @@ public:
 	void reserve(size_t size);
 	template <class... TArgs>
 	size_t emplace(TArgs... args);
-	bool has_value(size_t i) const {
-		return _is_index_valid(i);
-	}
+	bool has_value(size_t i) const { return _is_index_valid(i); }
 
 	T& operator[](size_t i);
 	const T& at(size_t i) const;
@@ -50,17 +48,11 @@ public:
 		Iterator operator--();
 		Iterator operator--(int);
 
-		size_t AbsoluteIndex() {
-			return static_cast<size_t>(std::distance(first, it));
-		}
+		size_t AbsoluteIndex() { return static_cast<size_t>(std::distance(first, it)); }
 
-		friend bool operator==(const Iterator& a, const Iterator& b) {
-			return a.it == b.it;
-		}
+		friend bool operator==(const Iterator& a, const Iterator& b) { return a.it == b.it; }
 
-		T* operator->() {
-			return &**it;
-		}
+		T* operator->() { return &**it; }
 
 		friend StaticIndexedArray;
 	};
@@ -77,17 +69,11 @@ public:
 		ConstIterator operator--();
 		ConstIterator operator--(int);
 
-		friend bool operator==(const ConstIterator& a, const ConstIterator& b) {
-			return a.it == b.it;
-		}
+		friend bool operator==(const ConstIterator& a, const ConstIterator& b) { return a.it == b.it; }
 
-		T* operator->() {
-			return &**it;
-		}
+		T* operator->() { return &**it; }
 
-		std::uint32_t absolute_index() {
-			return std::distance(first, it);
-		}
+		std::uint32_t absolute_index() { return std::distance(first, it); }
 
 		friend StaticIndexedArray;
 	};
@@ -161,7 +147,7 @@ size_t StaticIndexedArray<T>::add(const T& element) {
 template <class T>
 void StaticIndexedArray<T>::remove(size_t i) {
 	if (!_is_index_valid(i))
-		throw std::out_of_range{ "No element at that index" };
+		throw std::out_of_range { "No element at that index" };
 
 	_elements[i] = {};
 	_free_list.insert(std::lower_bound(_free_list.begin(), _free_list.end(), i), i);
@@ -195,7 +181,7 @@ void StaticIndexedArray<T>::reserve(size_t size) {
 template <class T>
 template <class... TArgs>
 size_t StaticIndexedArray<T>::emplace(TArgs... args) {
-	return add(T{ std::forward<TArgs>(args)... });
+	return add(T { std::forward<TArgs>(args)... });
 }
 
 template <class T>
@@ -216,14 +202,18 @@ T& StaticIndexedArray<T>::at(int i) {
 }
 
 template <class T>
-StaticIndexedArray<T>::Iterator::Iterator(VecIt it, VecIt lowerBound, VecIt upperBound, VecIt first) :
-		it{ it }, lowerBound{ lowerBound }, upperBound{ upperBound }, first{ first } {
-}
+StaticIndexedArray<T>::Iterator::Iterator(VecIt it, VecIt lowerBound, VecIt upperBound, VecIt first)
+		: it { it }
+		, lowerBound { lowerBound }
+		, upperBound { upperBound }
+		, first { first } {}
 
 template <class T>
-StaticIndexedArray<T>::ConstIterator::ConstIterator(VecIt it, VecIt lowerBound, VecIt upperBound, VecIt first) :
-		it{ it }, lowerBound{ lowerBound }, upperBound{ upperBound }, first{ first } {
-}
+StaticIndexedArray<T>::ConstIterator::ConstIterator(VecIt it, VecIt lowerBound, VecIt upperBound, VecIt first)
+		: it { it }
+		, lowerBound { lowerBound }
+		, upperBound { upperBound }
+		, first { first } {}
 
 template <class T>
 T& StaticIndexedArray<T>::Iterator::operator*() {
@@ -309,23 +299,14 @@ typename StaticIndexedArray<T>::Iterator StaticIndexedArray<T>::begin() {
 	while (!_free_list.empty() && current < _free_list.size() && _free_list[current] == current)
 		current++;
 
-	return Iterator{
-		_elements.data() + current,
-		_elements.data() + current - 1,
-		_elements.data() + std::max(_elements.size() - 1ULL, 0ULL) + 1,
-		_elements.data()
-	};
+	return Iterator { _elements.data() + current, _elements.data() + current - 1,
+		_elements.data() + std::max(_elements.size() - 1ULL, 0ULL) + 1, _elements.data() };
 }
 
 template <class T>
 typename StaticIndexedArray<T>::Iterator StaticIndexedArray<T>::end() {
 	auto it = _elements.data() + std::max(_elements.size() - 1ULL, 0ULL) + 1;
-	return Iterator{
-		it,
-		begin().lowerBound,
-		it,
-		_elements.data()
-	};
+	return Iterator { it, begin().lowerBound, it, _elements.data() };
 }
 
 template <class T>
@@ -334,24 +315,15 @@ typename StaticIndexedArray<T>::ConstIterator StaticIndexedArray<T>::begin() con
 	while (!_free_list.empty() && current < _free_list.size() && _free_list[current] == current)
 		current++;
 
-	return ConstIterator{
-		_elements.data() + current,
-		_elements.data() + current - 1,
-		_elements.data() + std::max(_elements.size() - 1, 0ULL) + 1,
-		_elements.data()
-	};
+	return ConstIterator { _elements.data() + current, _elements.data() + current - 1,
+		_elements.data() + std::max(_elements.size() - 1, 0ULL) + 1, _elements.data() };
 }
 
 template <class T>
 typename StaticIndexedArray<T>::ConstIterator StaticIndexedArray<T>::end() const {
 	const auto beforeBegin = _elements.data() + _get_first_element_index();
 	const auto* endPtr = _elements.data() + std::max(_elements.size() - 1, 0ULL) + 1;
-	return ConstIterator{
-		endPtr,
-		beforeBegin - 1,
-		endPtr,
-		_elements.begin()
-	};
+	return ConstIterator { endPtr, beforeBegin - 1, endPtr, _elements.begin() };
 }
 
 } // namespace feather

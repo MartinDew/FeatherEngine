@@ -2,7 +2,7 @@
 #include "launch_settings.h"
 #include "modules/modules.gen.h"
 
-#include <framework/assert.hpp>
+#include <framework/assert.h>
 
 #include <chrono>
 
