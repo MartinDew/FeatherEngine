@@ -21,7 +21,7 @@ class Engine {
 
 	RenderingServer _rendering_server;
 
-	double _current_dt = 0.f;
+	double _current_dt = 0.0;
 
 public:
 	Engine();
