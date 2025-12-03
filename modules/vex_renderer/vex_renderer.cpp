@@ -291,6 +291,8 @@ void VexRenderer::_on_resize() {
 							.depth = 0,
 					},
 	});
+
+	graphics.OnWindowResized(width, height);
 }
 
 VexRenderer::~VexRenderer() {
