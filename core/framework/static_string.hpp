@@ -26,8 +26,8 @@
 #include <array>
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <type_traits>
-
 
 namespace nassimp {
 
@@ -85,6 +85,7 @@ struct StaticString {
 	[[nodiscard]] constexpr const char* data() const noexcept { return view.data(); }
 
 	constexpr operator std::string_view() { return view; }
+	constexpr std::string_view str();
 	constexpr bool operator==(const StaticString& other) const noexcept { return view == other.view; }
 	constexpr bool operator==(const std::string_view& other) const { return view == other; }
 
