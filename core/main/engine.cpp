@@ -69,4 +69,10 @@ bool Engine::run() {
 
 double Engine::get_current_delta_time() const { return _current_dt; }
 
+bool Engine::is_editor() {
+	if constexpr (!EDITOR_BUILD)
+		return false;
+	else
+		return LaunchSettings::get().editor_mode.Get();
+}
 } //namespace feather

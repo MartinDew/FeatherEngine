@@ -31,11 +31,7 @@ public:
 
 	static Engine& get() { return *_instance; }
 
-#if !EDITOR_BUILD
-	static constexpr bool is_editor() { return false; }
-#else
-	static bool is_editor() { return LaunchSettings::get().editor_mode.Get(); }
-#endif
+	static bool is_editor();
 
 	Window& get_main_window() { return _main_window; }
 

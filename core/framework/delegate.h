@@ -17,15 +17,13 @@ public:
 	using id_t = int32_t;
 
 public:
-	id_t subscribe(const DelegateFuncType& callback) {
-		return listeners.add(callback);
-	}
+	id_t subscribe(const DelegateFuncType& callback) { return listeners.add(callback); }
 
 	void execute(const Args&... args) {
 		if (listeners.empty())
 			return;
 		for (auto&& l : listeners) {
-			l(args...);
+			l(std::forward<Args>(args)...);
 		}
 	}
 
@@ -36,9 +34,7 @@ public:
 		listeners.remove(id);
 	}
 
-	void clear() {
-		listeners.clear();
-	}
+	void clear() { listeners.clear(); }
 };
 
 } // namespace feather

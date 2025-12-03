@@ -8,7 +8,7 @@ namespace feather {
 
 struct Vertex {
 	Vector3 position;
-	std::array<real_t, 2> uv;
+	Vector2 uv;
 
 	Vertex() = default;
 	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv { u, v } {}

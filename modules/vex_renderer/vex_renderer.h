@@ -23,7 +23,6 @@ protected:
 
 public:
 	VexRenderer();
-	~VexRenderer() override;
 };
 
 } //namespace feather
