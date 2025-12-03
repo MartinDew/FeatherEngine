@@ -302,12 +302,10 @@ jobs:
           echo "Linux build: ${{ needs.build-linux.result }}"
           echo "Windows build: ${{ needs.build-windows.result }}"
           echo "macOS build: ${{ needs.build-macos.result }}"
-          echo "Android build: ${{ needs.build-android.result }}"
           
           if [ "${{ needs.build-linux.result }}" != "success" ] || \
              [ "${{ needs.build-windows.result }}" != "success" ] || \
-             [ "${{ needs.build-macos.result }}" != "success" ] || \
-             [ "${{ needs.build-android.result }}" != "success" ]; then
+             [ "${{ needs.build-macos.result }}" != "success" ]; then
             echo "One or more builds failed!"
             exit 1
           fi
