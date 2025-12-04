@@ -4,7 +4,7 @@
 
 namespace feather {
 
-class HighLevelArray : public CowVector<Variant> {
+class HighLevelArray : public CowVector<float> {
 public:
 };
 

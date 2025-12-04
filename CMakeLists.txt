@@ -36,6 +36,7 @@ set(PROJECT_HEADERS
         core/main/engine.h
         core/main/engine_settings.h
         core/main/class_db.h
+        core/main/class_db.inl
 
         # Math
         core/math/transform.h

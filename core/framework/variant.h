@@ -1,13 +1,13 @@
 #pragma once
 
+#include "high_level_array.h"
+
 #include <any>
 #include <cstdint>
 #include <variant>
 #include <vector>
 
 namespace feather {
-
-class HighLevelArray;
 
 // A generic variant to ease out using specific types within the engine reflection. If an object, an any will be
 // returned

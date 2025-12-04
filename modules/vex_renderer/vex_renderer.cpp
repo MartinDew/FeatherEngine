@@ -1,6 +1,5 @@
 #include "vex_renderer.h"
 
-#include "Vex/PlatformWindow.h"
 #include "main/engine_settings.h"
 #include <core/main/engine.h>
 #include <core/main/window.h>

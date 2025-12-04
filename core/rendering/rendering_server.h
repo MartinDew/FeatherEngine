@@ -25,7 +25,7 @@ public:
 	// Should change accessibility later
 	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }
 
-	void use_renderer(StaticString name);
+	void use_renderer(std::string_view name);
 };
 
 } //namespace feather

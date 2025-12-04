@@ -2,15 +2,13 @@
 #include "renderer.h"
 
 #include <framework/assert.h>
+#include <main/class_db.h>
 #include <main/engine_settings.h>
 #include <framework/static_string.hpp>
 
-
+#include <any>
 #include <string_view>
 
-#if vex_renderer_ENABLED
-#include "modules/vex_renderer/vex_renderer.h"
-#endif
 namespace feather {
 
 RenderingServer* RenderingServer::_instance = nullptr;
@@ -27,15 +25,7 @@ void RenderingServer::update(double dt) {
 	_renderer->_render_scene();
 }
 
-void RenderingServer::use_renderer(StaticString name) {
-	switch (name) {
-#ifdef vex_renderer_ENABLED
-	case "vex"_ss:
-		use_renderer<VexRenderer>();
-		break;
-#endif
-	}
-}
+void RenderingServer::use_renderer(std::string_view name) { _renderer = ClassDB::create_object<Renderer>(name); }
 
 RenderingServer* RenderingServer::get() {
 	fassert(_instance, "instance not yet initialized for RenderingServer");

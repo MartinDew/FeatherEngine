@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cstdalign>
+#include <cstdlib>
 #include <initializer_list>
 #include <memory>
 #include <stdexcept>
@@ -15,7 +17,7 @@ private:
 		mutable size_t ref_count;
 
 		buffer(size_t cap = 0)
-				: data(cap > 0 ? static_cast<T*>(std::aligned_alloc(alignof(T), sizeof(T) * cap)) : nullptr)
+				: data(cap > 0 ? static_cast<T*>(aligned_alloc(alignof(T), sizeof(T) * cap)) : nullptr)
 				, size(0)
 				, capacity(cap)
 				, ref_count(1) {}
@@ -61,7 +63,7 @@ private:
 			if (new_cap == 0)
 				new_cap = 1;
 
-			T* new_data = static_cast<T*>(std::aligned_alloc(alignof(T), sizeof(T) * new_cap));
+			T* new_data = static_cast<T*>(aligned_alloc(alignof(T), sizeof(T) * new_cap));
 
 			// Move construct elements to new buffer
 			for (size_t i = 0; i < buf_->size; ++i) {
@@ -345,7 +347,7 @@ public:
 				buf_->capacity = 0;
 			}
 			else {
-				T* new_data = static_cast<T*>(std::aligned_alloc(alignof(T), sizeof(T) * buf_->size));
+				T* new_data = static_cast<T*>(aligned_alloc(alignof(T), sizeof(T) * buf_->size));
 				for (size_t i = 0; i < buf_->size; ++i) {
 					new (new_data + i) T(std::move(buf_->data[i]));
 					buf_->data[i].~T();
