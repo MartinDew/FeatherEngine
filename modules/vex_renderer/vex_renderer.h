@@ -24,6 +24,8 @@ protected:
 	void _render_scene() override;
 	void _on_resize() override;
 
+	static void _bind_members();
+
 public:
 	VexRenderer();
 };
