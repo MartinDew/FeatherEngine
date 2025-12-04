@@ -11,15 +11,15 @@ namespace {
 
 constexpr std::array<Vertex, 8> example_cube_vertices {
 	// Front face
-	Vertex { -1.f, -1.f, 1.f, 0, 0 }, // 0: bottom-left
-	Vertex { 1.f, -1.f, 1.f, 1, 0 }, // 1: bottom-right
-	Vertex { 1.f, 1.f, 1.f, 1, 1 }, // 2: top-right
-	Vertex { -1.f, 1.f, 1.f, 0, 1 }, // 3: top-left
+	Vertex { -0.5f, -0.5f, 0.5f, 0, 0 }, // 0: bottom-left
+	Vertex { 0.5f, -0.5f, 0.5f, 1, 0 }, // 1: bottom-right
+	Vertex { 0.5f, 0.5f, 0.5f, 1, 1 }, // 2: top-right
+	Vertex { -0.5f, 0.5f, 0.5f, 0, 1 }, // 3: top-left
 	// Back face
-	Vertex { -1.f, -1.f, -1.f, 1, 0 }, // 4: bottom-left
-	Vertex { 1.f, -1.f, -1.f, 0, 0 }, // 5: bottom-right
-	Vertex { 1.f, 1.f, -1.f, 0, 1 }, // 6: top-right
-	Vertex { -1.f, 1.f, -1.f, 1, 1 }, // 7: top-left}
+	Vertex { -0.5f, -0.5f, -0.5f, 1, 0 }, // 4: bottom-left
+	Vertex { 0.5f, -0.5f, -0.5f, 0, 0 }, // 5: bottom-right
+	Vertex { 0.5f, 0.5f, -0.5f, 0, 1 }, // 6: top-right
+	Vertex { -0.5f, 0.5f, -0.5f, 1, 1 }, // 7: top-left}
 };
 
 constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
