@@ -1,5 +1,6 @@
 #include "vex_renderer.h"
 
+#include "Vex/PlatformWindow.h"
 #include "main/engine_settings.h"
 #include <core/main/engine.h>
 #include <core/main/window.h>
@@ -21,24 +22,34 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	PlatformWindowHandle vex_window;
 	auto pid = SDL_GetWindowProperties(internal_window);
 #if (__linux__)
-	using NativeWindow = ::Window;
 	if (SDL_HasProperty(pid, SDL_PROP_WINDOW_X11_WINDOW_NUMBER)) {
-		vex_window = {
-			.window = static_cast<NativeWindow>(SDL_GetNumberProperty(pid, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, {})),
-			.display = static_cast<Display*>(SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr)),
-		};
+		vex_window = { PlatformWindowHandle::X11Handle {
+				.window = static_cast<::Window>(SDL_GetNumberProperty(pid, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, {})),
+				.display = static_cast<Display*>(
+						SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr)),
+		} };
+	}
+	else if (SDL_HasProperty(pid, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER)) {
+		vex_window = { PlatformWindowHandle::WaylandHandle {
+				.window = static_cast<::wl_surface*>(
+						SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr)),
+				.display = static_cast<::wl_display*>(
+						SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr)) } };
+	}
+	else {
+		fassert(false, "VexRenderer : No supported video driver found");
 	}
 #elif (_WIN32)
 	using NativeWindow = HWND;
-	vex_window = { .window = static_cast<NativeWindow>(
-						   SDL_GetPointerProperty(pid, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)) };
+	vex_window = { PlatformWindowHandle::WindowsHandle { .window = static_cast<NativeWindow>(SDL_GetPointerProperty(
+																 pid, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr)) } };
 
 #elifdef __APPLE__
 	// macOS implementation would go here
 #endif
 
 	return vex_window;
-}
+} //namespace feather
 
 VexRenderer::VexRenderer()
 		: graphics(vex::GraphicsCreateDesc {
