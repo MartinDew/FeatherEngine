@@ -10,6 +10,7 @@ namespace feather {
 
 class VexRenderer : public Renderer {
 	FCLASS(VexRenderer, Renderer);
+
 	vex::Texture depthTexture;
 	vex::Texture uvGuideTexture;
 

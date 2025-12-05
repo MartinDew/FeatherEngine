@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include "framework/functions.h"
+#include "framework/reflection_macros.h"
 #include "main/engine.h"
 #include "main/window.h"
 #include "rendering/triangle_mesh.h"

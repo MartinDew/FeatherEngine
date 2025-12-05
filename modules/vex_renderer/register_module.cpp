@@ -8,7 +8,9 @@
 #include <core/main/class_db.h>
 
 namespace feather {
+
 void register_vex_renderer() { ClassDB::register_class<VexRenderer>(); }
 
 void unregister_vex_renderer() {}
+
 } //namespace feather

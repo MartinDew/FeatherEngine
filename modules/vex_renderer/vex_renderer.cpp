@@ -90,8 +90,7 @@ VexRenderer::VexRenderer()
 			"Index Buffer", sizeof(uint32_t) * example_cube.get_indices().size()));
 
 	// Immediate submission means the commands are instantly submitted upon destruction.
-	vex::CommandContext ctx =
-			graphics.BeginScopedCommandContext(vex::QueueType::Graphics, vex::SubmissionPolicy::Immediate);
+	vex::CommandContext ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
 	ctx.EnqueueDataUpload(vertexBuffer, std::as_bytes(std::span(example_cube.get_vertices())));
 	ctx.EnqueueDataUpload(indexBuffer, std::as_bytes(std::span(example_cube.get_indices())));
@@ -137,6 +136,8 @@ VexRenderer::VexRenderer()
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
 	};
 	graphics.SetSamplers(samplers);
+
+	graphics.Submit(ctx);
 }
 
 void VexRenderer::_render_scene() {
@@ -145,7 +146,7 @@ void VexRenderer::_render_scene() {
 	const auto& example_cube = get_example_cube();
 
 	{
-		auto ctx = graphics.BeginScopedCommandContext(vex::QueueType::Graphics);
+		auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
 		ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
@@ -278,6 +279,8 @@ void VexRenderer::_render_scene() {
 					example_cube.get_indices().size());
 		}
 #endif
+
+		graphics.Submit(ctx);
 	}
 
 	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);

@@ -1,4 +1,5 @@
 #include "class_db.h"
+#include "framework/reflected.h"
 #include <algorithm>
 #include <memory>
 #include <ranges>
@@ -14,10 +15,10 @@ ClassDB& ClassDB::get() {
 	return *_instance;
 }
 
-std::any ClassDB::create_object_unsafe(std::string_view name) {
+Reflected* ClassDB::create_object_unsafe(std::string_view name) {
 	auto object_info_it = _instance->_class_infos.find(name);
 	if (object_info_it != _instance->_class_infos.end()) {
-		return object_info_it->second.object_create_func();
+		return std::get<Reflected*>(object_info_it->second.object_create_func());
 	}
 
 	return {};

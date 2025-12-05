@@ -1,4 +1,6 @@
 #pragma once
+
+#include <framework/reflection_utils.h>
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
 
@@ -9,9 +11,6 @@
 #include <vector>
 
 namespace feather {
-
-template <class T>
-concept is_reflected_class_type = requires { typename T::_class_type; } && std::is_class_v<typename T::_class_type>;
 
 class ClassDB {
 	static std::unique_ptr<ClassDB> _instance;
@@ -26,7 +25,7 @@ class ClassDB {
 			size_t member_size;
 		};
 		std::vector<Property> properties;
-		// Todo : function
+		// Todo : functions
 
 		std::function<Variant()> object_create_func;
 	};
@@ -36,17 +35,17 @@ class ClassDB {
 public:
 	static ClassDB& get();
 
-	template <class T>
+	template <is_reflected_class_type T>
 	static void register_class();
 
-	// Returns an unmanaged raw pointer to an object within an any container
-	static std::any create_object_unsafe(std::string_view object_name);
+	// Returns an unmanaged raw pointer to a reflected object
+	static Reflected* create_object_unsafe(std::string_view object_name);
 
 	// A somewhat safer function that validates if the requested object can be cast in the specified T
 	template <class T>
 	static std::unique_ptr<T> create_object(std::string_view object_name) {
-		std::any object = create_object_unsafe(object_name);
-		std::unique_ptr<T> ptr { std::any_cast<T*>(object) };
+		Reflected* object = create_object_unsafe(object_name);
+		std::unique_ptr<T> ptr { object_cast<T>(object) };
 		return ptr;
 	}
 };
