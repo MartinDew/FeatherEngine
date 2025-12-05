@@ -2,9 +2,10 @@
 
 #include <framework/reflection_utils.h>
 #include <framework/variant.h>
+#include <cstddef>
+#include <cstdint>
 #include <framework/static_string.hpp>
 
-#include <any>
 #include <functional>
 #include <map>
 #include <memory>
@@ -20,6 +21,7 @@ class ClassDB {
 		StaticString name;
 		struct Property {
 			StaticString name;
+			// variant type to convert to
 			size_t type;
 			size_t member_offset;
 			size_t member_size;
@@ -32,11 +34,21 @@ class ClassDB {
 
 	std::map<StaticString, ClassInfo> _class_infos;
 
+	ClassInfo* _current_info = nullptr;
+
 public:
 	static ClassDB& get();
 
 	template <is_reflected_class_type T>
 	static void register_class();
+
+	/*
+	template <class T, class U>
+	constexpr bind_property(
+			U T::* member, std::string_view name, size_t VariantType,
+			std::function<void()> read_func = []() { return member; },
+			std::function<void(Variant)> write_func = [](Variant val) { member = val; });
+	*/
 
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);

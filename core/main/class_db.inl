@@ -30,10 +30,16 @@ void ClassDB::register_class() {
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = get();
 
-	ClassInfo info { .name = T::get_class_name() };
-	info.object_create_func = []() -> Variant { return new T(); };
+	ClassInfo new_info { .name = T::get_class_name() };
+	new_info.object_create_func = []() -> Variant { return new T(); };
 
-	instance._class_infos.emplace(std::make_pair(T::get_class_name(), info));
+	instance._class_infos.emplace(std::make_pair(T::get_class_name(), new_info));
+	auto& info = instance._class_infos.at(T::get_class_name());
+	instance._current_info = &info;
+
+	T::_bind_members();
+
+	instance._current_info = nullptr;
 }
 
 } //namespace feather
