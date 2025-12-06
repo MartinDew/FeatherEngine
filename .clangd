@@ -1,20 +1,19 @@
 CompileFlags:
   # Treat code as C++
-  Add: [-xc++, -Wall, -std=c++2b, -Wno-c++98-compat]
+  Add: [-xc++, -Wall, -std=c++2c, "/std:c++latest"]
 
   # Include directories
   # Adjust these paths based on your actual project structure
-  # Add: [
-  #   -I.,
-  #   -I./src,
-  #   -I./godot-cpp/include,
-  #   -I./godot-cpp/gen/include,
-  #   -I./godot-cpp/gdextension,
-  # ]
+  Add: [
+    -I.,
+    -Icore,
+    -Imodules/*
+  ]
 
 Diagnostics:
   # Tweak specific diagnostics
   Suppress:
+    - c++98-compat
     - unused-parameter
     - unused-variable
 

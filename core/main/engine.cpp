@@ -1,9 +1,12 @@
 #include "engine.h"
-#include "SDL3/SDL_assert.h"
 #include "launch_settings.h"
+#include "modules/modules.gen.h"
 
-#include <SDL3/SDL_init.h>
+#include <framework/assert.hpp>
+
 #include <chrono>
+
+#include "rendering/rendering_server.h"
 
 namespace feather {
 
@@ -17,9 +20,14 @@ Engine* Engine::_instance = nullptr;
 
 Engine::Engine() {
 	// Todo replace sdl assert by custom one
-	SDL_assert(!_instance);
+	fassert(!_instance);
 
 	_instance = this;
+	// register_modules();
+}
+
+Engine::~Engine() {
+	// unregister_modules();
 }
 
 bool Engine::run() {
@@ -28,6 +36,9 @@ bool Engine::run() {
 	bool keep_running = true;
 
 	// initialization
+
+	// Todo, remove
+	_rendering_server.use_renderer("vex"_ss);
 
 	// update
 	double accumulator = 0.0;
@@ -40,17 +51,28 @@ bool Engine::run() {
 		current_time = new_time;
 
 		accumulator += frame_time;
+		_current_dt = simulation_time;
 		while (accumulator >= simulation_time) {
 			accumulator -= simulation_time;
 			// _physics_update here
 		}
 
+		_current_dt = frame_time;
 		// Update here
 
 		// Tell the renderer to render here
+		_rendering_server.update(frame_time);
 	}
 
 	return true;
 }
 
+double Engine::get_current_delta_time() const { return _current_dt; }
+
+bool Engine::is_editor() {
+	if constexpr (!EDITOR_BUILD)
+		return false;
+	else
+		return LaunchSettings::get().editor_mode.Get();
+}
 } //namespace feather

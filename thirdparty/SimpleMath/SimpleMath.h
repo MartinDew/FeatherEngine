@@ -1179,7 +1179,7 @@ public:
 #if defined(__d3d11_h__) || defined(__d3d11_x_h__)
 	// Direct3D 11 interop
 	explicit Viewport(const D3D11_VIEWPORT& vp) noexcept :
-			x(vp.TopLeftX), y(vp.TopLeftY), width(vp.Width), height(vp.Height), minDepth(vp.MinDepth), maxDepth(vp.MaxDepth) {}
+			x(vp.TopLeftX), y(vp.TopLeftY), width(vp.Width), height(vp.Height), min_depth(vp.MinDepth), max_depth(vp.MaxDepth) {}
 
 	operator D3D11_VIEWPORT() noexcept { return *reinterpret_cast<const D3D11_VIEWPORT*>(this); }
 	const D3D11_VIEWPORT* Get11() const noexcept { return reinterpret_cast<const D3D11_VIEWPORT*>(this); }
@@ -1189,7 +1189,7 @@ public:
 #if defined(__d3d12_h__) || defined(__d3d12_x_h__) || defined(__XBOX_D3D12_X__)
 	// Direct3D 12 interop
 	explicit Viewport(const D3D12_VIEWPORT& vp) noexcept :
-			x(vp.TopLeftX), y(vp.TopLeftY), width(vp.Width), height(vp.Height), minDepth(vp.MinDepth), maxDepth(vp.MaxDepth) {}
+			x(vp.TopLeftX), y(vp.TopLeftY), width(vp.Width), height(vp.Height), min_depth(vp.MinDepth), max_depth(vp.MaxDepth) {}
 
 	operator D3D12_VIEWPORT() noexcept { return *reinterpret_cast<const D3D12_VIEWPORT*>(this); }
 	const D3D12_VIEWPORT* Get12() const noexcept { return reinterpret_cast<const D3D12_VIEWPORT*>(this); }

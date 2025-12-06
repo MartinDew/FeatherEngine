@@ -1,16 +1,12 @@
-#include "math.h"
+#include "math_defs.h"
 
 #include <numbers>
 
 namespace feather {
 
-float deg_to_rad(float degrees) {
-	return degrees / 180.0f * std::numbers::pi;
-}
+real_t deg_to_rad(real_t degrees) { return degrees / 180.0f * std::numbers::pi; }
 
-float rad_to_deg(float radians) {
-	return radians / std::numbers::pi * 180.0f;
-}
+real_t rad_to_deg(real_t radians) { return radians / std::numbers::pi * 180.0f; }
 
 Vector3 deg_to_rad(const Vector3& degrees) {
 	Vector3 result;

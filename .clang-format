@@ -27,6 +27,7 @@ AllowAllParametersOfDeclarationOnNextLine: false
 # AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
 # AlwaysBreakTemplateDeclarations: MultiLine
+AlwaysBreakTemplateDeclarations: Leave
 # AttributeMacros:
 #   - __capability
 # BinPackArguments: true
@@ -34,7 +35,7 @@ AllowAllParametersOfDeclarationOnNextLine: false
 BraceWrapping:
 #   AfterCaseLabel:  false
 #   AfterClass:      false
-#   AfterControlStatement: Never
+  AfterControlStatement: MultiLine
 #   AfterEnum:       false
 #   AfterFunction:   false
 #   AfterNamespace:  false
@@ -57,9 +58,9 @@ BreakBeforeBraces: Custom
 # BreakInheritanceList: BeforeColon
 # BreakBeforeTernaryOperators: true
 # BreakConstructorInitializersBeforeComma: false
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializers: BeforeComma
 # BreakStringLiterals: true
-ColumnLimit:     0
+ColumnLimit:     120
 # CommentPragmas:  '^ IWYU pragma:'
 # QualifierAlignment: Leave
 # CompactNamespaces: false
@@ -72,8 +73,8 @@ Cpp11BracedListStyle: false
 # EmptyLineAfterAccessModifier: Never
 # EmptyLineBeforeAccessModifier: LogicalBlock
 # ExperimentalAutoDetectBinPacking: false
-# PackConstructorInitializers: BinPack
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
+PackConstructorInitializers: CurrentLine
+# ConstructorInitializerAllOnOneLineOrOnePerLine: true
 # AllowAllConstructorInitializersOnNextLine: true
 # FixNamespaceComments: true
 # ForEachMacros:
@@ -137,7 +138,7 @@ ReferenceAlignment: Pointer
 # SpaceAfterTemplateKeyword: true
 # SpaceBeforeAssignmentOperators: true
 # SpaceBeforeCaseColon: false
-# SpaceBeforeCpp11BracedList: false
+SpaceBeforeCpp11BracedList: true
 # SpaceBeforeCtorInitializerColon: true
 # SpaceBeforeInheritanceColon: true
 # SpaceBeforeParens: ControlStatements
@@ -185,6 +186,9 @@ UseTab:          Always
 ### C++ specific config ###
 Language:        Cpp
 Standard:        c++20
+SpaceBeforeCpp11BracedList: true
+AllowShortBlocksOnASingleLine: Never
+# BreakBeforeCloseBracketBracedList: true
 ---
 ### ObjC specific config ###
 Language:        ObjC

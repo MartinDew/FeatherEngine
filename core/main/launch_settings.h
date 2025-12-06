@@ -1,5 +1,4 @@
 #pragma once
-#define ARGS_NOEXCEPT
 
 #include <args.hxx>
 #include <filesystem>
@@ -16,7 +15,7 @@ public:
 
 	args::Positional<std::filesystem::path> project_path{ _parser, "project path", "The path to the project directory", std::filesystem::current_path().c_str() };
 
-#ifdef EDITOR_MODE
+#ifdef EDITOR_BUILD
 	// Editor mode?
 	args::ImplicitValueFlag<bool> editor_mode{ _parser, "editor", "Should run in editor mode", { 'e', "editor" }, true, false };
 #endif

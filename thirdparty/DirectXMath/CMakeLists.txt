@@ -17,5 +17,5 @@ target_compile_options(DirectXMath INTERFACE
 )
 
 
-RegisterThirdparty(SAL_H DirectXMath)
+RegisterThirdparty(PRIVATE SAL_H DirectXMath)
 

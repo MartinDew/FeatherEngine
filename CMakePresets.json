@@ -23,8 +23,7 @@
         "default"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "STATIC_CPP": "OFF"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -68,6 +67,14 @@
         "rhs": "Windows"
       },
       "toolset": "ClangCL"
+    },
+    {
+      "name": "multi-llvm",
+      "displayName": "Multi (LLVM Toolchain)",
+      "description": "Multi config build",
+      "inherits": "default",
+      "generator": "Ninja Multi-Config",
+      "toolchainFile": "${sourceDir}/tools/toolchain-llvm.cmake"
     }
   ],
   "buildPresets": [
@@ -86,6 +93,42 @@
       "displayName": "Development Build",
       "configurePreset": "development",
       "configuration": "Development"
+    },
+    {
+      "name": "multi-development",
+      "displayName": "Development Build",
+      "configurePreset": "multi",
+      "configuration": "Development"
+    },
+    {
+      "name": "multi-debug",
+      "displayName": "Debug Build",
+      "configurePreset": "multi",
+      "configuration": "Debug"
+    },
+    {
+      "name": "multi-release",
+      "displayName": "Release Build",
+      "configurePreset": "multi",
+      "configuration": "Release"
+    },
+    {
+      "name": "llvm-multi-development",
+      "displayName": "Development Build",
+      "configurePreset": "multi-llvm",
+      "configuration": "Development"
+    },
+    {
+      "name": "llvm-multi-debug",
+      "displayName": "Debug Build",
+      "configurePreset": "multi-llvm",
+      "configuration": "Debug"
+    },
+    {
+      "name": "llvm-multi-release",
+      "displayName": "Release Build",
+      "configurePreset": "multi-llvm",
+      "configuration": "Release"
     }
   ]
 }
