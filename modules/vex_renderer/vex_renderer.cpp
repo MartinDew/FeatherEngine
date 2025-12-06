@@ -50,7 +50,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 } //namespace feather
 
-void VexRenderer::_bind_members() {}
+void VexRenderer::_bind_members() { ClassDB::bind_property(&VexRenderer::cock, "cock", VariantType::INT); }
 
 VexRenderer::VexRenderer()
 		: graphics(vex::GraphicsCreateDesc {

@@ -10,7 +10,7 @@ T* object_cast(T2* object) {
 	if (object == nullptr) {
 		return nullptr;
 	}
-	if (object->is_of_type<T>()) {
+	if (object->template is_of_type<T>()) {
 		return static_cast<T*>(object);
 	}
 	return nullptr;
@@ -18,7 +18,7 @@ T* object_cast(T2* object) {
 
 template <class T, is_reflected_class_type T2>
 T* object_cast(T2& object) {
-	if (object.is_of_type<T>()) {
+	if (object.template is_of_type<T>()) {
 		return static_cast<T*>(&object);
 	}
 	return nullptr;

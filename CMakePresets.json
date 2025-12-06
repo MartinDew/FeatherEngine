@@ -74,7 +74,10 @@
       "description": "Multi config build",
       "inherits": "default",
       "generator": "Ninja Multi-Config",
-      "toolchainFile": "${sourceDir}/tools/toolchain-llvm.cmake"
+      "toolchainFile": "${sourceDir}/tools/toolchain-llvm.cmake",
+      "cacheVariables": {
+        "LLVM_USE_LIBCXX": "ON"
+      }
     }
   ],
   "buildPresets": [

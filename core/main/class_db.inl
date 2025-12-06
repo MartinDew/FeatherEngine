@@ -33,7 +33,7 @@ void ClassDB::register_class() {
 	ClassInfo new_info { .name = T::get_class_name() };
 	new_info.object_create_func = []() -> Variant { return new T(); };
 
-	instance._class_infos.emplace(std::make_pair(T::get_class_name(), new_info));
+	instance._class_infos.emplace(std::make_pair(T::get_class_name(), std::move(new_info)));
 	auto& info = instance._class_infos.at(T::get_class_name());
 	instance._current_info = &info;
 
