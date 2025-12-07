@@ -29,6 +29,8 @@ protected:
 
 	Window* _window;
 
+	static void _bind_members();
+
 public:
 	virtual void _render_scene() = 0;
 	virtual ~Renderer() = default;

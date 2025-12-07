@@ -5,7 +5,6 @@
 
 int main(int argc, char* argv[]) {
 	feather::LaunchSettings launch_settings{ argc, argv };
-
 	feather::register_modules();
 
 	feather::Engine engine;

@@ -69,11 +69,14 @@ constexpr uint32_t crc32(std::string_view str) {
 }
 
 struct StaticString {
-	constexpr StaticString(const char* str, const size_t len) : view { str, len } {}
-	constexpr StaticString(std::string_view str) : view { str } {}
-	constexpr StaticString(StaticString& str) = default;
+	constexpr StaticString(const StaticString& str) { view = str.view; }
 	constexpr StaticString(StaticString&& str) = default;
-	constexpr StaticString& operator=(StaticString& str) = default;
+	explicit constexpr StaticString(const char* str, const size_t len) : view { str, len } {}
+	constexpr StaticString(std::string_view str) : view { str } {}
+	constexpr StaticString& operator=(StaticString& str) {
+		view = str.view;
+		return *this;
+	};
 	constexpr StaticString& operator=(StaticString&& str) = default;
 
 	constexpr bool operator==(uint32_t str) const { return crc32(view) == str; }
@@ -84,8 +87,8 @@ struct StaticString {
 
 	[[nodiscard]] constexpr const char* data() const noexcept { return view.data(); }
 
-	constexpr operator std::string_view() { return view; }
-	constexpr std::string_view str() { return view; }
+	constexpr operator std::string_view() const noexcept { return view; }
+	constexpr std::string_view str() const noexcept { return view; }
 	constexpr bool operator==(const StaticString& other) const noexcept { return view == other.view; }
 	constexpr bool operator==(const std::string_view& other) const { return view == other; }
 

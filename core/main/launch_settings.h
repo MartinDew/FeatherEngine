@@ -12,6 +12,9 @@ class LaunchSettings {
 
 	LaunchSettings();
 
+	size_t argc = 0;
+	char** argv;
+
 public:
 	LaunchSettings(int argc, char* argv[]);
 	void init(int argc, char* argv[]);
@@ -28,6 +31,13 @@ public:
 	// will be more complex eventually but for now just a flag for windowed vs dummy
 	args::ValueFlag<std::string> windowed { _parser, "window mode",
 		"The window mode to use (windowed {default} | headless )", { "w" }, "windowed" };
+
+	args::ValueFlag<std::string> renderer;
+
+#ifdef EDITOR_BUILD
+	args::ImplicitValueFlag<bool> dump_db { _parser, "dump db", "dumps the class database", { "dump-db" }, true,
+		false };
+#endif
 
 	static LaunchSettings& get();
 

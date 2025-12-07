@@ -1,14 +1,22 @@
 #include "launch_settings.h"
 
+#include "class_db.h"
 #include "framework/assert.h"
+#include "rendering/renderer.h"
+
+#include <numeric>
 
 namespace feather {
 
 LaunchSettings* LaunchSettings::_instance = nullptr;
 
-LaunchSettings::LaunchSettings() { fassert(!_instance, "Attempt to create Launchsettings but it already exists"); }
+LaunchSettings::LaunchSettings()
+		: renderer { _parser, "renderer", "choice of the renderer backend", { "renderer" }, "VexRenderer" } {
+	fassert(!_instance, "Attempt to create Launchsettings but it already exists");
+}
 
-LaunchSettings::LaunchSettings(int argc, char* argv[]) {
+LaunchSettings::LaunchSettings(int argc, char* argv[])
+		: renderer { _parser, "renderer", "choice of the renderer backend", { "renderer" }, "VexRenderer" } {
 	if (_instance)
 		throw std::runtime_error("LaunchSettings instance already exists!");
 

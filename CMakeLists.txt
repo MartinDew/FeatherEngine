@@ -75,6 +75,7 @@ set(PROJECT_SOURCES
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+        core/framework/reflected.cpp
 )
 
 # Editor target

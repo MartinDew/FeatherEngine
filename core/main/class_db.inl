@@ -30,12 +30,38 @@ void ClassDB::register_class() {
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = get();
 
-	ClassInfo new_info { .name = T::get_class_name() };
-	new_info.object_create_func = []() -> Variant { return new T(); };
+	ClassInfo& info = instance._class_infos[T::get_class_name()];
+	info.name = T::get_class_name();
+	info.parent = T::get_parent_name();
+	info.object_create_func = []() -> Variant { return new T(); };
 
-	instance._class_infos.emplace(std::make_pair(T::get_class_name(), std::move(new_info)));
-	auto& info = instance._class_infos.at(T::get_class_name());
 	instance._current_info = &info;
+
+	if (T::get_parent_name() != "") {
+		instance._class_infos[T::get_parent_name()].children.emplace_back(&info);
+	}
+
+	T::_bind_members();
+
+	instance._current_info = nullptr;
+}
+
+template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
+	// TODO populate this function
+	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
+	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+	ClassDB& instance = get();
+
+	ClassInfo& info = instance._class_infos[T::get_class_name()];
+	info.name = T::get_class_name();
+	info.parent = T::get_parent_name();
+	info.object_create_func = nullptr;
+
+	instance._current_info = &info;
+
+	if (T::get_parent_name() != "") {
+		instance._class_infos[T::get_parent_name()].children.emplace_back(&info);
+	}
 
 	T::_bind_members();
 

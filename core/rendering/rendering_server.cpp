@@ -25,7 +25,10 @@ void RenderingServer::update(double dt) {
 	_renderer->_render_scene();
 }
 
-void RenderingServer::use_renderer(std::string_view name) { _renderer = ClassDB::create_object<Renderer>(name); }
+void RenderingServer::use_renderer(std::string_view name) {
+	_renderer = ClassDB::create_object<Renderer>(name);
+	fassert(_renderer.get(), std::format("Failed to create renderer of type {}", name));
+}
 
 RenderingServer* RenderingServer::get() {
 	fassert(_instance, "instance not yet initialized for RenderingServer");

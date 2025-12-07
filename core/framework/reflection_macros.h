@@ -41,8 +41,10 @@ private:
 
 // Utility to register a class to DB in place instead of in a register function context. Please only use within a CPP
 // file
-#define INPLACE_REGISTER(_class_name)                                                                                  \
+#define INPLACE_REGISTER_BEGIN(_class_name)                                                                            \
 	struct register##_class_name {                                                                                     \
-		register##_class_name() { ClassDB::register_class<_class_name>(); }                                            \
+		register##_class_name() {
+#define INPLACE_REGISTER_END(_class_name)                                                                              \
+	}                                                                                                                  \
 	}                                                                                                                  \
 	register##_class_name##_instance

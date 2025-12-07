@@ -15,10 +15,12 @@ namespace feather {
 
 class ClassDB {
 	static std::unique_ptr<ClassDB> _instance;
-	ClassDB() = default;
+	ClassDB();
 
 	struct ClassInfo {
-		StaticString name;
+		StaticString name = ""_ss;
+		StaticString parent = ""_ss;
+		std::vector<const ClassInfo*> children;
 		struct Property {
 			StaticString name;
 			// variant type to convert to
@@ -45,6 +47,8 @@ class ClassDB {
 		return reinterpret_cast<size_t>(&(static_cast<T*>(nullptr)->*member));
 	}
 
+	static std::vector<StaticString> _get_children_internal(const ClassInfo& object, bool exclusive = false);
+
 public:
 	static ClassDB& get();
 
@@ -52,6 +56,9 @@ public:
 
 	template <is_reflected_class_type T>
 	static void register_class();
+
+	template <is_reflected_class_type T>
+	static void register_abstract_class();
 
 	template <class T, class U>
 	static constexpr void bind_property(U T::* member, std::string_view name, VariantType variant_type);
@@ -66,6 +73,10 @@ public:
 		std::unique_ptr<T> ptr { object_cast<T>(object) };
 		return ptr;
 	}
+
+	static std::vector<StaticString> get_children(std::string_view object_name, bool exclusive = false);
+
+	static std::string get_children_names(StaticString object_name, bool exclusive = false);
 };
 
 template <class T, class U>
