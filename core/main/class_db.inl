@@ -30,8 +30,8 @@ void ClassDB::register_class() {
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = get();
 
-	ClassInfo& info = instance._class_infos[T::get_class_name()];
-	info.name = T::get_class_name();
+	ClassInfo& info = instance._class_infos[T::get_class_static()];
+	info.name = T::get_class_static();
 	info.parent = T::get_parent_name();
 	info.object_create_func = []() -> Variant { return new T(); };
 
@@ -52,8 +52,8 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = get();
 
-	ClassInfo& info = instance._class_infos[T::get_class_name()];
-	info.name = T::get_class_name();
+	ClassInfo& info = instance._class_infos[T::get_class_static()];
+	info.name = T::get_class_static();
 	info.parent = T::get_parent_name();
 	info.object_create_func = nullptr;
 

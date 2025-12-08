@@ -14,6 +14,7 @@
 namespace feather {
 
 class ClassDB {
+	friend Variant;
 	static std::unique_ptr<ClassDB> _instance;
 	ClassDB();
 
@@ -48,6 +49,8 @@ class ClassDB {
 	}
 
 	static std::vector<StaticString> _get_children_names_internal(const ClassInfo& object, bool exclusive = false);
+
+	static ClassInfo& _get_class_info_internal(std::string_view name);
 
 public:
 	static ClassDB& get();
@@ -101,7 +104,7 @@ constexpr void ClassDB::bind_property(U T::* member, std::string_view name, Vari
 	// Setter: takes void* and Variant, sets the member
 	prop.setter = [member](void* obj_ptr, Variant val) {
 		T* typed_ptr = static_cast<T*>(obj_ptr);
-		typed_ptr->*member = val.get<U>().value();
+		typed_ptr->*member = val.as<U>().value();
 	};
 
 	get()._current_info->properties.push_back(std::move(prop));

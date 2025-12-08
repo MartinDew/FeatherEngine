@@ -24,7 +24,7 @@ ClassDB& ClassDB::get() {
 Reflected* ClassDB::create_object_unsafe(std::string_view name) {
 	auto object_info_it = _instance->_class_infos.find(name);
 	if (object_info_it != _instance->_class_infos.end()) {
-		return object_info_it->second.object_create_func().get<Reflected*>().value();
+		return object_info_it->second.object_create_func().as<Reflected*>().value();
 	}
 
 	return {};
@@ -43,6 +43,8 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 	}
 	return children;
 }
+
+ClassDB::ClassInfo& ClassDB::_get_class_info_internal(std::string_view name) { return get()._class_infos.at(name); }
 
 std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
 	if (auto it = ClassDB::get()._class_infos.find(object_name); it != ClassDB::get()._class_infos.end()) {

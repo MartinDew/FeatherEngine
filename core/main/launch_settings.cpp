@@ -13,7 +13,7 @@ LaunchSettings* LaunchSettings::_instance = nullptr;
 LaunchSettings::LaunchSettings()
 		: renderer { _parser, "renderer",
 			std::format("choice of the renderer backend : ( {})",
-					ClassDB::get_children_names_string(Renderer::get_class_name())),
+					ClassDB::get_children_names_string(Renderer::get_class_static())),
 			{ "renderer" }, "VexRenderer" } {
 	fassert(!_instance, "Attempt to create Launchsettings but it already exists");
 }

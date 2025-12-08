@@ -21,7 +21,7 @@ class VexRenderer : public Renderer {
 
 	static vex::PlatformWindowHandle _create_vex_window(Window& window);
 
-	size_t cock = 8;
+	size_t test_variable = 8;
 
 protected:
 	void _render_scene() override;

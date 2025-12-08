@@ -30,12 +30,13 @@ protected:                                                                      
 	using Super = _parent;                                                                                             \
                                                                                                                        \
 public:                                                                                                                \
-	constexpr static StaticString get_class_name() { return #_name##_ss; }                                             \
+	constexpr static StaticString get_class_static() { return #_name##_ss; }                                           \
 	constexpr static StaticString get_parent_name() { return #_parent##_ss; }                                          \
 	/*Maybe there's a better way to do casts than use vcalls? */                                                       \
 	inline bool is_of_type(StaticString type_name) override {                                                          \
-		return get_class_name() == type_name || Super::is_of_type(type_name);                                          \
+		return get_class_static() == type_name || Super::is_of_type(type_name);                                        \
 	}                                                                                                                  \
+	inline virtual StaticString get_class_name() { return get_class_static(); }                                        \
                                                                                                                        \
 private:
 

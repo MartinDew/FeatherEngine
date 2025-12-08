@@ -4,10 +4,8 @@
 #include "reflected.h"
 #include <math/math_defs.h>
 
-#include <cstdint>
 #include <expected>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <variant>
@@ -66,9 +64,12 @@ class Variant {
 
 	InternalVariant _data;
 	VariantType _type;
+	void* _object_info = nullptr;
 
 	// template <class T>
 	// friend T* object_cast(Variant& var);
+
+	void set_class_info(StaticString class_name);
 
 public:
 	// Default constructor - NIL
@@ -76,6 +77,7 @@ public:
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
+		requires(!std::is_reference_v<T>)
 	Variant(T value) {
 		if constexpr (std::is_same_v<T, bool>) {
 			_data = value;
@@ -100,12 +102,15 @@ public:
 		else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
 			_data = static_cast<Reflected*>(value);
 			_type = VariantType::OBJECT;
+			set_class_info(value->get_class_name());
 		}
 		else if constexpr (std::is_same_v<T, std::nullptr_t>) {
 			_data = std::monostate {};
 			_type = VariantType::NIL;
 		}
 	}
+
+	Variant(Reflected& ref);
 
 	// String literal constructor
 	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
@@ -130,7 +135,7 @@ public:
 
 	// Type conversion with std::expected
 	template <class T>
-	std::expected<T, std::string> get() const {
+	std::expected<T, std::string> as() const {
 		try {
 			if constexpr (std::is_same_v<T, bool>) {
 				if (_type != VariantType::BOOL) {
@@ -186,30 +191,15 @@ public:
 	bool operator!=(const Variant& other) const { return !(*this == other); }
 
 	// String conversion for debugging
-	std::string to_string() const {
-		switch (_type) {
-		case VariantType::NIL:
-			return "nil";
-		case VariantType::BOOL:
-			return std::get<bool>(_data) ? "true" : "false";
-		case VariantType::INT:
-			return std::to_string(std::get<size_t>(_data));
-		case VariantType::FLOAT:
-			return std::to_string(std::get<real_t>(_data));
-		case VariantType::STRING:
-			return std::get<std::string>(_data);
-		case VariantType::ARRAY:
-			return "[Array]";
-		case VariantType::OBJECT:
-			return "[Object]";
-		case VariantType::INVALID:
-			return "[Invalid]";
-		}
-		return "[Unknown]";
-	}
+	std::string to_string() const;
 
 	// Direct access to internal variant (for advanced usage)
 	const InternalVariant& internal() const { return _data; }
+
+	// Object property access
+	std::string get_name() const;
+	Variant get(std::string_view key) const;
+	void set(std::string_view key, const Variant& value);
 };
 
 } // namespace feather

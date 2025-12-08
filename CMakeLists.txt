@@ -52,6 +52,11 @@ set(PROJECT_HEADERS
         core/framework/functions.h
         core/framework/cow_vector.h
         core/framework/variant.h
+        core/framework/high_level_array.h
+        core/framework/macro_utils.h
+        core/framework/reflected.h
+        core/framework/reflection_macros.h
+        core/framework/reflection_utils.h
 
         #Rendering
         core/rendering/rendering_server.h
@@ -75,7 +80,9 @@ set(PROJECT_SOURCES
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+        # Framework
         core/framework/reflected.cpp
+        core/framework/variant.cpp
 )
 
 # Editor target
