@@ -12,15 +12,12 @@ using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 class Engine {
-	Window _main_window;
-
-	// the time accumulator
-	TimePoint start_time = Clock::now();
-
 	static Engine* _instance;
 
+	Window _main_window;
+	// the time accumulator
+	TimePoint start_time = Clock::now();
 	RenderingServer _rendering_server;
-
 	double _current_dt = 0.0;
 
 public:

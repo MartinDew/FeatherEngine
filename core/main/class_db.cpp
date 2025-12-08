@@ -30,7 +30,7 @@ Reflected* ClassDB::create_object_unsafe(std::string_view name) {
 	return {};
 }
 
-std::vector<StaticString> ClassDB::_get_children_internal(const ClassInfo& object, bool exclusive) {
+std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {
 	std::vector<StaticString> children;
 	children.reserve(object.children.size());
 	for (auto& child : object.children) {
@@ -38,23 +38,23 @@ std::vector<StaticString> ClassDB::_get_children_internal(const ClassInfo& objec
 	}
 
 	for (auto& child : object.children) {
-		auto sub_children = _get_children_internal(*child, exclusive);
+		auto sub_children = _get_children_names_internal(*child, exclusive);
 		children.append_range(sub_children);
 	}
 	return children;
 }
 
-std::vector<StaticString> ClassDB::get_children(std::string_view object_name, bool exclusive) {
+std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
 	if (auto it = ClassDB::get()._class_infos.find(object_name); it != ClassDB::get()._class_infos.end()) {
-		return _get_children_internal(it->second, exclusive);
+		return _get_children_names_internal(it->second, exclusive);
 	}
 
 	return {};
 }
 
-std::string ClassDB::get_children_names(StaticString object_name, bool exclusive) {
+std::string ClassDB::get_children_names_string(StaticString object_name, bool exclusive) {
 	std::string children_str;
-	auto children = get_children(object_name, exclusive);
+	auto children = get_children_names(object_name, exclusive);
 	for (auto& child : children) {
 		children_str += child.str();
 		children_str += " ";
@@ -72,7 +72,7 @@ void ClassDB::print_db() {
 			std::println("\tProperty: {} Type: {}\n", prop.name.str(), std::to_underlying<VariantType>(prop.type));
 		}
 
-		std::println("Children : {}", get_children_names(name, false));
+		std::println("Children : {}", get_children_names_string(name, false));
 	}
 #endif
 }

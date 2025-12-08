@@ -1,5 +1,6 @@
 #pragma once
 
+#include "main/launch_settings.h"
 #include "renderer.h"
 
 #include <main/engine_settings.h>
@@ -20,6 +21,7 @@ public:
 
 	static RenderingServer* get();
 
+	void init();
 	void update(double dt);
 
 	// Should change accessibility later

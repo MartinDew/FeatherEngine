@@ -23,6 +23,7 @@ Engine::Engine() {
 	fassert(!_instance);
 
 	_instance = this;
+	_rendering_server.init();
 }
 
 Engine::~Engine() {
@@ -41,9 +42,6 @@ bool Engine::run() {
 		ClassDB::get().print_db();
 		return true;
 	}
-
-	// Todo, remove
-	_rendering_server.use_renderer(LaunchSettings::get().renderer.Get());
 
 	// update
 	double accumulator = 0.0;

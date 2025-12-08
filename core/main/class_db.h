@@ -47,7 +47,7 @@ class ClassDB {
 		return reinterpret_cast<size_t>(&(static_cast<T*>(nullptr)->*member));
 	}
 
-	static std::vector<StaticString> _get_children_internal(const ClassInfo& object, bool exclusive = false);
+	static std::vector<StaticString> _get_children_names_internal(const ClassInfo& object, bool exclusive = false);
 
 public:
 	static ClassDB& get();
@@ -74,9 +74,9 @@ public:
 		return ptr;
 	}
 
-	static std::vector<StaticString> get_children(std::string_view object_name, bool exclusive = false);
+	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
 
-	static std::string get_children_names(StaticString object_name, bool exclusive = false);
+	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
 };
 
 template <class T, class U>

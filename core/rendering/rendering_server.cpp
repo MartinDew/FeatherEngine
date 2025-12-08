@@ -3,10 +3,9 @@
 
 #include <framework/assert.h>
 #include <main/class_db.h>
-#include <main/engine_settings.h>
+#include <main/launch_settings.h>
 #include <framework/static_string.hpp>
 
-#include <any>
 #include <string_view>
 
 namespace feather {
@@ -18,6 +17,8 @@ RenderingServer::RenderingServer() {
 
 	_instance = this;
 }
+
+void RenderingServer::init() { _renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get()); };
 
 void RenderingServer::update(double dt) {
 	fassert(_renderer.get(), "no renderer set");
@@ -33,6 +34,6 @@ void RenderingServer::use_renderer(std::string_view name) {
 RenderingServer* RenderingServer::get() {
 	fassert(_instance, "instance not yet initialized for RenderingServer");
 	return _instance;
-};
+}
 
 } //namespace feather

@@ -1,7 +1,12 @@
 #pragma once
 
+#include "framework/assert.h"
+#include "framework/static_string.hpp"
+
 #include <args.hxx>
+
 #include <filesystem>
+#include <map>
 
 namespace feather {
 
@@ -11,9 +16,11 @@ class LaunchSettings {
 	static LaunchSettings* _instance;
 
 	LaunchSettings();
+	//
+	// size_t argc = 0;
+	// char** argv;
 
-	size_t argc = 0;
-	char** argv;
+	std::map<StaticString, args::Group*> _groups { { "root"_ss, &_parser } };
 
 public:
 	LaunchSettings(int argc, char* argv[]);
@@ -40,6 +47,15 @@ public:
 #endif
 
 	static LaunchSettings& get();
+
+	static constexpr args::Group& get_group(StaticString name = "root"_ss) {
+		if (name == "root"_ss) {
+			return get()._parser;
+		}
+
+		fassert(get()._groups.contains(name), std::format("No such group {}", name));
+		return *get()._groups.at(name);
+	}
 
 private:
 	args::HelpFlag _help { _parser, "help", "Display this help menu", { 'h', "help" } };

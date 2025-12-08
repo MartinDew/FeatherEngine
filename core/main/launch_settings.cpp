@@ -11,12 +11,14 @@ namespace feather {
 LaunchSettings* LaunchSettings::_instance = nullptr;
 
 LaunchSettings::LaunchSettings()
-		: renderer { _parser, "renderer", "choice of the renderer backend", { "renderer" }, "VexRenderer" } {
+		: renderer { _parser, "renderer",
+			std::format("choice of the renderer backend : ( {})",
+					ClassDB::get_children_names_string(Renderer::get_class_name())),
+			{ "renderer" }, "VexRenderer" } {
 	fassert(!_instance, "Attempt to create Launchsettings but it already exists");
 }
 
-LaunchSettings::LaunchSettings(int argc, char* argv[])
-		: renderer { _parser, "renderer", "choice of the renderer backend", { "renderer" }, "VexRenderer" } {
+LaunchSettings::LaunchSettings(int argc, char* argv[]) : LaunchSettings() {
 	if (_instance)
 		throw std::runtime_error("LaunchSettings instance already exists!");
 
