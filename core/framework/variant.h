@@ -200,6 +200,9 @@ public:
 	std::string get_name() const;
 	Variant get(std::string_view key) const;
 	void set(std::string_view key, const Variant& value);
+	// Object method call
+	Variant call(std::string_view method_name);
+	Variant call(std::string_view method_name, auto&&... args);
 };
 
 } // namespace feather

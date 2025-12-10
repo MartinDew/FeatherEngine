@@ -40,7 +40,7 @@ constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
 
 } //namespace
 
-void Renderer::_bind_members() { ClassDB::bind_method(&Renderer::_render_scene, "render_scene"); }
+void Renderer::_bind_members() { ClassDB::bind_method(&Renderer::_render_scene, "_render_scene"); }
 
 Renderer::Renderer() : _window(&Engine::get().get_main_window()) {
 	// Need to assess what to do for multi window situation

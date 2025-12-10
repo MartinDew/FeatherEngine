@@ -62,4 +62,27 @@ void Variant::set_class_info(StaticString class_name) {
 	_object_info = &ClassDB::get()._get_class_info_internal(class_name);
 }
 
+Variant Variant::call(std::string_view method_name) {
+	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	for (auto& method : info->methods) {
+		if (method.name == method_name) {
+			Callable& callable = method.callable;
+			return callable.call();
+		}
+	}
+}
+
+Variant Variant::call(std::string_view method_name, auto&&... args) {
+	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	for (auto& method : info->methods) {
+		if (method.name == method_name) {
+			Callable& callable = method.callable;
+			Variant params[] = { args... };
+			return callable.call(std::span<Variant>(params, sizeof...(args)));
+		}
+	}
+}
+
 } //namespace feather
