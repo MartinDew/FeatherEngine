@@ -116,16 +116,16 @@
       "configuration": "Release"
     },
     {
-      "name": "llvm-multi-development",
-      "displayName": "Development Build",
-      "configurePreset": "multi-llvm",
-      "configuration": "Development"
-    },
-    {
       "name": "llvm-multi-debug",
       "displayName": "Debug Build",
       "configurePreset": "multi-llvm",
       "configuration": "Debug"
+    },
+    {
+      "name": "llvm-multi-development",
+      "displayName": "Development Build",
+      "configurePreset": "multi-llvm",
+      "configuration": "Development"
     },
     {
       "name": "llvm-multi-release",
