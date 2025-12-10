@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <tuple>
+#include <type_traits>
 
 namespace feather {
 
@@ -17,15 +19,27 @@ class Callable {
 	uint8_t _param_amount;
 
 public:
-	template <class TRet, class... Args>
-		requires(VariantCompatible<TRet>) && ((VariantCompatible<Args>) && ...)
-	Callable(std::function<TRet(Args...)> func)
+	template <class TRet, class... TArgs>
+	// requires(VariantCompatible<TRet>) && ((VariantCompatible<TArgs>) && ...)
+	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
 				size_t i = 0;
-				std::tuple<Args&...> converted_args = { params[i++].as<Args>... };
-				return std::apply(func, converted_args);
+				std::tuple<TArgs...> converted_args = { params[i++].as<TArgs>().value()... };
+				if constexpr (std::is_void_v<TRet>) {
+					std::apply(func, converted_args);
+					return Variant();
+				}
+				else {
+					TRet result = std::apply(func, converted_args);
+					return Variant(result);
+				}
 			} }
-			, _param_amount { sizeof...(Args) } {}
+			, _param_amount { sizeof...(TArgs) } {}
+
+	Callable(Callable&&) = default;
+	Callable(const Callable&) = default;
+	Callable& operator=(const Callable&) = default;
+	Callable& operator=(Callable&&) = default;
 
 	Variant call(std::span<Variant> params) {
 		if (params.size() != _param_amount) {

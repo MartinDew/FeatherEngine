@@ -1,7 +1,8 @@
 #pragma once
 #include "class_db.h"
 
-#include "main/class_db.inl"
+#include "framework/callable.h"
+#include <framework/functions.h>
 #include <framework/reflection_utils.h>
 #include <framework/variant.h>
 
@@ -66,6 +67,53 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	T::_bind_members();
 
 	instance._current_info = nullptr;
+}
+
+// Property binding
+
+template <class T, class U>
+inline constexpr void ClassDB::bind_property(U T::* member, std::string_view name, VariantType variant_type) {
+	if (!get()._current_info) {
+		return;
+	}
+
+	ClassInfo::Property prop {
+		.name = StaticString(name),
+		.type = variant_type,
+		.member_offset = offset_of(member),
+		.member_size = sizeof(U),
+	};
+
+	// Getter : takes void*(will be cast to T*), returns Variant
+	prop.getter = [member](void* obj_ptr) -> Variant {
+		T* typed_ptr = static_cast<T*>(obj_ptr);
+		return Variant(typed_ptr->*member);
+	};
+
+	// Setter: takes void* and Variant, sets the member
+	prop.setter = [member](void* obj_ptr, Variant val) {
+		T* typed_ptr = static_cast<T*>(obj_ptr);
+		typed_ptr->*member = val.as<U>().value();
+	};
+
+	get()._current_info->properties.push_back(std::move(prop));
+}
+
+// Method binding
+template <class T, class TRet, class... TArgs>
+inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::string_view name) {
+	if (!get()._current_info) {
+		return;
+	}
+
+	// Create a function that takes T* as first parameter, then the method args
+	std::function<TRet(T*, TArgs...)> func = [method](T* instance, TArgs... args) -> TRet {
+		return (instance->*method)(args...);
+	};
+
+	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
+
+	get()._current_info->methods.push_back(std::move(method_info));
 }
 
 } //namespace feather

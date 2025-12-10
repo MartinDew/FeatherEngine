@@ -2,6 +2,7 @@
 
 #include "framework/functions.h"
 #include "framework/reflection_macros.h"
+#include "main/class_db.h"
 #include "main/engine.h"
 #include "main/window.h"
 #include "rendering/triangle_mesh.h"
@@ -39,7 +40,7 @@ constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
 
 } //namespace
 
-void Renderer::_bind_members() {}
+void Renderer::_bind_members() { ClassDB::bind_method(&Renderer::_render_scene, "render_scene"); }
 
 Renderer::Renderer() : _window(&Engine::get().get_main_window()) {
 	// Need to assess what to do for multi window situation

@@ -1,11 +1,11 @@
 #pragma once
 
+#include <framework/callable.h>
 #include <framework/reflection_utils.h>
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
 
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -34,6 +34,15 @@ class ClassDB {
 			std::function<void(void*, Variant)> setter; // Takes object pointer and value
 		};
 		std::vector<Property> properties;
+
+		struct Method {
+			StaticString name;
+			// Possibly need to store param names later
+			Callable callable;
+		};
+
+		std::vector<Method> methods;
+
 		// Todo : functions
 
 		std::function<Variant()> object_create_func;
@@ -66,6 +75,9 @@ public:
 	template <class T, class U>
 	static constexpr void bind_property(U T::* member, std::string_view name, VariantType variant_type);
 
+	template <class T, class TRet, class... TArgs>
+	static constexpr void bind_method(TRet (T::*method)(TArgs...), std::string_view name);
+
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);
 
@@ -81,34 +93,6 @@ public:
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
 };
-
-template <class T, class U>
-constexpr void ClassDB::bind_property(U T::* member, std::string_view name, VariantType variant_type) {
-	if (!get()._current_info) {
-		return;
-	}
-
-	ClassInfo::Property prop {
-		.name = StaticString(name),
-		.type = variant_type,
-		.member_offset = offset_of(member),
-		.member_size = sizeof(U),
-	};
-
-	// Getter : takes void*(will be cast to T*), returns Variant
-	prop.getter = [member](void* obj_ptr) -> Variant {
-		T* typed_ptr = static_cast<T*>(obj_ptr);
-		return Variant(typed_ptr->*member);
-	};
-
-	// Setter: takes void* and Variant, sets the member
-	prop.setter = [member](void* obj_ptr, Variant val) {
-		T* typed_ptr = static_cast<T*>(obj_ptr);
-		typed_ptr->*member = val.as<U>().value();
-	};
-
-	get()._current_info->properties.push_back(std::move(prop));
-}
 
 } //namespace feather
 

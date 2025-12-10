@@ -28,7 +28,7 @@ template <typename T>
 concept VariantCompatible =
 		(std::is_integral_v<T> && !std::is_same_v<T, bool>) || std::is_floating_point_v<T> || std::is_same_v<T, bool> ||
 		std::is_same_v<T, std::string> || std::is_same_v<T, HighLevelArray> || std::is_same_v<T, std::nullptr_t> ||
-		(std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>);
+		(std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>> || std::is_void_v<T>);
 
 // Helper to get VariantType enum from C++ type
 template <class T>
