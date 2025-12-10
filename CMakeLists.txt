@@ -45,6 +45,7 @@ set(PROJECT_HEADERS
         
         #Framework
         core/framework/assert.h
+        core/framework/callable.h
         core/framework/static_string.hpp
         core/framework/delegate.h
         core/framework/container_utils.h
@@ -83,6 +84,7 @@ set(PROJECT_SOURCES
         # Framework
         core/framework/reflected.cpp
         core/framework/variant.cpp
+        core/framework/callable.cpp
 )
 
 # Editor target
