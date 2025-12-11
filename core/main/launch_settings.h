@@ -16,9 +16,6 @@ class LaunchSettings {
 	static LaunchSettings* _instance;
 
 	LaunchSettings();
-	//
-	// size_t argc = 0;
-	// char** argv;
 
 	std::map<StaticString, args::Group*> _groups { { "root"_ss, &_parser } };
 
