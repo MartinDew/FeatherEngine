@@ -23,9 +23,7 @@ void RenderingServer::init() { _renderer = ClassDB::create_object<Renderer>(Laun
 void RenderingServer::update(double dt) {
 	fassert(_renderer.get(), "no renderer set");
 
-	// _renderer->_render_scene();
-	Variant renderer = _renderer.get();
-	renderer.call("_render_scene");
+	_renderer->_render_scene();
 }
 
 void RenderingServer::use_renderer(std::string_view name) {
