@@ -20,7 +20,7 @@ class Callable {
 
 public:
 	template <class TRet, class... TArgs>
-	// requires(VariantCompatible<TRet>) && ((VariantCompatible<TArgs>) && ...)
+		requires(VariantCompatible<TRet>) && ((VariantCompatible<TArgs>) && ...)
 	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
 				size_t i = 0;
