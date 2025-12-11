@@ -1,6 +1,7 @@
 #include "variant.h"
 
 #include "assert.h"
+#include "framework/reflected.h"
 #include <main/class_db.h>
 
 namespace feather {
@@ -59,18 +60,22 @@ void Variant::set(std::string_view key, const Variant& value) {
 }
 
 void Variant::set_class_info(StaticString class_name) {
-	_object_info = &ClassDB::get()._get_class_info_internal(class_name);
+	_object_info = ClassDB::get()._get_class_info_internal(class_name);
 }
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
 	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
-	for (auto& method : info->methods) {
-		if (method.name == method_name) {
-			Callable& callable = method.callable;
-			return callable.call();
+	while (info) {
+		for (auto& method : info->methods) {
+			if (method.name == method_name) {
+				Callable& callable = method.callable;
+				return callable.call(as<Reflected*>().value());
+			}
 		}
+		info = ClassDB::_get_class_info_internal(info->parent);
 	}
+	return {};
 }
 
 Variant Variant::call(std::string_view method_name, auto&&... args) {
@@ -79,7 +84,7 @@ Variant Variant::call(std::string_view method_name, auto&&... args) {
 	for (auto& method : info->methods) {
 		if (method.name == method_name) {
 			Callable& callable = method.callable;
-			Variant params[] = { args... };
+			Variant params[] = { as<Reflected*>().value(), args... };
 			return callable.call(std::span<Variant>(params, sizeof...(args)));
 		}
 	}

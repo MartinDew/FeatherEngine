@@ -44,7 +44,12 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 	return children;
 }
 
-ClassDB::ClassInfo& ClassDB::_get_class_info_internal(std::string_view name) { return get()._class_infos.at(name); }
+ClassDB::ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
+	if (auto it = get()._class_infos.find(name); it != get()._class_infos.end()) {
+		return &it->second;
+	};
+	return nullptr;
+}
 
 std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
 	if (auto it = ClassDB::get()._class_infos.find(object_name); it != ClassDB::get()._class_infos.end()) {

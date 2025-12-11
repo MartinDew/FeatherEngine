@@ -59,7 +59,7 @@ class ClassDB {
 
 	static std::vector<StaticString> _get_children_names_internal(const ClassInfo& object, bool exclusive = false);
 
-	static ClassInfo& _get_class_info_internal(std::string_view name);
+	static ClassInfo* _get_class_info_internal(std::string_view name);
 
 public:
 	static ClassDB& get();

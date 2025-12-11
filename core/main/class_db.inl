@@ -107,8 +107,8 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::str
 	}
 
 	// Create a function that takes T* as first parameter, then the method args
-	std::function<TRet(T*, TArgs...)> func = [method](T* instance, TArgs... args) -> TRet {
-		return (instance->*method)(args...);
+	std::function<TRet(T*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
+		return (object_cast<T>(instance)->*method)(args...);
 	};
 
 	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
