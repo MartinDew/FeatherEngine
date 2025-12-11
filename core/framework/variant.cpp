@@ -35,12 +35,12 @@ std::string Variant::get_name() const {
 		return to_string();
 	}
 
-	return static_cast<ClassDB::ClassInfo*>(_object_info)->name;
+	return _object_info->name;
 }
 
 Variant Variant::get(std::string_view key) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	auto info = _object_info;
 	for (auto& property : info->properties) {
 		if (property.name == key) {
 			return property.getter(std::get<Reflected*>(_data));
@@ -50,7 +50,7 @@ Variant Variant::get(std::string_view key) const {
 
 void Variant::set(std::string_view key, const Variant& value) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	auto info = _object_info;
 	for (auto& property : info->properties) {
 		if (property.name == key) {
 			property.setter(std::get<Reflected*>(_data), value);
@@ -65,7 +65,7 @@ void Variant::set_class_info(StaticString class_name) {
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	auto info = _object_info;
 	while (info) {
 		for (auto& method : info->methods) {
 			if (method.name == method_name) {
@@ -80,7 +80,7 @@ Variant Variant::call(std::string_view method_name) {
 
 Variant Variant::call(std::string_view method_name, auto&&... args) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = static_cast<ClassDB::ClassInfo*>(_object_info);
+	auto info = _object_info;
 	for (auto& method : info->methods) {
 		if (method.name == method_name) {
 			Callable& callable = method.callable;

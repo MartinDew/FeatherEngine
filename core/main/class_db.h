@@ -1,6 +1,7 @@
 #pragma once
 
 #include <framework/callable.h>
+#include <framework/class_info.h>
 #include <framework/reflection_utils.h>
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
@@ -17,36 +18,6 @@ class ClassDB {
 	friend Variant;
 	static std::unique_ptr<ClassDB> _instance;
 	ClassDB();
-
-	struct ClassInfo {
-		StaticString name = ""_ss;
-		StaticString parent = ""_ss;
-		std::vector<const ClassInfo*> children;
-		struct Property {
-			StaticString name;
-			// variant type to convert to
-			VariantType type;
-			size_t member_offset;
-			size_t member_size;
-
-			// Function pointers for get/set
-			std::function<Variant(void*)> getter; // Takes object pointer, returns Variant
-			std::function<void(void*, Variant)> setter; // Takes object pointer and value
-		};
-		std::vector<Property> properties;
-
-		struct Method {
-			StaticString name;
-			// Possibly need to store param names later
-			Callable callable;
-		};
-
-		std::vector<Method> methods;
-
-		// Todo : functions
-
-		std::function<Variant()> object_create_func;
-	};
 
 	std::map<StaticString, ClassInfo> _class_infos;
 

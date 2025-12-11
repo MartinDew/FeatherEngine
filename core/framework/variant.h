@@ -59,12 +59,14 @@ consteval VariantType get_variant_type() {
 	}
 }
 
+class ClassInfo;
+
 class Variant {
 	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, std::string, HighLevelArray, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
-	void* _object_info = nullptr;
+	ClassInfo* _object_info = nullptr;
 
 	// template <class T>
 	// friend T* object_cast(Variant& var);
