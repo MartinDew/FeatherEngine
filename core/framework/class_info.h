@@ -34,8 +34,6 @@ struct ClassInfo {
 
 	std::vector<Method> methods;
 
-	// Todo : functions
-
 	std::function<Variant()> object_create_func;
 };
 
