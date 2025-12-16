@@ -84,7 +84,6 @@ set(PROJECT_SOURCES
         # Framework
         core/framework/reflected.cpp
         core/framework/variant.cpp
-        core/framework/callable.cpp
 )
 
 # Editor target
