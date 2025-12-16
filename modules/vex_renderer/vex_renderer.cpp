@@ -1,14 +1,16 @@
 #include "vex_renderer.h"
 
-#include "main/engine_settings.h"
+#include "Vex/Shaders/ShaderKey.h"
 #include <core/main/engine.h>
+#include <core/main/engine_settings.h>
 #include <core/main/window.h>
 #include <core/math/math_defs.h>
 
+#include <raw_resources/shaders/example_cube.hlsl.h>
+#include <raw_resources/shaders/example_cube.slang.h>
+
+#include <array>
 #include <cstdint>
-#include <ctime>
-#include <fstream>
-#include <ostream>
 
 namespace feather {
 
@@ -198,12 +200,12 @@ void VexRenderer::_render_scene() {
 		// Setup our draw call's description...
 		vex::DrawDesc hlslDrawDesc{
 			.vertexShader = {
-					.path = "shaders/example_cube.hlsl",
+					.sourceCode = example_cube_hlsl,
 					.entryPoint = "VSMain",
 					.type = vex::ShaderType::VertexShader,
 			},
 			.pixelShader = {
-					.path = "shaders/example_cube.hlsl",
+					.sourceCode = example_cube_hlsl,
 					.entryPoint = "PSMain",
 					.type = vex::ShaderType::PixelShader,
 			},
@@ -213,14 +215,16 @@ void VexRenderer::_render_scene() {
 #if VEX_SLANG
 		vex::DrawDesc slangDrawDesc{
 				.vertexShader = {
-						.path = "shaders/example_cube.slang",
+						.sourceCode = example_cube_slang,
 						.entryPoint = "VSMain",
 						.type = vex::ShaderType::VertexShader,
+						.compiler = ShaderCompilerBackend::Slang,
 				},
 				.pixelShader = {
-						.path = "shaders/example_cube.slang",
+						.sourceCode = example_cube_slang,
 						.entryPoint = "PSMain",
 						.type = vex::ShaderType::PixelShader,
+						.compiler = ShaderCompilerBackend::Slang,
 				},
 				.vertexInputLayout = vertexLayout,
 				.depthStencilState = depthStencilState,
