@@ -25,7 +25,6 @@ concept has_bind_method_v = requires(T t) {
 
 template <is_reflected_class_type T>
 void ClassDB::register_class() {
-	// TODO populate this function
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
 	static_assert(std::is_default_constructible<T>(), "Trying to register class that is not default constructible");
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
@@ -48,7 +47,6 @@ void ClassDB::register_class() {
 }
 
 template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
-	// TODO populate this function
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = get();

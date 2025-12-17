@@ -68,9 +68,6 @@ class Variant {
 	VariantType _type;
 	ClassInfo* _object_info = nullptr;
 
-	// template <class T>
-	// friend T* object_cast(Variant& var);
-
 	void set_class_info(StaticString class_name);
 
 public:
