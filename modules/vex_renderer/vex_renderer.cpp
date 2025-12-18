@@ -52,9 +52,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 } //namespace feather
 
-void VexRenderer::_bind_members() {
-	ClassDB::bind_property(&VexRenderer::test_variable, "test_variable", VariantType::INT);
-}
+void VexRenderer::_bind_members() {}
 
 VexRenderer::VexRenderer()
 		: graphics(vex::GraphicsCreateDesc {

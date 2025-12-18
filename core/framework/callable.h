@@ -15,7 +15,7 @@ namespace feather {
 class Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
 
-	// A function will likely not have more thant 256 params
+	// A function will likely not have more thant 255 params
 	uint8_t _param_amount;
 
 public:
@@ -31,7 +31,7 @@ public:
 				}
 				else {
 					TRet result = std::apply(func, converted_args);
-					return Variant(result);
+					return Variant(std::move(result));
 				}
 			} }
 			, _param_amount { sizeof...(TArgs) } {}
