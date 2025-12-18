@@ -79,7 +79,7 @@ public:
 		requires(!std::is_reference_v<T>)
 	Variant(T value) {
 		if constexpr (std::is_same_v<T, bool>) {
-			_data = value;
+			_data = std::move(value);
 			_type = VariantType::BOOL;
 		}
 		else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
@@ -91,11 +91,11 @@ public:
 			_type = VariantType::FLOAT;
 		}
 		else if constexpr (std::is_same_v<T, std::string>) {
-			_data = value;
+			_data = std::move(value);
 			_type = VariantType::STRING;
 		}
 		else if constexpr (std::is_same_v<T, HighLevelArray>) {
-			_data = value;
+			_data = std::move(value);
 			_type = VariantType::ARRAY;
 		}
 		else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
@@ -135,41 +135,26 @@ public:
 	// Type conversion with std::expected
 	template <class T>
 	std::expected<T, std::string> as() const {
+		if (get_variant_type<T>() != _type)
+			return std::unexpected("Variant type does not match requested type");
+
 		try {
 			if constexpr (std::is_same_v<T, bool>) {
-				if (_type != VariantType::BOOL) {
-					return std::unexpected("Variant type is not BOOL");
-				}
 				return std::get<bool>(_data);
 			}
 			else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-				if (_type != VariantType::INT) {
-					return std::unexpected("Variant type is not INT");
-				}
 				return static_cast<T>(std::get<size_t>(_data));
 			}
 			else if constexpr (std::is_floating_point_v<T>) {
-				if (_type != VariantType::FLOAT) {
-					return std::unexpected("Variant type is not FLOAT");
-				}
 				return static_cast<T>(std::get<real_t>(_data));
 			}
 			else if constexpr (std::is_same_v<T, std::string>) {
-				if (_type != VariantType::STRING) {
-					return std::unexpected("Variant type is not STRING");
-				}
 				return std::get<std::string>(_data);
 			}
 			else if constexpr (std::is_same_v<T, HighLevelArray>) {
-				if (_type != VariantType::ARRAY) {
-					return std::unexpected("Variant type is not ARRAY");
-				}
 				return std::get<HighLevelArray>(_data);
 			}
 			else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
-				if (_type != VariantType::OBJECT) {
-					return std::unexpected("Variant type is not OBJECT");
-				}
 				return static_cast<T>(std::get<Reflected*>(_data));
 			}
 			else {
