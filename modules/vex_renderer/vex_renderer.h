@@ -1,4 +1,6 @@
 #pragma once
+
+#include <core/framework/reflection_macros.h>
 #include <core/rendering/renderer.h>
 #include <array>
 
@@ -7,6 +9,8 @@
 namespace feather {
 
 class VexRenderer : public Renderer {
+	FCLASS(VexRenderer, Renderer);
+
 	vex::Texture depthTexture;
 	vex::Texture uvGuideTexture;
 
@@ -20,6 +24,8 @@ class VexRenderer : public Renderer {
 protected:
 	void _render_scene() override;
 	void _on_resize() override;
+
+	static void _bind_members();
 
 public:
 	VexRenderer();

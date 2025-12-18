@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_video.h>
 
 #include <cassert>
@@ -19,6 +20,8 @@ constexpr Notification to_notification(const SDL_Event& event) {
 	switch (event.type) {
 	case SDL_EVENT_WINDOW_SHOWN:
 		return Notification::WINDOW_SHOWN;
+	case SDL_EVENT_WINDOW_ENTER_FULLSCREEN:
+	case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
 	case SDL_EVENT_WINDOW_RESIZED:
 		return Notification::WINDOW_RESIZED;
 	default:
@@ -65,6 +68,7 @@ void Window::set_fullscreen_mode(const FullscreenMode mode) const {
 	switch (mode) {
 	case FullscreenMode::WINDOWED:
 		SDL_SetWindowFullscreen(_internal_window, false);
+		SDL_SetWindowBordered(_internal_window, true);
 		break;
 	case FullscreenMode::FULLSCREEN:
 		SDL_SetWindowFullscreen(_internal_window, true);
@@ -72,6 +76,8 @@ void Window::set_fullscreen_mode(const FullscreenMode mode) const {
 	case FullscreenMode::BORDERLESS: {
 		SDL_SetWindowFullscreen(_internal_window, false);
 		SDL_SetWindowBordered(_internal_window, false);
+
+		// TODO remember the old size and position to restore later
 
 		// get display size
 		const SDL_DisplayMode* dm = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
@@ -104,6 +110,14 @@ bool Window::update() {
 		case SDL_EVENT_WINDOW_RESIZED:
 			_on_resize();
 			break;
+		case SDL_EVENT_KEY_DOWN: {
+			// Hard code alt + enter for fullscreen toggle
+			if (_internal_event.key.key == SDLK_F11) {
+				_fullscreen_mode = (_fullscreen_mode == FullscreenMode::WINDOWED) ? FullscreenMode::FULLSCREEN
+																				  : FullscreenMode::WINDOWED;
+				set_fullscreen_mode(_fullscreen_mode);
+			}
+		}
 		}
 
 		auto notification = to_notification(_internal_event);

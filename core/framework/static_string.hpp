@@ -25,9 +25,10 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <type_traits>
-
 
 namespace nassimp {
 
@@ -61,7 +62,7 @@ static constexpr std::array<uint32_t, 256> crc_table { 0x00000000, 0x77073096, 0
 	0x30b5ffe9, 0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
 	0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d };
 
-constexpr uint32_t crc32(std::string_view str) {
+constexpr uint32_t crc32(const std::string_view str) {
 	uint32_t crc = 0xffffffff;
 	for (auto c : str)
 		crc = (crc >> 8) ^ crc_table[(crc ^ c) & 0xff];
@@ -69,23 +70,28 @@ constexpr uint32_t crc32(std::string_view str) {
 }
 
 struct StaticString {
-	constexpr StaticString(const char* str, const size_t len) : view { str, len } {}
-	constexpr StaticString(std::string_view str) : view { str } {}
-	constexpr StaticString(StaticString& str) = default;
+	constexpr StaticString(const StaticString& str) { view = str.view; }
 	constexpr StaticString(StaticString&& str) = default;
-	constexpr StaticString& operator=(StaticString& str) = default;
+	explicit constexpr StaticString(const char* str, const size_t len) : view { str, len } {}
+	constexpr StaticString(std::string_view str) : view { str } {}
+	constexpr StaticString& operator=(StaticString& str) {
+		view = str.view;
+		return *this;
+	};
 	constexpr StaticString& operator=(StaticString&& str) = default;
 
 	constexpr bool operator==(uint32_t str) const { return crc32(view) == str; }
 
-	[[nodiscard]] constexpr size_t hash() const noexcept { return crc32(view); }
+	constexpr size_t hash() const noexcept { return crc32(view); }
 
 	constexpr operator size_t() const noexcept { return hash(); }
 
 	[[nodiscard]] constexpr const char* data() const noexcept { return view.data(); }
 
-	constexpr operator std::string_view() { return view; }
-	constexpr bool operator==(const StaticString& other) const noexcept { return view == other.view; }
+	constexpr operator std::string_view() const noexcept { return view; }
+	constexpr std::string_view str() const noexcept { return view; }
+	constexpr operator std::string() const { return std::string(view); }
+	constexpr bool operator==(const StaticString& other) const noexcept { return hash() == other.hash(); }
 	constexpr bool operator==(const std::string_view& other) const { return view == other; }
 
 private:
@@ -102,5 +108,16 @@ template <>
 struct std::hash<StaticString> {
 	constexpr size_t operator()(const StaticString& s) const noexcept { return s.hash(); }
 };
+
+#if __cplusplus >= 202002L
+#include <format>
+
+template <>
+struct std::formatter<StaticString, char> : std::formatter<std::string_view> {
+	constexpr auto format(const StaticString& ss, std::format_context& ctx) const {
+		return std::formatter<std::string_view>::format(ss.str(), ctx);
+	}
+};
+#endif
 
 #endif // NOT_ANOTHER_STATIC_STRING_IMPLEMENTATION_H

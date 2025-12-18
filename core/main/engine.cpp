@@ -2,7 +2,7 @@
 #include "launch_settings.h"
 #include "modules/modules.gen.h"
 
-#include <framework/assert.hpp>
+#include <framework/assert.h>
 
 #include <chrono>
 
@@ -23,7 +23,7 @@ Engine::Engine() {
 	fassert(!_instance);
 
 	_instance = this;
-	// register_modules();
+	_rendering_server.init();
 }
 
 Engine::~Engine() {
@@ -37,8 +37,11 @@ bool Engine::run() {
 
 	// initialization
 
-	// Todo, remove
-	_rendering_server.use_renderer("vex"_ss);
+	// Debug stuff
+	if (LaunchSettings::get().dump_db.Get()) {
+		ClassDB::get().print_db();
+		return true;
+	}
 
 	// update
 	double accumulator = 0.0;

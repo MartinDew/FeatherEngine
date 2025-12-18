@@ -74,7 +74,10 @@
       "description": "Multi config build",
       "inherits": "default",
       "generator": "Ninja Multi-Config",
-      "toolchainFile": "${sourceDir}/tools/toolchain-llvm.cmake"
+      "toolchainFile": "${sourceDir}/tools/toolchain-llvm.cmake",
+      "cacheVariables": {
+        "LLVM_USE_LIBCXX": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -113,16 +116,16 @@
       "configuration": "Release"
     },
     {
-      "name": "llvm-multi-development",
-      "displayName": "Development Build",
-      "configurePreset": "multi-llvm",
-      "configuration": "Development"
-    },
-    {
       "name": "llvm-multi-debug",
       "displayName": "Debug Build",
       "configurePreset": "multi-llvm",
       "configuration": "Debug"
+    },
+    {
+      "name": "llvm-multi-development",
+      "displayName": "Development Build",
+      "configurePreset": "multi-llvm",
+      "configuration": "Development"
     },
     {
       "name": "llvm-multi-release",

@@ -1,6 +1,8 @@
 #include "renderer.h"
 
 #include "framework/functions.h"
+#include "framework/reflection_macros.h"
+#include "main/class_db.h"
 #include "main/engine.h"
 #include "main/window.h"
 #include "rendering/triangle_mesh.h"
@@ -38,6 +40,8 @@ constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
 
 } //namespace
 
+void Renderer::_bind_members() { ClassDB::bind_method(&Renderer::_render_scene, "_render_scene"); }
+
 Renderer::Renderer() : _window(&Engine::get().get_main_window()) {
 	// Need to assess what to do for multi window situation
 	_window->register_notification(Notification::WINDOW_RESIZED, bind_method(&Renderer::_on_resize, this));
@@ -50,5 +54,9 @@ TriangleMesh Renderer::get_example_cube() {
 		{ example_cube_indices.begin(), example_cube_indices.end() } };
 	return example_cube;
 }
+
+INPLACE_REGISTER_BEGIN(Renderer);
+ClassDB::register_abstract_class<Renderer>();
+INPLACE_REGISTER_END(Renderer);
 
 } //namespace feather

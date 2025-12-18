@@ -56,7 +56,7 @@ void game_loop() {
 */
 #pragma once
 
-#include <framework/assert.hpp>
+#include <framework/assert.h>
 #include <framework/static_string.hpp>
 #include <functional>
 #include <memory>

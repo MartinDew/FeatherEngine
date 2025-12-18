@@ -35,19 +35,29 @@ set(PROJECT_HEADERS
         core/main/window.h
         core/main/engine.h
         core/main/engine_settings.h
+        core/main/class_db.h
+        core/main/class_db.inl
 
         # Math
         core/math/transform.h
         core/math/math_defs.h
         core/main/notification.h
-        
+
         #Framework
-        core/framework/assert.hpp
+        core/framework/assert.h
+        core/framework/callable.h
         core/framework/static_string.hpp
         core/framework/delegate.h
-        core/framework/containers.h
+        core/framework/container_utils.h
         core/framework/static_indexed_array.h
         core/framework/functions.h
+        core/framework/cow_vector.h
+        core/framework/variant.h
+        core/framework/high_level_array.h
+        core/framework/macro_utils.h
+        core/framework/reflected.h
+        core/framework/reflection_macros.h
+        core/framework/reflection_utils.h
 
         #Rendering
         core/rendering/rendering_server.h
@@ -63,6 +73,7 @@ set(PROJECT_SOURCES
         core/main/window.cpp
         core/main/engine.cpp
         core/main/engine_settings.cpp
+        core/main/class_db.cpp
         # Math
         core/math/transform.cpp
         core/math/math_defs.cpp
@@ -70,10 +81,13 @@ set(PROJECT_SOURCES
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+        # Framework
+        core/framework/reflected.cpp
+        core/framework/variant.cpp
 )
 
 # Editor target
-add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
+add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 # set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
@@ -92,7 +106,7 @@ target_compile_options(Editor PRIVATE
 )
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} )
+add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
@@ -135,38 +149,24 @@ if (MSVC)
     target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 
     # embed raw_resources folder
-#    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
-#    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+    #    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+    #    target_compile_options(Standalone PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 
 else ()
     target_compile_options(Editor PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     target_compile_options(Standalone PRIVATE -Wall -Wextra -pedantic -Wno-unused-parameter)
     # embed raw_resources folder
-    
-#    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
-#    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+
+    #    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+    #    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 endif ()
 
 add_subdirectory(modules)
 
 if (${enable_vex_renderer})
-        vex_setup_runtime(Editor)
-        vex_setup_runtime(Standalone)
-endif()
-
-add_custom_command(
-         TARGET Editor POST_BUILD
-         COMMAND ${CMAKE_COMMAND} -E copy_directory              
-             ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Editor>/shaders
-         COMMENT "Copying shaders" VERBATIM
-)
-
-add_custom_command(
-         TARGET Standalone POST_BUILD
-         COMMAND ${CMAKE_COMMAND} -E copy_directory              
-             ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Standalone>/shaders
-         COMMENT "Copying shaders" VERBATIM
-)
+    vex_setup_runtime(Editor)
+    vex_setup_runtime(Standalone)
+endif ()
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

@@ -2,11 +2,11 @@
 
 #include "triangle_mesh.h"
 
+#include <framework/reflected.h>
+#include <framework/reflection_macros.h>
+
 #include <main/engine_settings.h>
 #include <math/math_defs.h>
-
-#include <array>
-#include <vector>
 
 class SDL_Window;
 
@@ -14,7 +14,8 @@ namespace feather {
 
 class Window;
 
-class Renderer {
+class Renderer : public Reflected {
+	FCLASS(Renderer, Reflected)
 	friend class RenderingServer;
 
 protected:
@@ -27,6 +28,8 @@ protected:
 	static SDL_Window* _extract_internal_window(Window& window);
 
 	Window* _window;
+
+	static void _bind_members();
 
 public:
 	virtual void _render_scene() = 0;

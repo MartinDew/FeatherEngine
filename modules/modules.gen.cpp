@@ -2,7 +2,7 @@
 
 #include "modules.gen.h"
 
-#include <framework/assert.hpp>
+#include <framework/assert.h>
 
 #if vex_renderer_ENABLED
 #include <modules/vex_renderer/register_module.h>

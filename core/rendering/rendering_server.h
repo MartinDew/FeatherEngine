@@ -1,5 +1,6 @@
 #pragma once
 
+#include "main/launch_settings.h"
 #include "renderer.h"
 
 #include <main/engine_settings.h>
@@ -20,12 +21,13 @@ public:
 
 	static RenderingServer* get();
 
+	void init();
 	void update(double dt);
 
 	// Should change accessibility later
 	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }
 
-	void use_renderer(StaticString name);
+	void use_renderer(std::string_view name);
 };
 
 } //namespace feather
