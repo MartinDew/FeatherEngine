@@ -4,6 +4,12 @@
 #include <memory>
 #include <stdexcept>
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define aligned_alloc(align, size) _aligned_malloc(size, align)
+#define aligned_free _aligned_free
+#endif
+
 namespace feather {
 
 template <typename T>

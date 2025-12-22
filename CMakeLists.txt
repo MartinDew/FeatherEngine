@@ -63,6 +63,10 @@ set(PROJECT_HEADERS
         core/rendering/rendering_server.h
         core/rendering/renderer.h
         core/rendering/triangle_mesh.h
+
+        # Resources
+        core/resources/resource.h
+        core/resources/mesh.h
 )
 
 # Source files (shared between both targets)
@@ -81,6 +85,9 @@ set(PROJECT_SOURCES
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+        # Resources
+        core/resources/resource.cpp
+        core/resources/mesh.cpp
         # Framework
         core/framework/reflected.cpp
         core/framework/variant.cpp

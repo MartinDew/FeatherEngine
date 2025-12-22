@@ -1,11 +1,12 @@
 #pragma once
 
+#include "container_utils.h"
 #include "high_level_array.h"
+
 #include "reflected.h"
 #include <math/math_defs.h>
 
 #include <expected>
-#include <iostream>
 #include <string>
 #include <type_traits>
 #include <variant>
@@ -23,13 +24,6 @@ enum class VariantType : uint8_t {
 	INVALID
 };
 
-// Type trait to check if a type can be converted to Variant
-template <typename T>
-concept VariantCompatible =
-		(std::is_integral_v<T> && !std::is_same_v<T, bool>) || std::is_floating_point_v<T> || std::is_same_v<T, bool> ||
-		std::is_same_v<T, std::string> || std::is_same_v<T, HighLevelArray> || std::is_same_v<T, std::nullptr_t> ||
-		(std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>> || std::is_void_v<T>);
-
 // Helper to get VariantType enum from C++ type
 template <class T>
 consteval VariantType get_variant_type() {
@@ -45,19 +39,23 @@ consteval VariantType get_variant_type() {
 	else if constexpr (std::is_same_v<T, std::string>) {
 		return VariantType::STRING;
 	}
-	else if constexpr (std::is_same_v<T, HighLevelArray>) {
+	else if constexpr (std::is_same_v<T, HighLevelArray> || std::is_array_v<T> || is_contiguous_container<T>) {
 		return VariantType::ARRAY;
 	}
 	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
 		return VariantType::OBJECT;
 	}
-	else if constexpr (std::is_same_v<T, std::nullptr_t>) {
+	else if constexpr (std::is_same_v<T, std::nullptr_t> || std::is_void_v<T>) {
 		return VariantType::NIL;
 	}
 	else {
 		return VariantType::INVALID;
 	}
 }
+
+// Type trait to check if a type can be converted to Variant
+template <typename T>
+concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 
 class ClassInfo;
 
@@ -78,34 +76,34 @@ public:
 	template <VariantCompatible T>
 		requires(!std::is_reference_v<T>)
 	Variant(T value) {
-		if constexpr (std::is_same_v<T, bool>) {
+		constexpr VariantType type = get_variant_type<T>();
+		_type = type;
+
+		if constexpr (type == VariantType::BOOL) {
 			_data = std::move(value);
-			_type = VariantType::BOOL;
 		}
-		else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+		else if constexpr (type == VariantType::INT) {
 			_data = static_cast<size_t>(value);
-			_type = VariantType::INT;
 		}
-		else if constexpr (std::is_floating_point_v<T>) {
+		else if constexpr (type == VariantType::FLOAT) {
 			_data = static_cast<real_t>(value);
-			_type = VariantType::FLOAT;
 		}
-		else if constexpr (std::is_same_v<T, std::string>) {
+		else if constexpr (type == VariantType::STRING) {
 			_data = std::move(value);
-			_type = VariantType::STRING;
 		}
-		else if constexpr (std::is_same_v<T, HighLevelArray>) {
-			_data = std::move(value);
-			_type = VariantType::ARRAY;
+		else if constexpr (type == VariantType::ARRAY) {
+			if constexpr (std::is_same_v<T, HighLevelArray>)
+				_data = std::move(value);
+			else {
+				_data = HighLevelArray { value.begin(), value.end() };
+			}
 		}
-		else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
+		else if constexpr (type == VariantType::OBJECT) {
 			_data = static_cast<Reflected*>(value);
-			_type = VariantType::OBJECT;
 			set_class_info(value->get_class_name());
 		}
-		else if constexpr (std::is_same_v<T, std::nullptr_t>) {
+		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
-			_type = VariantType::NIL;
 		}
 	}
 
