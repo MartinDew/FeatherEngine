@@ -4,6 +4,8 @@
 
 namespace feather {
 
+bool Vertex::operator==(const Vertex& other) const { return position == other.position && uv == other.uv; }
+
 real_t deg_to_rad(real_t degrees) { return degrees / 180.0f * std::numbers::pi; }
 
 real_t rad_to_deg(real_t radians) { return radians / std::numbers::pi * 180.0f; }

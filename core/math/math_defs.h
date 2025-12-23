@@ -41,6 +41,8 @@ struct Vertex {
 	Vertex& operator=(const Vertex&) = default;
 	Vertex(Vertex&&) = default;
 	Vertex& operator=(Vertex&&) = default;
+
+	bool operator==(const Vertex&) const;
 };
 
 // Helper Functions
