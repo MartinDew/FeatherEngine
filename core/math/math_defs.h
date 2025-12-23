@@ -8,6 +8,12 @@
 
 namespace feather {
 
+#ifdef DOUBLE_PRECISION
+using real_t = double;
+#else
+using real_t = float;
+#endif
+
 using Matrix = DirectX::SimpleMath::Matrix;
 using Vector2 = DirectX::SimpleMath::Vector2;
 using Vector3 = DirectX::SimpleMath::Vector3;
@@ -24,6 +30,14 @@ using Vector2ui = DirectX::XMUINT2;
 using Vector4i = DirectX::XMINT4;
 using Vector3i = DirectX::XMINT3;
 using Vector2i = DirectX::XMINT2;
+
+struct Vertex {
+	Vector3 position;
+	Vector2 uv;
+
+	Vertex() = default;
+	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv { u, v } {}
+};
 
 // Helper Functions
 float deg_to_rad(float degrees);
@@ -52,12 +66,6 @@ inline bool is_power_of_two(int n) {
 	return ceil(log2(n)) == floor(log2(n));
 }
 
-#ifdef DOUBLE_PRECISION
-using real_t = double;
-#else
-using real_t = float;
-#endif
-
 namespace math::matrices {
 
 inline void remove_scaling(Matrix& m) {
@@ -84,7 +92,11 @@ inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
 	m.m[i][2] = axis.z;
 }
 
-enum class Axis : uint8_t { X = 0, Y, Z };
+enum class Axis : uint8_t {
+	X = 0,
+	Y,
+	Z
+};
 
 inline Vector3 get_axis(const Matrix& mat, Axis axis) {
 	const uint8_t i = std::to_underlying(axis);

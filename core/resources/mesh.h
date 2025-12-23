@@ -1,6 +1,7 @@
 #pragma once
 
 #include "framework/high_level_array.h"
+#include "math/math_defs.h"
 #include "resource.h"
 #include <core/framework/reflection_macros.h>
 #include <core/rendering/triangle_mesh.h>
@@ -30,11 +31,11 @@ protected:
 public:
 	RawMesh() = default;
 
-	void add_vertices(const std::vector<Vertex>& vertices);
-	void add_indices(const std::vector<Index>& indices);
+	void add_vertices(const HighLevelArray vertices);
+	void add_indices(const HighLevelArray indices);
 
-	const CowVector<Vertex>& get_vertices() const;
-	const CowVector<Index>& get_indices() const;
+	HighLevelArray get_vertices() const;
+	HighLevelArray get_indices() const;
 };
 
 } // namespace feather

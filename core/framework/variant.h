@@ -4,6 +4,7 @@
 #include "high_level_array.h"
 
 #include "reflected.h"
+#include "rendering/triangle_mesh.h"
 #include <math/math_defs.h>
 
 #include <expected>
@@ -16,11 +17,18 @@ namespace feather {
 enum class VariantType : uint8_t {
 	NIL = 0,
 	BOOL,
+	// Math
 	INT,
 	FLOAT,
+	VECTOR3,
+	VECTOR2,
+	VERTEX,
+	// Misc
 	STRING,
 	ARRAY,
+	// Objects
 	OBJECT,
+	// Invalid
 	INVALID
 };
 
@@ -36,6 +44,15 @@ consteval VariantType get_variant_type() {
 	else if constexpr (std::is_floating_point_v<T>) {
 		return VariantType::FLOAT;
 	}
+	else if constexpr (std::is_same_v<Vector3, T>) {
+		return VariantType::VECTOR3;
+	}
+	else if constexpr (std::is_same_v<Vector2, T>) {
+		return VariantType::VECTOR2;
+	}
+	else if constexpr (std::is_same_v<Vertex, T>) {
+		return VariantType::VERTEX;
+	}
 	else if constexpr (std::is_same_v<T, std::string>) {
 		return VariantType::STRING;
 	}
@@ -45,9 +62,11 @@ consteval VariantType get_variant_type() {
 	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
 		return VariantType::OBJECT;
 	}
+	// Void case
 	else if constexpr (std::is_same_v<T, std::nullptr_t> || std::is_void_v<T>) {
 		return VariantType::NIL;
 	}
+	// Default case
 	else {
 		return VariantType::INVALID;
 	}
@@ -60,7 +79,8 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 class ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, std::string, HighLevelArray, Reflected*>;
+	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, std::string,
+			HighLevelArray, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
@@ -76,7 +96,7 @@ public:
 	template <VariantCompatible T>
 		requires(!std::is_reference_v<T>)
 	Variant(T value) {
-		constexpr VariantType type = get_variant_type<T>();
+		constexpr VariantType type = get_variant_type<std::remove_const<T>>();
 		_type = type;
 
 		if constexpr (type == VariantType::BOOL) {
@@ -87,6 +107,9 @@ public:
 		}
 		else if constexpr (type == VariantType::FLOAT) {
 			_data = static_cast<real_t>(value);
+		}
+		else if constexpr (type == VariantType::VECTOR3) {
+			_data = std::move(value);
 		}
 		else if constexpr (type == VariantType::STRING) {
 			_data = std::move(value);
@@ -105,6 +128,10 @@ public:
 		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
 		}
+		// default case if assignment is 1:1
+		else {
+			_data = std::move(value);
+		}
 	}
 
 	Variant(Reflected& ref);
@@ -122,13 +149,8 @@ public:
 
 	// Type checking
 	VariantType get_type() const { return _type; }
+	bool is_type(VariantType type) const { return type == _type; }
 	bool is_nil() const { return _type == VariantType::NIL; }
-	bool is_bool() const { return _type == VariantType::BOOL; }
-	bool is_int() const { return _type == VariantType::INT; }
-	bool is_float() const { return _type == VariantType::FLOAT; }
-	bool is_string() const { return _type == VariantType::STRING; }
-	bool is_array() const { return _type == VariantType::ARRAY; }
-	bool is_object() const { return _type == VariantType::OBJECT; }
 
 	// Type conversion with std::expected
 	template <class T>
@@ -146,17 +168,12 @@ public:
 			else if constexpr (std::is_floating_point_v<T>) {
 				return static_cast<T>(std::get<real_t>(_data));
 			}
-			else if constexpr (std::is_same_v<T, std::string>) {
-				return std::get<std::string>(_data);
-			}
-			else if constexpr (std::is_same_v<T, HighLevelArray>) {
-				return std::get<HighLevelArray>(_data);
-			}
 			else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
 				return static_cast<T>(std::get<Reflected*>(_data));
 			}
 			else {
-				return std::unexpected("Unsupported type for Variant get");
+				// default case
+				std::get<T>(_data);
 			}
 		} catch (const std::bad_variant_access&) {
 			return std::unexpected("Bad variant access in Variant get");
