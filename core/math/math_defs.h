@@ -37,6 +37,10 @@ struct Vertex {
 
 	Vertex() = default;
 	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv { u, v } {}
+	Vertex(const Vertex&) = default;
+	Vertex& operator=(const Vertex&) = default;
+	Vertex(Vertex&&) = default;
+	Vertex& operator=(Vertex&&) = default;
 };
 
 // Helper Functions

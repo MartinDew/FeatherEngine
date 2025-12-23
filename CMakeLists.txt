@@ -91,6 +91,7 @@ set(PROJECT_SOURCES
         # Framework
         core/framework/reflected.cpp
         core/framework/variant.cpp
+        core/framework/high_level_array.cpp
 )
 
 # Editor target

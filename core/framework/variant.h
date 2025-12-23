@@ -92,6 +92,11 @@ public:
 	// Default constructor - NIL
 	Variant() : _data(std::monostate {}), _type(VariantType::NIL) {}
 
+	Variant(Reflected& ref);
+
+	// String literal constructor
+	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
+
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
 		requires(!std::is_reference_v<T>)
@@ -134,11 +139,6 @@ public:
 		}
 	}
 
-	Variant(Reflected& ref);
-
-	// String literal constructor
-	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
-
 	// Copy and move constructors
 	Variant(const Variant& other) = default;
 	Variant(Variant&& other) noexcept = default;
@@ -178,14 +178,11 @@ public:
 		} catch (const std::bad_variant_access&) {
 			return std::unexpected("Bad variant access in Variant get");
 		}
+		std::unreachable();
 	}
 
 	// Equality operators
-	bool operator==(const Variant& other) const {
-		if (_type != other._type)
-			return false;
-		return _data == other._data;
-	}
+	bool operator==(const Variant& other) const;
 
 	bool operator!=(const Variant& other) const { return !(*this == other); }
 

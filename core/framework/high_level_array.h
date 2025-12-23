@@ -1,28 +1,160 @@
 #pragma once
 #include "container_utils.h"
-#include "cow_vector.h"
+#include <cstddef>
+#include <initializer_list>
+#include <memory>
 
 namespace feather {
 
-class HighLevelArray : public CowVector<class Variant> {
-public:
-	HighLevelArray() = default;
-	HighLevelArray(const HighLevelArray& other) = default;
-	HighLevelArray(HighLevelArray&& other) noexcept = default;
-	HighLevelArray& operator=(const HighLevelArray& other) = default;
-	HighLevelArray& operator=(HighLevelArray&& other) noexcept = default;
-	HighLevelArray(std::initializer_list<Variant> ilist) : CowVector<Variant>(ilist) {}
-	// template <class T>
-	// HighLevelArray(const T& container) {
-	// 	static_assert(is_contiguous_container<T>, "HighLevelArray can only be constructed from contiguous containers");
-	// 	this->reserve(std::size(container));
-	// 	for (const auto& item : container) {
-	// 		this->push_back(Variant(item));
-	// 	}
-	// }
+class Variant;
 
-	template <class It>
-	HighLevelArray(It begin, It end) : CowVector(begin, end) {}
+class HighLevelArray {
+private:
+	class Buffer;
+	std::unique_ptr<Buffer> impl_;
+
+	void ensure_unique();
+
+public:
+	using size_type = size_t;
+	using difference_type = ptrdiff_t;
+
+	// Iterator forward declarations
+	class iterator;
+	class const_iterator;
+
+	// Constructors
+	HighLevelArray();
+	explicit HighLevelArray(size_type count);
+	HighLevelArray(size_type count, const Variant& value);
+	HighLevelArray(std::initializer_list<Variant> ilist);
+
+	template <typename InputIt>
+	HighLevelArray(InputIt first, InputIt last);
+
+	// Copy and move
+	HighLevelArray(const HighLevelArray& other);
+	HighLevelArray(HighLevelArray&& other) noexcept;
+	HighLevelArray& operator=(const HighLevelArray& other);
+	HighLevelArray& operator=(HighLevelArray&& other) noexcept;
+	HighLevelArray& operator=(std::initializer_list<Variant> ilist);
+
+	~HighLevelArray();
+
+	// Element access
+	Variant& at(size_type pos);
+	const Variant& at(size_type pos) const;
+	Variant& operator[](size_type pos);
+	const Variant& operator[](size_type pos) const;
+	Variant& front();
+	const Variant& front() const;
+	Variant& back();
+	const Variant& back() const;
+
+	// Iterators
+	iterator begin();
+	const_iterator begin() const noexcept;
+	const_iterator cbegin() const noexcept;
+	iterator end();
+	const_iterator end() const noexcept;
+	const_iterator cend() const noexcept;
+
+	// Capacity
+	bool empty() const noexcept;
+	size_type size() const noexcept;
+	size_type capacity() const noexcept;
+	void reserve(size_type new_cap);
+	void shrink_to_fit();
+
+	// Modifiers
+	void clear() noexcept;
+	void push_back(const Variant& value);
+	void push_back(Variant&& value);
+
+	template <typename... Args>
+	Variant& emplace_back(Args&&... args);
+
+	void pop_back();
+	void resize(size_type count);
+	void resize(size_type count, const Variant& value);
+
+	// COW-specific
+	bool is_shared() const noexcept;
+	size_t use_count() const noexcept;
+
+	// Comparison
+	bool operator==(const HighLevelArray& other) const;
+	bool operator!=(const HighLevelArray& other) const;
 };
 
-} //namespace feather
+// Iterator classes
+class HighLevelArray::iterator {
+	Variant* ptr_;
+	friend class HighLevelArray;
+
+public:
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type = Variant;
+	using difference_type = ptrdiff_t;
+	using pointer = Variant*;
+	using reference = Variant&;
+
+	iterator(Variant* ptr = nullptr);
+
+	reference operator*() const;
+	pointer operator->() const;
+	iterator& operator++();
+	iterator operator++(int);
+	iterator& operator--();
+	iterator operator--(int);
+	iterator& operator+=(difference_type n);
+	iterator& operator-=(difference_type n);
+	iterator operator+(difference_type n) const;
+	iterator operator-(difference_type n) const;
+	difference_type operator-(const iterator& other) const;
+	reference operator[](difference_type n) const;
+
+	bool operator==(const iterator& other) const;
+	bool operator!=(const iterator& other) const;
+	bool operator<(const iterator& other) const;
+	bool operator<=(const iterator& other) const;
+	bool operator>(const iterator& other) const;
+	bool operator>=(const iterator& other) const;
+};
+
+class HighLevelArray::const_iterator {
+	const Variant* ptr_;
+	friend class HighLevelArray;
+
+public:
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type = Variant;
+	using difference_type = ptrdiff_t;
+	using pointer = const Variant*;
+	using reference = const Variant&;
+
+	const_iterator(const Variant* ptr = nullptr);
+	const_iterator(const iterator& it);
+
+	reference operator*() const;
+	pointer operator->() const;
+	const_iterator& operator++();
+	const_iterator operator++(int);
+	const_iterator& operator--();
+	const_iterator operator--(int);
+	const_iterator& operator+=(difference_type n);
+	const_iterator& operator-=(difference_type n);
+	const_iterator operator+(difference_type n) const;
+	const_iterator operator-(difference_type n) const;
+	difference_type operator-(const const_iterator& other) const;
+	reference operator[](difference_type n) const;
+
+	bool operator==(const const_iterator& other) const;
+	bool operator!=(const const_iterator& other) const;
+	bool operator<(const const_iterator& other) const;
+	bool operator<=(const const_iterator& other) const;
+	bool operator>(const const_iterator& other) const;
+	bool operator>=(const const_iterator& other) const;
+};
+
+} // namespace feather

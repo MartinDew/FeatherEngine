@@ -8,6 +8,13 @@ namespace feather {
 
 Variant::Variant(Reflected& ref) : Variant(&ref) {}
 
+bool Variant::operator==(const Variant& other) const {
+	if (_type != other._type)
+		return false;
+
+	return _data == other._data;
+}
+
 std::string Variant::to_string() const {
 	switch (_type) {
 	case VariantType::NIL:
@@ -26,6 +33,7 @@ std::string Variant::to_string() const {
 		return "[Object] : " + get_name();
 	case VariantType::INVALID:
 		return "[Invalid]";
+	default:;
 	}
 	return "[Unknown]";
 }
