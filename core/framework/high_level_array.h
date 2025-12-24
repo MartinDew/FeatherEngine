@@ -9,9 +9,8 @@ namespace feather {
 class Variant;
 
 class HighLevelArray {
-private:
 	class Buffer;
-	std::unique_ptr<Buffer> impl_;
+	std::unique_ptr<Buffer> _buffer;
 
 	void ensure_unique();
 
@@ -29,8 +28,15 @@ public:
 	HighLevelArray(size_type count, const Variant& value);
 	HighLevelArray(std::initializer_list<Variant> ilist);
 
-	template <typename InputIt>
-	HighLevelArray(InputIt first, InputIt last);
+	// Constructor from iterator range (type-erased)
+	template <class InputIt>
+	HighLevelArray(InputIt first, InputIt last) : _buffer(nullptr) {
+		clear();
+		this->reserve(std::distance(first, last));
+		for (auto it = first; it != last; ++it) {
+			push_back(*it);
+		}
+	}
 
 	// Copy and move
 	HighLevelArray(const HighLevelArray& other);
