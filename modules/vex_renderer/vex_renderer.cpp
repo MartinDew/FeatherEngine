@@ -1,6 +1,7 @@
 #include "vex_renderer.h"
 
 #include "Vex/Shaders/ShaderKey.h"
+#include "Vex/Texture.h"
 #include <core/main/engine.h>
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
@@ -77,7 +78,7 @@ VexRenderer::VexRenderer()
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
 					vex::TextureClearValue {
-							.flags = vex::TextureClear::ClearDepth,
+							.clearAspect = vex::TextureAspect::Depth,
 							.depth = 0,
 					},
 	});
@@ -154,7 +155,9 @@ void VexRenderer::_render_scene() {
 		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 
 		// Clear backbuffer.
-		vex::TextureClearValue clearValue { .flags = vex::TextureClear::ClearColor, .color = { 0.2f, 0.2f, 0.2f, 1 } };
+		vex::TextureClearValue clearValue { .clearAspect = vex::TextureAspect::Depth,
+			.color = { 0.2f, 0.2f, 0.2f, 1 } };
+
 		ctx.ClearTexture(
 				vex::TextureBinding {
 						.texture = graphics.GetCurrentPresentTexture(),
@@ -308,7 +311,7 @@ void VexRenderer::_on_resize() {
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
 					vex::TextureClearValue {
-							.flags = vex::TextureClear::ClearDepth,
+							.clearAspect = vex::TextureAspect::Depth,
 							.depth = 0,
 					},
 	});

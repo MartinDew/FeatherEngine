@@ -29,10 +29,9 @@ public:
 	HighLevelArray(std::initializer_list<Variant> ilist);
 
 	// Constructor from iterator range (type-erased)
-	template <class InputIt>
-	HighLevelArray(InputIt first, InputIt last) : _buffer(nullptr) {
-		clear();
-		this->reserve(std::distance(first, last));
+	template <class TIterator>
+	HighLevelArray(TIterator first, TIterator last) : HighLevelArray() {
+		reserve(std::distance(first, last));
 		for (auto it = first; it != last; ++it) {
 			push_back(*it);
 		}
