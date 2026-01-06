@@ -155,7 +155,7 @@ void VexRenderer::_render_scene() {
 		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 
 		// Clear backbuffer.
-		vex::TextureClearValue clearValue { .clearAspect = vex::TextureAspect::Depth,
+		vex::TextureClearValue clearValue { .clearAspect = vex::TextureAspect::Color,
 			.color = { 0.2f, 0.2f, 0.2f, 1 } };
 
 		ctx.ClearTexture(

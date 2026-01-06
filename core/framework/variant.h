@@ -101,7 +101,7 @@ public:
 	template <VariantCompatible T>
 		requires(!std::is_reference_v<T>)
 	Variant(T value) {
-		constexpr VariantType type = get_variant_type<std::remove_const<T>>();
+		constexpr VariantType type = get_variant_type<T>();
 		_type = type;
 
 		if constexpr (type == VariantType::BOOL) {
