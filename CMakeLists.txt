@@ -67,27 +67,35 @@ set(PROJECT_HEADERS
         # Resources
         core/resources/resource.h
         core/resources/mesh.h
+        core/resources/material.h
+        core/resources/shader.h
 )
 
 # Source files (shared between both targets)
 set(PROJECT_SOURCES
-        # Root
+        # Main
         core/main/main.cpp
         core/main/launch_settings.cpp
         core/main/window.cpp
         core/main/engine.cpp
         core/main/engine_settings.cpp
         core/main/class_db.cpp
+
         # Math
         core/math/transform.cpp
         core/math/math_defs.cpp
+
         # Rendering
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+
         # Resources
         core/resources/resource.cpp
         core/resources/mesh.cpp
+        core/resources/material.cpp
+        core/resources/shader.cpp
+
         # Framework
         core/framework/reflected.cpp
         core/framework/variant.cpp
