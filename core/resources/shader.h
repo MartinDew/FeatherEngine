@@ -11,22 +11,25 @@ class Shader : public Resource {
 	FCLASS(Shader, Resource);
 	friend RenderingServer;
 
-	struct InternalData {
-		enum class ShaderFormat : uint8_t {
-			INVALID = 0,
-			PATH = 1 << 0,
-			SOURCE = 1 << 1
-		};
+	enum class ShaderSourceType : uint8_t {
+		INVALID = 0,
+		PATH,
+		SOURCE,
+	};
 
-		ShaderFormat shader_format = ShaderFormat::INVALID;
-		std::variant<std::monostate, std::string, std::filesystem::path> _data = {};
-	} _internal_data = {};
+	ShaderSourceType _shader_source_type = ShaderSourceType::INVALID;
+	std::string _shader_source = "";
 
 protected:
 	static void _bind_members();
 
 public:
 	Shader() = default;
+
+	void set_shader_path(const std::string_view path);
+	void set_shader_code(const std::string_view code);
+
+	bool is_valid() const;
 };
 
 } //namespace feather

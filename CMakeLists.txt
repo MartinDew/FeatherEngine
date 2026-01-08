@@ -42,6 +42,7 @@ set(PROJECT_HEADERS
         core/math/transform.h
         core/math/math_defs.h
         core/main/notification.h
+        core/math/projection.h
 
         #Framework
         core/framework/assert.h
@@ -63,12 +64,14 @@ set(PROJECT_HEADERS
         core/rendering/rendering_server.h
         core/rendering/renderer.h
         core/rendering/triangle_mesh.h
+        core/rendering/render_scene.h
 
         # Resources
         core/resources/resource.h
         core/resources/mesh.h
         core/resources/material.h
         core/resources/shader.h
+        raw_resources/shaders/placeholder_mat.slang.h
 )
 
 # Source files (shared between both targets)
@@ -84,11 +87,13 @@ set(PROJECT_SOURCES
         # Math
         core/math/transform.cpp
         core/math/math_defs.cpp
+        core/math/projection.cpp
 
         # Rendering
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
+        core/rendering/render_scene.cpp
 
         # Resources
         core/resources/resource.cpp
@@ -100,6 +105,7 @@ set(PROJECT_SOURCES
         core/framework/reflected.cpp
         core/framework/variant.cpp
         core/framework/high_level_array.cpp
+
 )
 
 # Editor target

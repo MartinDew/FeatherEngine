@@ -6,6 +6,18 @@ namespace feather {
 
 void Shader::_bind_members() {}
 
+void Shader::set_shader_path(const std::string_view path) {
+	_shader_source_type = ShaderSourceType::PATH;
+	_shader_source = path;
+}
+
+void Shader::set_shader_code(const std::string_view code) {
+	_shader_source_type = ShaderSourceType::SOURCE;
+	_shader_source = code;
+}
+
+bool Shader::is_valid() const { return _shader_source_type != ShaderSourceType::INVALID; }
+
 INPLACE_REGISTER_BEGIN(Shader);
 ClassDB::register_class<Shader>();
 INPLACE_REGISTER_END(Shader);
