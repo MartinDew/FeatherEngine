@@ -1,3 +1,3 @@
-﻿#include "render_scene.h"
+﻿#include "render_capture.h"
 
 namespace feather {} //namespace feather

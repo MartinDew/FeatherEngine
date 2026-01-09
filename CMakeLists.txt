@@ -64,7 +64,7 @@ set(PROJECT_HEADERS
         core/rendering/rendering_server.h
         core/rendering/renderer.h
         core/rendering/triangle_mesh.h
-        core/rendering/render_scene.h
+        core/rendering/render_capture.h
 
         # Resources
         core/resources/resource.h
@@ -93,7 +93,7 @@ set(PROJECT_SOURCES
         core/rendering/renderer.cpp
         core/rendering/rendering_server.cpp
         core/rendering/triangle_mesh.cpp
-        core/rendering/render_scene.cpp
+        core/rendering/render_capture.cpp
 
         # Resources
         core/resources/resource.cpp
