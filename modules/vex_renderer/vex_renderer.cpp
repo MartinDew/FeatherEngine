@@ -256,8 +256,8 @@ void VexRenderer::_render_scene() {
 			vex::BindlessHandle uvGuideHandle;
 		};
 
-		static float accum = 0;
-		accum += Engine::get().get_current_delta_time();
+		static TimePoint start_time = Clock::now();
+		auto float elapsed = std::chrono::duration<float>(Clock::now() - start_time).count();
 		{
 			VEX_GPU_SCOPED_EVENT(ctx, "HLSL Cube");
 			ctx.DrawIndexed(hlslDrawDesc,
@@ -268,7 +268,7 @@ void VexRenderer::_render_scene() {
 							.indexBuffer = indexBufferBinding,
 					},
 
-					vex::ConstantBinding(UniformData { .currentTime = accum, .uvGuideHandle = uvGuideHandle }),
+					vex::ConstantBinding(UniformData { .currentTime = elapsed, .uvGuideHandle = uvGuideHandle }),
 					example_cube.get_indices().size());
 		}
 
@@ -282,7 +282,7 @@ void VexRenderer::_render_scene() {
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
-					vex::ConstantBinding(UniformData { static_cast<float>(accum), uvGuideHandle }),
+					vex::ConstantBinding(UniformData { static_cast<float>(elapsed), uvGuideHandle }),
 					example_cube.get_indices().size());
 		}
 #endif
@@ -290,6 +290,7 @@ void VexRenderer::_render_scene() {
 		graphics.Submit(ctx);
 	}
 
+	std::println("LOG : Presenting frame", Engine::get().get_current_delta_time());
 	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);
 }
 

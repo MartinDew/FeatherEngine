@@ -1,11 +1,14 @@
 #pragma once
 
+#include "framework/spinlock.h"
 #include "main/launch_settings.h"
 #include "renderer.h"
 
 #include <main/engine_settings.h>
 
+#include <condition_variable>
 #include <memory>
+#include <thread>
 
 namespace feather {
 
@@ -15,6 +18,15 @@ class RenderingServer {
 	static RenderingServer* _instance;
 
 	std::unique_ptr<Renderer> _renderer = nullptr;
+
+	std::jthread _render_thread;
+	spinlock _render_lock;
+	std::condition_variable_any _render_cv;
+
+	void _run();
+	void _render_function();
+
+	bool _needs_resize = false;
 
 public:
 	RenderingServer();

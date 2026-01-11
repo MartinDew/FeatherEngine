@@ -71,6 +71,7 @@ set(PROJECT_HEADERS
         core/resources/mesh.h
         core/resources/material.h
         core/resources/shader.h
+        core/framework/spinlock.h
 )
 
 # Source files (shared between both targets)

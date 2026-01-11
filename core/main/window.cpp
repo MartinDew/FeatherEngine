@@ -117,6 +117,7 @@ bool Window::update() {
 																				  : FullscreenMode::WINDOWED;
 				set_fullscreen_mode(_fullscreen_mode);
 			}
+			break;
 		}
 		}
 
