@@ -2,8 +2,7 @@
 
 // clang-format off
 
-
-static char example_cube_hlsl[] = {
+static const char example_cube_hlsl[] = {
 #embed "example_cube.hlsl"
 	, '\0'
 };

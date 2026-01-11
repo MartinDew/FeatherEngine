@@ -71,7 +71,6 @@ set(PROJECT_HEADERS
         core/resources/mesh.h
         core/resources/material.h
         core/resources/shader.h
-        raw_resources/shaders/placeholder_mat.slang.h
 )
 
 # Source files (shared between both targets)

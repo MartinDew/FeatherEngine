@@ -1,4 +1,4 @@
-﻿import Vex;
+import Vex;
 
 struct VSOutput
 {

@@ -1,6 +1,6 @@
-﻿#pragma once;
+﻿#pragma once
 
-static char placeholder_mat[] = {
+static const char placeholder_mat[] {
 #embed "placeholder_mat.slang"
 	, '\0'
 };
