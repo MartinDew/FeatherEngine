@@ -23,6 +23,7 @@ enum class VariantType : uint8_t {
 	VECTOR3,
 	VECTOR2,
 	VERTEX,
+	COLOR,
 	// Misc
 	STRING,
 	ARRAY,
@@ -49,6 +50,9 @@ consteval VariantType get_variant_type() {
 	}
 	else if constexpr (std::is_same_v<Vector2, T>) {
 		return VariantType::VECTOR2;
+	}
+	else if constexpr (std::is_same_v<Color, T>) {
+		return VariantType::COLOR;
 	}
 	else if constexpr (std::is_same_v<Vertex, T>) {
 		return VariantType::VERTEX;
@@ -79,8 +83,8 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 class ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, std::string,
-			HighLevelArray, Reflected*>;
+	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, Color,
+			std::string, HighLevelArray, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;

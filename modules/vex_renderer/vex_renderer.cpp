@@ -6,12 +6,15 @@
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
 #include <core/math/math_defs.h>
+#include <core/resources/material.h>
+#include <core/resources/texture.h>
 
-#include <raw_resources/shaders/example_cube.hlsl.h>
-#include <raw_resources/shaders/example_cube.slang.h>
+#include <raw_resources/shaders/pbr_forward.slang.h>
+#include <raw_resources/shaders/shadow_depth.slang.h>
 
 #include <array>
 #include <cstdint>
+#include <span>
 
 namespace feather {
 
@@ -51,7 +54,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 #endif
 
 	return vex_window;
-} //namespace feather
+}
 
 void VexRenderer::_bind_members() {}
 
@@ -66,15 +69,13 @@ VexRenderer::VexRenderer()
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
 
-	// TODO Setup error handling
-
 	// Depth texture
 	depthTexture = graphics.CreateTexture({
 			.name = "Depth Texture",
 			.type = vex::TextureType::Texture2D,
 			.format = vex::TextureFormat::D32_FLOAT,
-			.width = (width),
-			.height = (height),
+			.width = width,
+			.height = height,
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
 					vex::TextureClearValue {
@@ -83,232 +84,200 @@ VexRenderer::VexRenderer()
 					},
 	});
 
-	const auto& example_cube = get_example_cube();
-
-	// Vertex buffer
-	vertexBuffer = graphics.CreateBuffer(vex::BufferDesc::CreateVertexBufferDesc(
-			"Vertex Buffer", sizeof(Vertex) * example_cube.get_vertices().size()));
-	// Index buffer
-	indexBuffer = graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc(
-			"Index Buffer", sizeof(uint32_t) * example_cube.get_indices().size()));
-
-	// Immediate submission means the commands are instantly submitted upon destruction.
 	vex::CommandContext ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
-	ctx.EnqueueDataUpload(vertexBuffer, std::as_bytes(std::span(example_cube.get_vertices())));
-	ctx.EnqueueDataUpload(indexBuffer, std::as_bytes(std::span(example_cube.get_indices())));
+	// Create GPU buffers
+	_camera_uniform_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", 80));
+	_lights_structured_buffer =
+			graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", 128 * 64));
+	_per_entity_uniform_buffer =
+			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", 512));
 
-	// Use the loaded image for mip index 0.
-	// const std::filesystem::path uvImagePath = ExamplesDir / "uv-guide.png";
-	// vex::i32 width, height, channels;
-	// void* imageData = stbi_load(uvImagePath.string().c_str(), &width, &height, &channels, 4);
-	// VEX_ASSERT(imageData != nullptr);
+	// Create default textures
+	// White 1x1 texture
+	{
+		std::vector<uint8_t> whitePixel = { 255, 255, 255, 255 };
+		_default_white_texture = graphics.CreateTexture({ .name = "Default White",
+				.type = vex::TextureType::Texture2D,
+				.format = vex::TextureFormat::RGBA8_UNORM,
+				.width = 1,
+				.height = 1,
+				.usage = vex::TextureUsage::ShaderRead });
+		ctx.EnqueueDataUpload(
+				_default_white_texture, std::as_bytes(std::span(whitePixel)), vex::TextureRegion::SingleMip(0));
+		ctx.Barrier(_default_white_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
+				vex::RHITextureLayout::ShaderResource);
+		_default_white_handle = graphics.GetBindlessHandle(vex::TextureBinding {
+				.texture = _default_white_texture, .usage = vex::TextureBindingUsage::ShaderRead });
+	}
 
-	// Vex requires that the upload data for textures be tightly packed together! This shouldn't be an issue as most
-	// file formats tightly pack data to avoid wasting space with padding.
-	std::vector<vex::u8> fullImageData;
-	fullImageData.reserve(width * height /** channels*/);
-	// std::copy_n(static_cast<vex::u8*>(imageData), width * height /** channels*/, std::back_inserter(fullImageData));
+	// Default normal map (0.5, 0.5, 1.0, 1.0)
+	{
+		std::vector<uint8_t> normalPixel = { 128, 128, 255, 255 };
+		_default_normal_texture = graphics.CreateTexture({ .name = "Default Normal",
+				.type = vex::TextureType::Texture2D,
+				.format = vex::TextureFormat::RGBA8_UNORM,
+				.width = 1,
+				.height = 1,
+				.usage = vex::TextureUsage::ShaderRead });
+		ctx.EnqueueDataUpload(
+				_default_normal_texture, std::as_bytes(std::span(normalPixel)), vex::TextureRegion::SingleMip(0));
+		ctx.Barrier(_default_normal_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
+				vex::RHITextureLayout::ShaderResource);
+		_default_normal_handle = graphics.GetBindlessHandle(vex::TextureBinding {
+				.texture = _default_normal_texture, .usage = vex::TextureBindingUsage::ShaderRead });
+	}
 
-	uvGuideTexture = graphics.CreateTexture({ .name = "UV Guide",
-			.type = vex::TextureType::Texture2D,
-			.format = vex::TextureFormat::RGBA8_UNORM,
-			.width = static_cast<uint32_t>(width),
-			.height = static_cast<uint32_t>(height),
-			.depthOrSliceCount = 1,
-			.mips = 0, // 0 means max mips (down to 1x1)
-			.usage = vex::TextureUsage::ShaderRead | vex::TextureUsage::ShaderReadWrite });
+	// Default metallic/roughness (0, 1, 0, 0) - non-metallic, rough
+	{
+		std::vector<uint8_t> mrPixel = { 0, 255, 0, 0 };
+		_default_metallic_roughness_texture = graphics.CreateTexture({ .name = "Default Metallic/Roughness",
+				.type = vex::TextureType::Texture2D,
+				.format = vex::TextureFormat::RGBA8_UNORM,
+				.width = 1,
+				.height = 1,
+				.usage = vex::TextureUsage::ShaderRead });
+		ctx.EnqueueDataUpload(_default_metallic_roughness_texture, std::as_bytes(std::span(mrPixel)),
+				vex::TextureRegion::SingleMip(0));
+		ctx.Barrier(_default_metallic_roughness_texture, vex::RHIBarrierSync::PixelShader,
+				vex::RHIBarrierAccess::ShaderRead, vex::RHITextureLayout::ShaderResource);
+		_default_mr_handle = graphics.GetBindlessHandle(vex::TextureBinding {
+				.texture = _default_metallic_roughness_texture, .usage = vex::TextureBindingUsage::ShaderRead });
+	}
 
-	// Upload only to the first mip
-	// ctx.EnqueueDataUpload(uvGuideTexture,
-	// 		std::as_bytes(std::span(fullImageData.begin(), fullImageData.begin() + width * height /** channels*/)),
-	// 		vex::TextureRegion::SingleMip(0));
-
-	// Fill in all mips using the first one.
-	// ctx.GenerateMips(uvGuideTexture);
-
-	// The texture will now only be used as a read-only shader resource. Avoids having to place a barrier later on.
-	// We use PixelShader sync since it will only be used there.
-	ctx.Barrier(uvGuideTexture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
-			vex::RHITextureLayout::ShaderResource);
-
-	// stbi_image_free(imageData);
-
+	// Setup samplers
 	std::array samplers {
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Linear, vex::AddressMode::Clamp),
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
 	};
 	graphics.SetSamplers(samplers);
 
-	graphics.Submit(ctx);
-}
-
-void VexRenderer::_render_scene() {
-	// Scoped command context will submit commands automatically upon destruction.
-
-	const auto& example_cube = get_example_cube();
-
-	{
-		auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
-
-		ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
-		ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
-
-		// Clear backbuffer.
-		vex::TextureClearValue clearValue { .clearAspect = vex::TextureAspect::Color,
-			.color = { 0.2f, 0.2f, 0.2f, 1 } };
-
-		ctx.ClearTexture(
-				vex::TextureBinding {
-						.texture = graphics.GetCurrentPresentTexture(),
-				},
-				clearValue);
-
-		// Clear depth texture.
-		ctx.ClearTexture({ .texture = depthTexture });
-
-		vex::VertexInputLayout vertexLayout{
+	// Load and compile shaders
+	vex::VertexInputLayout pbrVertexLayout {
 		.attributes = {
-				{
-						.semanticName = "POSITION",
-						.semanticIndex = 0,
-						.binding = 0,
-						.format = vex::TextureFormat::RGB32_FLOAT,
-						.offset = 0,
-				},
-				{
-						.semanticName = "TEXCOORD",
-						.semanticIndex = 0,
-						.binding = 0,
-						.format = vex::TextureFormat::RG32_FLOAT,
-						.offset = sizeof(float) * 3,
-				} },
+			{
+				.semanticName = "POSITION",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RGB32_FLOAT,
+				.offset = 0,
+			},
+			{
+				.semanticName = "NORMAL",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RGB32_FLOAT,
+				.offset = sizeof(float) * 3,
+			}
+		},
 		.bindings = {
-				{
-						.binding = 0,
-						.strideByteSize = static_cast<uint32_t>(20),
-						.inputRate = vex::VertexInputLayout::InputRate::PerVertex,
-				},
+			{
+				.binding = 0,
+				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+				.inputRate = vex::VertexInputLayout::InputRate::PerVertex,
+			},
 		},
 	};
 
-		vex::DepthStencilState depthStencilState {
-			.depthTestEnabled = true,
-			.depthWriteEnabled = true,
-			.depthCompareOp = vex::CompareOp::GreaterEqual,
-		};
+	vex::DepthStencilState depthStencilState {
+		.depthTestEnabled = true,
+		.depthWriteEnabled = true,
+		.depthCompareOp = vex::CompareOp::GreaterEqual, // Reverse-Z
+	};
 
-		// Setup our draw call's description...
-		vex::DrawDesc hlslDrawDesc{
-			.vertexShader = {
-					.sourceCode = example_cube_hlsl,
-					.entryPoint = "VSMain",
-					.type = vex::ShaderType::VertexShader,
-			},
-			.pixelShader = {
-					.sourceCode = example_cube_hlsl,
-					.entryPoint = "PSMain",
-					.type = vex::ShaderType::PixelShader,
-			},
-			.vertexInputLayout = vertexLayout,
-			.depthStencilState = depthStencilState,
-		};
-#if VEX_SLANG
-		vex::DrawDesc slangDrawDesc{
-				.vertexShader = {
-						.sourceCode = example_cube_slang,
-						.entryPoint = "VSMain",
-						.type = vex::ShaderType::VertexShader,
-						.compiler = ShaderCompilerBackend::Slang,
-				},
-				.pixelShader = {
-						.sourceCode = example_cube_slang,
-						.entryPoint = "PSMain",
-						.type = vex::ShaderType::PixelShader,
-						.compiler = ShaderCompilerBackend::Slang,
-				},
-				.vertexInputLayout = vertexLayout,
-				.depthStencilState = depthStencilState,
-			};
-#endif
-		// ...and resources.
-		vex::BufferBinding vertexBufferBinding {
-			.buffer = vertexBuffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
-		};
-		vex::BufferBinding indexBufferBinding {
-			.buffer = indexBuffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
-		};
+	// PBR forward rendering pipeline
+	_pbr_draw_desc = vex::DrawDesc {
+		.vertexShader = {
+			.sourceCode = shaders_pbr_forward_slang,
+			.entryPoint = "VSMain",
+			.type = vex::ShaderType::VertexShader,
+			.compiler = ShaderCompilerBackend::Slang,
+		},
+		.pixelShader = {
+			.sourceCode = shaders_pbr_forward_slang,
+			.entryPoint = "PSMain",
+			.type = vex::ShaderType::PixelShader,
+			.compiler = ShaderCompilerBackend::Slang,
+		},
+		.vertexInputLayout = pbrVertexLayout,
+		.depthStencilState = depthStencilState,
+	};
 
-		// Setup our rendering pass.
-		std::array renderTargets = { vex::TextureBinding {
-				.texture = graphics.GetCurrentPresentTexture(),
-		} };
+	// Shadow depth pipeline (vertex-only, no pixel shader for depth-only)
+	_shadow_draw_desc = vex::DrawDesc {
+		.vertexShader = {
+			.sourceCode = shaders_shadow_depth_slang,
+			.entryPoint = "VSMain",
+			.type = vex::ShaderType::VertexShader,
+			.compiler = ShaderCompilerBackend::Slang,
+		},
+		.vertexInputLayout = pbrVertexLayout,
+		.depthStencilState = depthStencilState,
+	};
 
-		// Usually you'd have to transition the uvGuideTexture (since we're using it bindless-ly), but since we
-		// already transitioned it to RHITextureState::ShaderResource after the texture upload we don't have to!
-		vex::BindlessHandle uvGuideHandle = graphics.GetBindlessHandle(
-				vex::TextureBinding { .texture = uvGuideTexture, .usage = vex::TextureBindingUsage::ShaderRead });
-
-		struct UniformData {
-			float currentTime;
-			vex::BindlessHandle uvGuideHandle;
-		};
-
-		static TimePoint start_time = Clock::now();
-		auto float elapsed = std::chrono::duration<float>(Clock::now() - start_time).count();
-		{
-			VEX_GPU_SCOPED_EVENT(ctx, "HLSL Cube");
-			ctx.DrawIndexed(hlslDrawDesc,
-					{
-							.renderTargets = renderTargets,
-							.depthStencil = vex::TextureBinding(depthTexture),
-							.vertexBuffers = { &vertexBufferBinding, 1 },
-							.indexBuffer = indexBufferBinding,
-					},
-
-					vex::ConstantBinding(UniformData { .currentTime = elapsed, .uvGuideHandle = uvGuideHandle }),
-					example_cube.get_indices().size());
-		}
-
-#if VEX_SLANG
-		{
-			VEX_GPU_SCOPED_EVENT(ctx, "Slang Cube");
-			ctx.DrawIndexed(slangDrawDesc,
-					{
-							.renderTargets = renderTargets,
-							.depthStencil = vex::TextureBinding(depthTexture),
-							.vertexBuffers = { &vertexBufferBinding, 1 },
-							.indexBuffer = indexBufferBinding,
-					},
-					vex::ConstantBinding(UniformData { static_cast<float>(elapsed), uvGuideHandle }),
-					example_cube.get_indices().size());
-		}
-#endif
-
-		graphics.Submit(ctx);
+	// Pre-allocate shadow maps (can expand dynamically)
+	for (int i = 0; i < 4; ++i) {
+		_shadow_maps.push_back(graphics.CreateTexture({
+				.name = "Shadow Map",
+				.type = vex::TextureType::Texture2D,
+				.format = vex::TextureFormat::D32_FLOAT,
+				.width = 1024,
+				.height = 1024,
+				.usage = vex::TextureUsage::DepthStencil | vex::TextureUsage::ShaderRead,
+				.clearValue =
+						vex::TextureClearValue {
+								.clearAspect = vex::TextureAspect::Depth,
+								.depth = 0,
+						},
+		}));
 	}
 
-	std::println("LOG : Presenting frame", Engine::get().get_current_delta_time());
+	graphics.Submit(ctx);
+}
+
+void VexRenderer::_render_scene(const RenderCapture& capture) {
+	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
+
+	// Check if there are any shadow-casting lights
+	bool hasShadows = false;
+	for (const auto& light : capture.get_lights()) {
+		if (light.cast_shadows) {
+			hasShadows = true;
+			break;
+		}
+	}
+
+	// Shadow pass
+	if (hasShadows) {
+		VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
+		_render_shadow_pass(capture, ctx);
+	}
+
+	// Forward pass
+	{
+		VEX_GPU_SCOPED_EVENT(ctx, "Forward Pass");
+		_render_forward_pass(capture, ctx);
+	}
+
+	graphics.Submit(ctx);
 	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);
 }
 
 void VexRenderer::_on_resize() {
 	auto width = _window->properties.width;
 	auto height = _window->properties.height;
+
 	if (width == 0 || height == 0) {
 		return;
 	}
 
-	graphics.DestroyTexture(depthTexture);
-
+	// Recreate depth texture
 	depthTexture = graphics.CreateTexture({
 			.name = "Depth Texture",
 			.type = vex::TextureType::Texture2D,
 			.format = vex::TextureFormat::D32_FLOAT,
-			.width = static_cast<vex::u32>(width),
-			.height = static_cast<vex::u32>(height),
+			.width = static_cast<uint32_t>(width),
+			.height = static_cast<uint32_t>(height),
 			.usage = vex::TextureUsage::DepthStencil,
 			.clearValue =
 					vex::TextureClearValue {
@@ -318,6 +287,340 @@ void VexRenderer::_on_resize() {
 	});
 
 	graphics.OnWindowResized(width, height);
+}
+
+// Shadow pass implementation
+void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::CommandContext& ctx) {
+	const auto& lights = capture.get_lights();
+	_light_to_shadow_map_index.clear();
+
+	size_t shadow_map_index = 0;
+	for (size_t i = 0; i < lights.size(); ++i) {
+		const auto& light = lights[i];
+		if (!light.cast_shadows)
+			continue;
+
+		// Ensure we have a shadow map
+		if (shadow_map_index >= _shadow_maps.size()) {
+			_shadow_maps.push_back(graphics.CreateTexture({
+					.name = "Shadow Map",
+					.type = vex::TextureType::Texture2D,
+					.format = vex::TextureFormat::D32_FLOAT,
+					.width = 1024,
+					.height = 1024,
+					.usage = vex::TextureUsage::DepthStencil | vex::TextureUsage::ShaderRead,
+					.clearValue =
+							vex::TextureClearValue {
+									.clearAspect = vex::TextureAspect::Depth,
+									.depth = 0,
+							},
+			}));
+		}
+
+		vex::Texture& shadowMap = _shadow_maps[shadow_map_index];
+		_light_to_shadow_map_index[static_cast<uint32_t>(i)] = shadow_map_index++;
+
+		// Compute light view-projection matrix
+		Matrix lightVP = _compute_light_view_proj(light, capture);
+
+		// Set render target (depth-only)
+		ctx.ClearTexture(vex::TextureBinding { .texture = shadowMap });
+		ctx.SetViewport(0, 0, 1024, 1024);
+		ctx.SetScissor(0, 0, 1024, 1024);
+
+		// Render entities
+		const auto& entities = capture.get_entities();
+		for (const auto& entity : entities) {
+			if (!entity.cast_shadows)
+				continue;
+
+			// Get mesh buffers
+			auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
+
+			// Upload uniforms (MVP matrix from light's perspective)
+			Matrix model = entity.transform.to_matrix_with_scale();
+			Matrix mvp = model * lightVP;
+
+			// Draw
+			vex::BufferBinding vertexBufferBinding {
+				.buffer = meshBuffers.vertex_buffer,
+				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+			};
+			vex::BufferBinding indexBufferBinding {
+				.buffer = meshBuffers.index_buffer,
+				.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+			};
+
+			ctx.DrawIndexed(_shadow_draw_desc,
+					{
+							.depthStencil = vex::TextureBinding(shadowMap),
+							.vertexBuffers = { &vertexBufferBinding, 1 },
+							.indexBuffer = indexBufferBinding,
+					},
+					vex::ConstantBinding(mvp), meshBuffers.index_count);
+		}
+
+		// Transition shadow map to shader resource
+		ctx.Barrier(shadowMap, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
+				vex::RHITextureLayout::ShaderResource);
+	}
+}
+
+// Forward pass implementation
+void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx) {
+	// Clear back buffer and depth
+	auto backBuffer = graphics.GetCurrentPresentTexture();
+	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer },
+			vex::TextureClearValue { .clearAspect = vex::TextureAspect::Color, .color = { 0.2f, 0.2f, 0.2f, 1.0f } });
+	ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
+
+	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
+	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+
+	// Upload camera uniforms
+	_upload_camera_uniforms(capture, ctx);
+
+	// Upload lights buffer
+	_upload_lights_buffer(capture, ctx);
+
+	// Render entities
+	const auto& entities = capture.get_entities();
+	for (const auto& entity : entities) {
+		// Get mesh buffers
+		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
+
+		// Get material (try to cast to PBRMaterial)
+		const PBRMaterial* pbrMat = dynamic_cast<const PBRMaterial*>(&entity.material);
+
+		// Get texture handles
+		vex::BindlessHandle baseColorHandle = _get_texture_handle(
+				pbrMat ? pbrMat->get_base_color_texture().get() : nullptr, ctx, _default_white_handle);
+		vex::BindlessHandle metallicRoughnessHandle = _get_texture_handle(
+				pbrMat ? pbrMat->get_metallic_roughness_texture().get() : nullptr, ctx, _default_mr_handle);
+		vex::BindlessHandle normalHandle =
+				_get_texture_handle(pbrMat ? pbrMat->get_normal_texture().get() : nullptr, ctx, _default_normal_handle);
+		vex::BindlessHandle emissiveHandle = _get_texture_handle(
+				pbrMat ? pbrMat->get_emissive_texture().get() : nullptr, ctx, vex::BindlessHandle {});
+
+		// Build per-entity uniforms
+		struct EntityUniforms {
+			Matrix model;
+			Matrix normalMatrix;
+			Color baseColorFactor;
+			float metallicFactor;
+			float roughnessFactor;
+			float _padding1;
+			Color emissiveFactor;
+			vex::BindlessHandle baseColorHandle;
+			vex::BindlessHandle metallicRoughnessHandle;
+			vex::BindlessHandle normalHandle;
+			vex::BindlessHandle emissiveHandle;
+		} entityUniforms;
+
+		entityUniforms.model = entity.transform.to_matrix_with_scale();
+		entityUniforms.normalMatrix = _compute_normal_matrix(entityUniforms.model);
+		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1, 1, 1, 1);
+		entityUniforms.metallicFactor = pbrMat ? pbrMat->get_metallic_factor() : 1.0f;
+		entityUniforms.roughnessFactor = pbrMat ? pbrMat->get_roughness_factor() : 1.0f;
+		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0, 0, 0, 1);
+		entityUniforms.baseColorHandle = baseColorHandle;
+		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
+		entityUniforms.normalHandle = normalHandle;
+		entityUniforms.emissiveHandle = emissiveHandle;
+
+		// Draw
+		vex::BufferBinding vertexBufferBinding {
+			.buffer = meshBuffers.vertex_buffer,
+			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+		};
+		vex::BufferBinding indexBufferBinding {
+			.buffer = meshBuffers.index_buffer,
+			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+		};
+
+		std::array renderTargets = { vex::TextureBinding { .texture = backBuffer } };
+
+		ctx.DrawIndexed(_pbr_draw_desc,
+				{
+						.renderTargets = renderTargets,
+						.depthStencil = vex::TextureBinding(depthTexture),
+						.vertexBuffers = { &vertexBufferBinding, 1 },
+						.indexBuffer = indexBufferBinding,
+				},
+				vex::ConstantBinding(entityUniforms), meshBuffers.index_count);
+	}
+}
+
+// Upload camera uniforms
+void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) {
+	const auto& transform = capture.get_camera_transform();
+	const auto& projection = capture.get_camera_projection();
+
+	Matrix view = transform.to_matrix_no_scale().invert(); // World-to-camera
+	Matrix proj = projection.get_matrix();
+	Matrix viewProj = view * proj;
+
+	struct CameraUniforms {
+		Matrix viewProj;
+		Vector3 cameraPos;
+		float _padding;
+	} uniforms;
+
+	uniforms.viewProj = viewProj;
+	uniforms.cameraPos = transform.position;
+
+	std::span<const std::byte> bytes = std::as_bytes(std::span<CameraUniforms>(&uniforms, 1));
+	ctx.EnqueueDataUpload(_camera_uniform_buffer, bytes);
+}
+
+// Upload lights buffer
+void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx) {
+	const auto& lights = capture.get_lights();
+
+	struct GPULight {
+		uint32_t type;
+		float _padding1[3];
+		Vector3 position;
+		float _padding2;
+		Vector3 direction;
+		float _padding3;
+		Color color; // RGB + intensity in alpha
+		float range;
+		float spotAngleCos;
+		uint32_t shadowMapIndex;
+		float shadowBias;
+	};
+
+	std::vector<GPULight> gpuLights;
+	for (size_t i = 0; i < lights.size(); ++i) {
+		const auto& light = lights[i];
+		GPULight gpuLight {};
+		gpuLight.type = static_cast<uint32_t>(light.type);
+		gpuLight.position = light.position;
+		gpuLight.direction = light.direction;
+		gpuLight.color = Color(light.color.x, light.color.y, light.color.z, light.intensity);
+		gpuLight.range = light.range;
+		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
+
+		// Shadow map index
+		auto it = _light_to_shadow_map_index.find(static_cast<uint32_t>(i));
+		gpuLight.shadowMapIndex = (it != _light_to_shadow_map_index.end()) ? static_cast<uint32_t>(it->second)
+																		   : static_cast<uint32_t>(-1);
+		gpuLight.shadowBias = 0.005f;
+
+		gpuLights.push_back(gpuLight);
+	}
+
+	if (!gpuLights.empty()) {
+		ctx.EnqueueDataUpload(_lights_structured_buffer, std::as_bytes(std::span(gpuLights)));
+	}
+}
+
+// Get or create mesh buffers
+VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(const TriangleMesh& mesh, vex::CommandContext& ctx) {
+	auto it = _mesh_cache.find(&mesh);
+	if (it != _mesh_cache.end()) {
+		return it->second;
+	}
+
+	// Create vertex buffer
+	const auto& vertices = mesh.get_vertices();
+	vex::Buffer vb =
+			graphics.CreateBuffer(vex::BufferDesc::CreateVertexBufferDesc("Mesh VB", sizeof(Vertex) * vertices.size()));
+	ctx.EnqueueDataUpload(vb, std::as_bytes(std::span(vertices)));
+
+	// Create index buffer
+	const auto& indices = mesh.get_indices();
+	vex::Buffer ib =
+			graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc("Mesh IB", sizeof(uint32_t) * indices.size()));
+	ctx.EnqueueDataUpload(ib, std::as_bytes(std::span(indices)));
+
+	MeshBuffers buffers { vb, ib, static_cast<uint32_t>(indices.size()) };
+	_mesh_cache[&mesh] = buffers;
+	return _mesh_cache[&mesh];
+}
+
+// Get or create texture
+VexRenderer::TextureGPUData& VexRenderer::_get_or_create_texture(const Texture* texture, vex::CommandContext& ctx) {
+	auto it = _texture_cache.find(texture);
+	if (it != _texture_cache.end()) {
+		return it->second;
+	}
+
+	// TODO: Implement actual texture loading from Texture resource
+	// For now, return default white texture data
+	TextureGPUData gpuData { _default_white_texture, _default_white_handle };
+	_texture_cache[texture] = gpuData;
+	return _texture_cache[texture];
+}
+
+// Get texture handle with fallback to default
+vex::BindlessHandle VexRenderer::_get_texture_handle(
+		const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle) {
+	if (!texture) {
+		return default_handle;
+	}
+
+	auto& gpuData = _get_or_create_texture(texture, ctx);
+	return gpuData.bindless_handle;
+}
+
+// Compute light view-projection matrix
+Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) {
+	if (light.type == RenderCapture::Light::Type::Directional) {
+		// Orthographic projection covering scene
+		Vector3 sceneCenter = _compute_scene_center(capture);
+		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
+
+		Vector3 lightPos = sceneCenter - light.direction * (sceneRadius * 2.0f);
+		Matrix view = Matrix::create_look_at(lightPos, sceneCenter, Vector3(0, 1, 0));
+		Matrix proj = Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, 0.1f, sceneRadius * 4.0f);
+		return view * proj;
+	}
+	else if (light.type == RenderCapture::Light::Type::Spot) {
+		// Perspective projection
+		Matrix view = Matrix::create_look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
+		float fov = light.spot_angle * 2.0f;
+		Matrix proj = Matrix::create_perspective_field_of_view(deg_to_rad(fov), 1.0f, 0.1f, light.range);
+		return view * proj;
+	}
+
+	// Point lights not implemented (requires cubemap)
+	return Matrix::identity;
+}
+
+// Utility: compute scene center
+Vector3 VexRenderer::_compute_scene_center(const RenderCapture& capture) {
+	const auto& entities = capture.get_entities();
+	if (entities.size() == 0)
+		return Vector3::zero;
+
+	Vector3 sum = Vector3::zero;
+	for (const auto& entity : entities) {
+		sum += entity.transform.position;
+	}
+	return sum / static_cast<float>(entities.size());
+}
+
+// Utility: compute scene radius
+float VexRenderer::_compute_scene_radius(const RenderCapture& capture, const Vector3& center) {
+	const auto& entities = capture.get_entities();
+	float maxDist = 10.0f; // Minimum radius
+
+	for (const auto& entity : entities) {
+		float dist = Vector3::distance(center, entity.transform.position);
+		// TODO: Add mesh bounding sphere radius
+		maxDist = std::max(maxDist, dist + 10.0f); // Rough estimate
+	}
+	return maxDist;
+}
+
+// Utility: compute normal matrix
+Matrix VexRenderer::_compute_normal_matrix(const Matrix& modelMatrix) {
+	// Normal matrix is inverse-transpose of model matrix
+	// For proper normal transformation with non-uniform scaling
+	Matrix inv = modelMatrix.invert();
+	return inv.transpose();
 }
 
 } //namespace feather

@@ -3,9 +3,12 @@
 #include "framework/spinlock.h"
 #include "main/launch_settings.h"
 #include "renderer.h"
+#include "render_capture.h"
 
 #include <main/engine_settings.h>
 
+#include <array>
+#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <thread>
@@ -23,6 +26,10 @@ class RenderingServer {
 	spinlock _render_lock;
 	std::condition_variable_any _render_cv;
 
+	// Lockless RenderCapture passing via double-buffering
+	std::array<RenderCapture, 2> _capture_buffers;
+	std::atomic<int> _write_index { 0 };
+
 	void _run();
 	void _render_function();
 
@@ -35,6 +42,9 @@ public:
 
 	void init();
 	void update(double dt);
+
+	// Set render capture (lockless, called from main thread)
+	void set_render_capture(const RenderCapture& capture);
 
 	// Should change accessibility later
 	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }

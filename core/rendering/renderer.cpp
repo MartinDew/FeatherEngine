@@ -12,16 +12,16 @@ namespace feather {
 namespace {
 
 constexpr std::array<Vertex, 8> example_cube_vertices {
-	// Front face
-	Vertex { -0.5f, -0.5f, 0.5f, 0, 0 }, // 0: bottom-left
-	Vertex { 0.5f, -0.5f, 0.5f, 1, 0 }, // 1: bottom-right
-	Vertex { 0.5f, 0.5f, 0.5f, 1, 1 }, // 2: top-right
-	Vertex { -0.5f, 0.5f, 0.5f, 0, 1 }, // 3: top-left
+	// Front face (normals pointing outward from cube corners)
+	Vertex { -0.5f, -0.5f, 0.5f, -0.577f, -0.577f, 0.577f }, // 0: bottom-left
+	Vertex { 0.5f, -0.5f, 0.5f, 0.577f, -0.577f, 0.577f }, // 1: bottom-right
+	Vertex { 0.5f, 0.5f, 0.5f, 0.577f, 0.577f, 0.577f }, // 2: top-right
+	Vertex { -0.5f, 0.5f, 0.5f, -0.577f, 0.577f, 0.577f }, // 3: top-left
 	// Back face
-	Vertex { -0.5f, -0.5f, -0.5f, 1, 0 }, // 4: bottom-left
-	Vertex { 0.5f, -0.5f, -0.5f, 0, 0 }, // 5: bottom-right
-	Vertex { 0.5f, 0.5f, -0.5f, 0, 1 }, // 6: top-right
-	Vertex { -0.5f, 0.5f, -0.5f, 1, 1 }, // 7: top-left}
+	Vertex { -0.5f, -0.5f, -0.5f, -0.577f, -0.577f, -0.577f }, // 4: bottom-left
+	Vertex { 0.5f, -0.5f, -0.5f, 0.577f, -0.577f, -0.577f }, // 5: bottom-right
+	Vertex { 0.5f, 0.5f, -0.5f, 0.577f, 0.577f, -0.577f }, // 6: top-right
+	Vertex { -0.5f, 0.5f, -0.5f, -0.577f, 0.577f, -0.577f }, // 7: top-left}
 };
 
 constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
@@ -40,7 +40,10 @@ constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
 
 } //namespace
 
-void Renderer::_bind_members() { ClassDB::bind_method(&Renderer::_render_scene, "_render_scene"); }
+void Renderer::_bind_members() {
+	// Note: _render_scene is not bound because RenderCapture is not VariantCompatible
+	// and this is an internal method only called by RenderingServer
+}
 
 Renderer::Renderer() : _window(&Engine::get().get_main_window()) {}
 

@@ -33,10 +33,11 @@ using Vector2i = DirectX::XMINT2;
 
 struct Vertex {
 	Vector3 position;
-	Vector2 uv;
+	Vector3 normal;
 
 	Vertex() = default;
-	constexpr Vertex(real_t x, real_t y, real_t z, real_t u, real_t v) : position(x, y, z), uv { u, v } {}
+	constexpr Vertex(real_t px, real_t py, real_t pz, real_t nx, real_t ny, real_t nz)
+		: position(px, py, pz), normal(nx, ny, nz) {}
 	Vertex(const Vertex&) = default;
 	Vertex& operator=(const Vertex&) = default;
 	Vertex(Vertex&&) = default;

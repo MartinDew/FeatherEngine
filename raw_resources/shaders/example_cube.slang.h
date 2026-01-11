@@ -1,6 +1,6 @@
 #pragma once
 
-static const char example_cube_slang[] = {
+static const char shaders_example_cube_slang[] = {
 #embed "example_cube.slang"
 	, '\0'
 };

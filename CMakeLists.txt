@@ -59,6 +59,7 @@ set(PROJECT_HEADERS
         core/framework/reflected.h
         core/framework/reflection_macros.h
         core/framework/reflection_utils.h
+        core/framework/spinlock.h
 
         #Rendering
         core/rendering/rendering_server.h
@@ -71,7 +72,7 @@ set(PROJECT_HEADERS
         core/resources/mesh.h
         core/resources/material.h
         core/resources/shader.h
-        core/framework/spinlock.h
+        core/resources/texture.h
 )
 
 # Source files (shared between both targets)
@@ -100,6 +101,7 @@ set(PROJECT_SOURCES
         core/resources/mesh.cpp
         core/resources/material.cpp
         core/resources/shader.cpp
+        core/resources/texture.cpp
 
         # Framework
         core/framework/reflected.cpp
@@ -146,6 +148,19 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Development>:-g -O2>
 )
 
+# Generate embedded resource headers using #embed
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+add_custom_target(GenerateEmbeddedResources
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating embedded resource headers with #embed directives"
+        VERBATIM
+)
+
+# Make both targets depend on resource generation
+add_dependencies(Editor GenerateEmbeddedResources)
+add_dependencies(Standalone GenerateEmbeddedResources)
 
 add_subdirectory(thirdparty)
 
@@ -189,6 +204,12 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Editor)
     vex_setup_runtime(Standalone)
 endif ()
+
+# copy raw_resources content to output directory
+#add_custom_command(TARGET Editor POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_directory
+#        ${CMAKE_SOURCE_DIR}/raw_resources/* $<TARGET_FILE_DIR:Editor>/
+#)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

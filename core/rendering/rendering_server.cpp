@@ -30,7 +30,9 @@ void RenderingServer::_render_function() {
 			_needs_resize = false;
 		}
 
-		_renderer->_render_scene();
+		// Lockless read of RenderCapture
+		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
+		_renderer->_render_scene(_capture_buffers[read_idx]);
 	}
 }
 
@@ -52,8 +54,14 @@ void RenderingServer::init() {
 void RenderingServer::update(double dt) {
 	fassert(_renderer.get(), "no renderer set");
 
-	// _renderer->_render_scene();
 	_render_cv.notify_all();
+}
+
+void RenderingServer::set_render_capture(const RenderCapture& capture) {
+	// Lockless write: copy to write buffer, then swap
+	int write_idx = _write_index.load(std::memory_order_relaxed);
+	_capture_buffers[write_idx] = capture; // CowVector makes this cheap
+	_write_index.store(1 - write_idx, std::memory_order_release);
 }
 
 void RenderingServer::use_renderer(std::string_view name) {

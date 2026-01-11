@@ -1,6 +1,7 @@
 #pragma once
 
 #include "triangle_mesh.h"
+#include "render_capture.h"
 
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>
@@ -32,7 +33,7 @@ protected:
 	static void _bind_members();
 
 public:
-	virtual void _render_scene() = 0;
+	virtual void _render_scene(const RenderCapture& capture) = 0;
 	virtual ~Renderer() = default;
 };
 
