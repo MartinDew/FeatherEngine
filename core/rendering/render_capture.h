@@ -39,7 +39,7 @@ public:
 		bool cast_shadows = true;
 	};
 
-	RenderCapture() = default;
+	RenderCapture(size_t frame_index = 0);
 
 	// With COW vectors, copies are cheap - they just increment ref count
 	RenderCapture(const RenderCapture&) = default;
@@ -97,7 +97,7 @@ private:
 	CowVector<EntityRender> _entities;
 	CowVector<Light> _lights;
 	EnvironmentSettings _environment;
-	uint64_t _frame_index = 0;
+	size_t _frame_index = 0;
 };
 
 } //namespace feather

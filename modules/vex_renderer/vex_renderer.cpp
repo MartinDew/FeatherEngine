@@ -88,8 +88,7 @@ VexRenderer::VexRenderer()
 
 	// Create GPU buffers
 	_camera_uniform_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", 80));
-	_lights_structured_buffer =
-			graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", 128 * 64));
+	_lights_structured_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", 80));
 	_per_entity_uniform_buffer =
 			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", 512));
 
@@ -213,6 +212,11 @@ VexRenderer::VexRenderer()
 		},
 		.vertexInputLayout = pbrVertexLayout,
 		.depthStencilState = depthStencilState,
+		.pixelShader = {
+			.sourceCode = shaders_shadow_depth_slang,
+			.type = ShaderType::PixelShader,
+			.compiler = ShaderCompilerBackend::Slang
+		}
 	};
 
 	// Pre-allocate shadow maps (can expand dynamically)
@@ -390,7 +394,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
 
 		// Get material (try to cast to PBRMaterial)
-		const PBRMaterial* pbrMat = dynamic_cast<const PBRMaterial*>(&entity.material);
+		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material);
 
 		// Get texture handles
 		vex::BindlessHandle baseColorHandle = _get_texture_handle(

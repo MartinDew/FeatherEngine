@@ -40,10 +40,7 @@ constexpr std::array<uint32_t, 36> example_cube_indices { // Front face
 
 } //namespace
 
-void Renderer::_bind_members() {
-	// Note: _render_scene is not bound because RenderCapture is not VariantCompatible
-	// and this is an internal method only called by RenderingServer
-}
+void Renderer::_bind_members() {}
 
 Renderer::Renderer() : _window(&Engine::get().get_main_window()) {}
 

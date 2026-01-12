@@ -2,8 +2,8 @@
 
 #include "framework/spinlock.h"
 #include "main/launch_settings.h"
-#include "renderer.h"
 #include "render_capture.h"
+#include "renderer.h"
 
 #include <main/engine_settings.h>
 
@@ -29,6 +29,7 @@ class RenderingServer {
 	// Lockless RenderCapture passing via double-buffering
 	std::array<RenderCapture, 2> _capture_buffers;
 	std::atomic<int> _write_index { 0 };
+	std::atomic<uint64_t> _last_rendered_frame { 0 };
 
 	void _run();
 	void _render_function();
@@ -41,7 +42,7 @@ public:
 	static RenderingServer* get();
 
 	void init();
-	void update(double dt);
+	void update(double dt) const;
 
 	// Set render capture (lockless, called from main thread)
 	void set_render_capture(const RenderCapture& capture);

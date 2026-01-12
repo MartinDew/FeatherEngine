@@ -23,7 +23,11 @@ void RenderingServer::_render_function() {
 		}
 
 		std::unique_lock lock(_render_lock);
-		_render_cv.wait(lock);
+		_render_cv.wait(lock, [this] {
+			int read_idx = 1 - _write_index.load(std::memory_order_acquire);
+			uint64_t current_frame = _capture_buffers[read_idx].get_frame_index();
+			return current_frame != _last_rendered_frame.load(std::memory_order_relaxed);
+		});
 
 		if (_needs_resize) {
 			_renderer->_on_resize();
@@ -32,7 +36,10 @@ void RenderingServer::_render_function() {
 
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
-		_renderer->_render_scene(_capture_buffers[read_idx]);
+		const RenderCapture& capture = _capture_buffers[read_idx];
+
+		_renderer->_render_scene(capture);
+		_last_rendered_frame.store(capture.get_frame_index(), std::memory_order_relaxed);
 	}
 }
 
@@ -51,17 +58,15 @@ void RenderingServer::init() {
 	_run();
 };
 
-void RenderingServer::update(double dt) {
-	fassert(_renderer.get(), "no renderer set");
-
-	_render_cv.notify_all();
-}
+void RenderingServer::update(double dt) const { fassert(_renderer.get(), "no renderer set"); }
 
 void RenderingServer::set_render_capture(const RenderCapture& capture) {
 	// Lockless write: copy to write buffer, then swap
 	int write_idx = _write_index.load(std::memory_order_relaxed);
 	_capture_buffers[write_idx] = capture; // CowVector makes this cheap
 	_write_index.store(1 - write_idx, std::memory_order_release);
+
+	_render_cv.notify_all();
 }
 
 void RenderingServer::use_renderer(std::string_view name) {

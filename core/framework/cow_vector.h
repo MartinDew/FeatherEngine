@@ -33,7 +33,7 @@ private:
 				for (size_t i = 0; i < size; ++i) {
 					data[i].~T();
 				}
-				std::free(data);
+				aligned_free(data);
 			}
 		}
 

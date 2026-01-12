@@ -17,8 +17,12 @@ protected:
 	std::shared_ptr<TriangleMesh> _triangle_mesh;
 
 	Mesh() = default;
+	explicit Mesh(const std::shared_ptr<TriangleMesh>& triangle_mesh);
 
 	static void _bind_members();
+
+public:
+	operator const TriangleMesh&() const { return *_triangle_mesh; }
 };
 
 // Mesh using raw vertices and indices data
@@ -36,6 +40,13 @@ public:
 
 	HighLevelArray get_vertices() const;
 	HighLevelArray get_indices() const;
+};
+
+class BoxMesh : public Mesh {
+	FCLASS(RawMesh, Mesh);
+
+public:
+	BoxMesh();
 };
 
 } // namespace feather
