@@ -1,12 +1,12 @@
 #pragma once
 
 #include <core/framework/reflection_macros.h>
-#include <core/rendering/renderer.h>
-#include <core/rendering/render_capture.h>
 #include <core/math/math_defs.h>
+#include <core/rendering/render_capture.h>
+#include <core/rendering/renderer.h>
 #include <array>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <Vex.h>
 
@@ -63,7 +63,8 @@ class VexRenderer : public Renderer {
 	void _upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx);
 	MeshBuffers& _get_or_create_mesh_buffers(const TriangleMesh& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
-	vex::BindlessHandle _get_texture_handle(const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
+	vex::BindlessHandle _get_texture_handle(
+			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
 	Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture);
 
 	// Utility methods
@@ -74,7 +75,7 @@ class VexRenderer : public Renderer {
 	static vex::PlatformWindowHandle _create_vex_window(Window& window);
 
 protected:
-	void _render_scene(const RenderCapture& capture) override;
+	void _render_scene(RenderCapture capture) override;
 	void _on_resize() override;
 
 	static void _bind_members();

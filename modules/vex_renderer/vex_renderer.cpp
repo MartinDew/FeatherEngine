@@ -239,7 +239,7 @@ VexRenderer::VexRenderer()
 	graphics.Submit(ctx);
 }
 
-void VexRenderer::_render_scene(const RenderCapture& capture) {
+void VexRenderer::_render_scene(const RenderCapture capture) {
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
 	// Check if there are any shadow-casting lights
