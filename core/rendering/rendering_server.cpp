@@ -36,7 +36,7 @@ void RenderingServer::_render_function() {
 
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
-		const RenderCapture& capture = _capture_buffers[read_idx];
+		const RenderCapture capture = _capture_buffers[read_idx];
 
 		_renderer->_render_scene(capture);
 		_last_rendered_frame.store(capture.get_frame_index(), std::memory_order_relaxed);

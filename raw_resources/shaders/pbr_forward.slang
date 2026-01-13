@@ -1,11 +1,13 @@
 // PBR Forward Rendering Shader
 // Implements physically-based rendering with multiple light types and shadow mapping
+module pbr;
 
 import common.vex_common;
 import common.math_utils;
 import common.lighting_common;
-import pbr.pbr_common;
-import pbr.pbr_lighting;
+__include pbr.pbr_common;
+__include pbr.pbr_lighting;
+__include pbr.shadow_mapping;
 
 // Camera uniforms
 struct CameraUniforms {

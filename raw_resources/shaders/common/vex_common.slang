@@ -1,4 +1,5 @@
 // Vex common utilities for bindless rendering and shared types
+import Vex;
 
 // Bindless resource access (using Vex's bindless system)
 Texture2D<float4> GetBindlessTexture2D(uint handle) {

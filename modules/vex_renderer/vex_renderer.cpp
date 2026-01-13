@@ -58,6 +58,8 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 
 void VexRenderer::_bind_members() {}
 
+static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
+
 VexRenderer::VexRenderer()
 		: graphics(vex::GraphicsCreateDesc {
 				  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
@@ -187,13 +189,13 @@ VexRenderer::VexRenderer()
 	// PBR forward rendering pipeline
 	_pbr_draw_desc = vex::DrawDesc {
 		.vertexShader = {
-			.sourceCode = shaders_pbr_forward_slang,
+			.path = shader_path / "pbr_forward.slang",
 			.entryPoint = "VSMain",
 			.type = vex::ShaderType::VertexShader,
 			.compiler = ShaderCompilerBackend::Slang,
 		},
 		.pixelShader = {
-			.sourceCode = shaders_pbr_forward_slang,
+			.path = shader_path / "pbr_forward.slang",
 			.entryPoint = "PSMain",
 			.type = vex::ShaderType::PixelShader,
 			.compiler = ShaderCompilerBackend::Slang,
@@ -205,7 +207,7 @@ VexRenderer::VexRenderer()
 	// Shadow depth pipeline (vertex-only, no pixel shader for depth-only)
 	_shadow_draw_desc = vex::DrawDesc {
 		.vertexShader = {
-			.sourceCode = shaders_shadow_depth_slang,
+			.path = shader_path / "shadow_depth.slang",
 			.entryPoint = "VSMain",
 			.type = vex::ShaderType::VertexShader,
 			.compiler = ShaderCompilerBackend::Slang,
@@ -213,9 +215,10 @@ VexRenderer::VexRenderer()
 		.vertexInputLayout = pbrVertexLayout,
 		.depthStencilState = depthStencilState,
 		.pixelShader = {
-			.sourceCode = shaders_shadow_depth_slang,
+			.path = shader_path / "shadow_depth.slang",
 			.type = ShaderType::PixelShader,
-			.compiler = ShaderCompilerBackend::Slang
+			.compiler = ShaderCompilerBackend::Slang,
+			.entryPoint = "PSMain"
 		}
 	};
 
@@ -392,6 +395,9 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 	for (const auto& entity : entities) {
 		// Get mesh buffers
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
+
+		if (!&entity.material)
+			continue;
 
 		// Get material (try to cast to PBRMaterial)
 		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material);

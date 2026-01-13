@@ -205,11 +205,19 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Standalone)
 endif ()
 
-# copy raw_resources content to output directory
-#add_custom_command(TARGET Editor POST_BUILD
-#        COMMAND ${CMAKE_COMMAND} -E copy_directory
-#        ${CMAKE_SOURCE_DIR}/raw_resources/* $<TARGET_FILE_DIR:Editor>/
-#)
+add_custom_command(
+        TARGET Editor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Editor>/shaders
+        COMMENT "Copying shaders" VERBATIM
+)
+
+add_custom_command(
+        TARGET Standalone POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Standalone>/shaders
+        COMMENT "Copying shaders" VERBATIM
+)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

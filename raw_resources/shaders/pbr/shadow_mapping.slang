@@ -1,6 +1,8 @@
 // Shadow mapping utilities with PCF filtering
+implementing pbr;
 
 import common.vex_common;
+
 
 // Sample shadow map with PCF (Percentage-Closer Filtering)
 // Returns 0.0 = fully shadowed, 1.0 = fully lit

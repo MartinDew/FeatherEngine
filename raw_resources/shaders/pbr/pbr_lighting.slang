@@ -1,10 +1,13 @@
 // PBR lighting evaluation for different light types
+implementing pbr;
 
 import common.vex_common;
 import common.math_utils;
 import common.lighting_common;
-import pbr.pbr_common;
-import pbr.shadow_mapping;
+
+__include shadow_mapping;
+__include pbr_common;
+
 
 // Evaluate directional light contribution
 float3 EvaluateDirectionalLight(
