@@ -43,7 +43,7 @@ public:
 
 	void init();
 	void update(double dt) const;
-
+	void stop();
 	// Set render capture (lockless, called from main thread)
 	void set_render_capture(const RenderCapture& capture);
 

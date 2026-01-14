@@ -41,7 +41,7 @@ class VexRenderer : public Renderer {
 		vex::Texture texture;
 		vex::BindlessHandle bindless_handle;
 	};
-	std::unordered_map<const TriangleMesh*, MeshBuffers> _mesh_cache;
+	std::unordered_map<std::shared_ptr<const TriangleMesh>, MeshBuffers> _mesh_cache;
 	std::unordered_map<const Texture*, TextureGPUData> _texture_cache;
 
 	// Default textures
@@ -61,7 +61,7 @@ class VexRenderer : public Renderer {
 	void _render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx);
 	void _upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx);
 	void _upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx);
-	MeshBuffers& _get_or_create_mesh_buffers(const TriangleMesh& mesh, vex::CommandContext& ctx);
+	MeshBuffers& _get_or_create_mesh_buffers(const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
 	vex::BindlessHandle _get_texture_handle(
 			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);

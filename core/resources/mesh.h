@@ -22,7 +22,7 @@ protected:
 	static void _bind_members();
 
 public:
-	operator const TriangleMesh&() const { return *_triangle_mesh; }
+	const std::shared_ptr<TriangleMesh>& get_triangle_mesh() { return _triangle_mesh; };
 };
 
 // Mesh using raw vertices and indices data

@@ -7,7 +7,7 @@ import common.math_utils;
 import common.lighting_common;
 __include pbr.pbr_common;
 __include pbr.pbr_lighting;
-__include pbr.shadow_mapping;
+// __include pbr.shadow_mapping;
 
 // Camera uniforms
 struct CameraUniforms {
@@ -120,7 +120,7 @@ float4 PSMain(
     }
 
     // Evaluate all lights
-    float3 litColor = EvaluateAllLights(
+    /*float3 litColor = EvaluateAllLights(
         lights,
         lightCount,
         input.worldPos,
@@ -130,7 +130,8 @@ float4 PSMain(
         metallic,
         roughness
     );
-
+*/
+	float3 litColor = float3(0.0,0.0,0.0);
     // Add ambient lighting (simple constant for now)
     // TODO: Use environment lighting from RenderCapture
     float3 ambient = baseColor * 0.03;

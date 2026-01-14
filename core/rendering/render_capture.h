@@ -14,8 +14,8 @@ class RenderCapture {
 public:
 	struct EntityRender {
 		Transform transform;
-		const TriangleMesh& triangle_mesh;
-		const Material& material;
+		const std::shared_ptr<TriangleMesh> triangle_mesh;
+		const std::shared_ptr<Material> material;
 		uint32_t entity_id = 0; // For debugging/identification
 		bool cast_shadows = true;
 		bool receive_shadows = true;

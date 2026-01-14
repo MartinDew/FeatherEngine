@@ -255,10 +255,10 @@ void VexRenderer::_render_scene(const RenderCapture capture) {
 	}
 
 	// Shadow pass
-	if (hasShadows) {
-		VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
-		_render_shadow_pass(capture, ctx);
-	}
+	// if (hasShadows) {
+	// 	VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
+	// 	_render_shadow_pass(capture, ctx);
+	// }
 
 	// Forward pass
 	{
@@ -400,7 +400,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 			continue;
 
 		// Get material (try to cast to PBRMaterial)
-		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material);
+		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material.get());
 
 		// Get texture handles
 		vex::BindlessHandle baseColorHandle = _get_texture_handle(
@@ -437,6 +437,11 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
 		entityUniforms.normalHandle = normalHandle;
 		entityUniforms.emissiveHandle = emissiveHandle;
+
+		std::vector<vex::TextureBinding> shadowMapBindings;
+		for (auto& shadowMap : _shadow_maps) {
+			shadowMapBindings.push_back(vex::TextureBinding { .texture = shadowMap });
+		}
 
 		// Draw
 		vex::BufferBinding vertexBufferBinding {
@@ -527,27 +532,28 @@ void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::Comma
 }
 
 // Get or create mesh buffers
-VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(const TriangleMesh& mesh, vex::CommandContext& ctx) {
-	auto it = _mesh_cache.find(&mesh);
+VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
+		const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx) {
+	auto it = _mesh_cache.find(mesh);
 	if (it != _mesh_cache.end()) {
 		return it->second;
 	}
 
 	// Create vertex buffer
-	const auto& vertices = mesh.get_vertices();
+	const auto& vertices = mesh->get_vertices();
 	vex::Buffer vb =
 			graphics.CreateBuffer(vex::BufferDesc::CreateVertexBufferDesc("Mesh VB", sizeof(Vertex) * vertices.size()));
 	ctx.EnqueueDataUpload(vb, std::as_bytes(std::span(vertices)));
 
 	// Create index buffer
-	const auto& indices = mesh.get_indices();
+	const auto& indices = mesh->get_indices();
 	vex::Buffer ib =
 			graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc("Mesh IB", sizeof(uint32_t) * indices.size()));
 	ctx.EnqueueDataUpload(ib, std::as_bytes(std::span(indices)));
 
 	MeshBuffers buffers { vb, ib, static_cast<uint32_t>(indices.size()) };
-	_mesh_cache[&mesh] = buffers;
-	return _mesh_cache[&mesh];
+	_mesh_cache[mesh] = buffers;
+	return _mesh_cache[mesh];
 }
 
 // Get or create texture

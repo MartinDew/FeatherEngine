@@ -34,8 +34,8 @@ Engine::~Engine() {
 struct SimulationTest {
 	struct Entity {
 		Transform transform;
-		std::unique_ptr<Mesh> mesh;
-		std::unique_ptr<Material> material;
+		std::shared_ptr<Mesh> mesh;
+		std::shared_ptr<Material> material;
 	};
 
 	std::vector<Entity> entities;
@@ -44,7 +44,7 @@ struct SimulationTest {
 
 	SimulationTest() {
 		entities.emplace_back(Transform { Vector3 { -5, 0, -10 }, Quaternion {}, Vector3::one },
-				std::make_unique<BoxMesh>(), std::make_unique<PBRMaterial>());
+				std::make_shared<BoxMesh>(), std::make_shared<PBRMaterial>());
 
 		// Setup camera
 		camera_transform = Transform { Vector3 { 0, 0, 0 }, Quaternion {}, Vector3::one };
@@ -72,8 +72,8 @@ struct SimulationTest {
 		// Add all entities to the render capture
 		for (const auto& entity : entities) {
 			capture.add_entity(RenderCapture::EntityRender { .transform = entity.transform,
-					.triangle_mesh = *entity.mesh,
-					.material = *entity.material,
+					.triangle_mesh = entity.mesh->get_triangle_mesh(),
+					.material = entity.material,
 					.entity_id = 0, // You could add an ID field to Entity if needed
 					.cast_shadows = true,
 					.receive_shadows = true });
@@ -134,6 +134,8 @@ bool Engine::run() {
 		_rendering_server.set_render_capture(sim.generate_render_capture());
 		_rendering_server.update(frame_time);
 	}
+
+	_rendering_server.stop();
 
 	return true;
 }
