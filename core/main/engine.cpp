@@ -135,8 +135,6 @@ bool Engine::run() {
 		_rendering_server.update(frame_time);
 	}
 
-	_rendering_server.stop();
-
 	return true;
 }
 

@@ -72,7 +72,7 @@ void RenderingServer::stop() {
 void RenderingServer::set_render_capture(const RenderCapture& capture) {
 	// Lockless write: copy to write buffer, then swap
 	int write_idx = _write_index.load(std::memory_order_relaxed);
-	_capture_buffers[write_idx] = capture; // CowVector makes this cheap
+	_capture_buffers[write_idx] = std::move(capture); // CowVector makes this cheap
 	_write_index.store(1 - write_idx, std::memory_order_release);
 
 	_render_cv.notify_all();

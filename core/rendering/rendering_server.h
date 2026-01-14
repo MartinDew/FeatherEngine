@@ -22,14 +22,14 @@ class RenderingServer {
 
 	std::unique_ptr<Renderer> _renderer = nullptr;
 
-	std::jthread _render_thread;
-	spinlock _render_lock;
-	std::condition_variable_any _render_cv;
-
 	// Lockless RenderCapture passing via double-buffering
 	std::array<RenderCapture, 2> _capture_buffers;
 	std::atomic<int> _write_index { 0 };
 	std::atomic<uint64_t> _last_rendered_frame { 0 };
+
+	std::jthread _render_thread;
+	spinlock _render_lock;
+	std::condition_variable_any _render_cv;
 
 	void _run();
 	void _render_function();

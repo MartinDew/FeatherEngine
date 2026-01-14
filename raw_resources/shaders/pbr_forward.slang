@@ -141,5 +141,5 @@ float4 PSMain(
     litColor += emissive;
 
     // Output HDR color (tonemapping will be applied later if needed)
-    return float4(litColor, 1.0);
+    return float4(1.0 ,1.0 ,1.0 , 1.0);
 }
