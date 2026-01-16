@@ -30,6 +30,15 @@ struct EntityUniforms {
     uint emissiveHandle;
 };
 
+struct Uniforms {
+    uint camera_handle;
+    uint lights_handle;
+    uint entity_handle;
+};
+
+static let EntityUniforms entity = GetBindlessResource<EntityUniforms>(uniforms.entity_handle);
+static let CameraUniforms camera = GetBindlessResource<CameraUniforms>(uniforms.camera_handle);
+
 // Vertex input (matches Vertex struct in C++)
 struct VSInput {
     float3 position : POSITION;
@@ -47,8 +56,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput VSMain(
     VSInput input,
-    uniform CameraUniforms camera,
-    uniform EntityUniforms entity
+    uniform Uniforms uniforms
 ) {
     VSOutput output;
 
@@ -70,10 +78,6 @@ VSOutput VSMain(
 [shader("pixel")]
 float4 PSMain(
     VSOutput input,
-    uniform CameraUniforms camera,
-    uniform EntityUniforms entity,
-    uniform StructuredBuffer<GPULight> lights,
-    uniform uint lightCount
 ) : SV_Target {
     // Normalize interpolated normal
     float3 N = normalize(input.worldNormal);

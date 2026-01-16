@@ -463,7 +463,23 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		std::array renderTargets = { vex::TextureBinding { .texture = backBuffer } };
 
-		ConstantBinding entityConstant { &entityUniforms, sizeof(EntityUniforms) };
+		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entityUniforms));
+
+		struct {
+			vex::BindlessHandle camera_handle;
+			vex::BindlessHandle per_entity_handle;
+			vex::BindlessHandle lights_handle;
+		} bindless_handles { graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _camera_uniform_buffer,
+									 .usage = BufferBindingUsage::ConstantBuffer,
+									 .strideByteSize = sizeof(CameraUniforms) }),
+			graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _per_entity_uniform_buffer,
+					.usage = BufferBindingUsage::ConstantBuffer,
+					.strideByteSize = sizeof(EntityUniforms) }),
+			graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _lights_structured_buffer,
+					.usage = BufferBindingUsage::StructuredBuffer,
+					.strideByteSize = 80 }) };
+
+		ConstantBinding entityConstant { bindless_handles };
 		ctx.DrawIndexed(_pbr_draw_desc,
 				{
 						.renderTargets = renderTargets,
@@ -489,7 +505,7 @@ void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::Com
 	uniforms.viewProj = viewProj;
 	uniforms.cameraPos = transform.position;
 
-	std::span<const std::byte> bytes = std::as_bytes(std::span<CameraUniforms>(&uniforms, 1));
+	std::span<const std::byte> bytes = to_bytes(uniforms);
 	ctx.EnqueueDataUpload(_camera_uniform_buffer, bytes);
 }
 
