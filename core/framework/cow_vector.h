@@ -1,3 +1,4 @@
+#include <malloc.h>
 #include <algorithm>
 #include <cstdlib>
 #include <initializer_list>
@@ -5,9 +6,10 @@
 #include <stdexcept>
 
 #ifdef _MSC_VER
-#include <malloc.h>
 #define aligned_alloc(align, size) _aligned_malloc(size, align)
 #define aligned_free _aligned_free
+#else
+#define aligned_free free
 #endif
 
 namespace feather {

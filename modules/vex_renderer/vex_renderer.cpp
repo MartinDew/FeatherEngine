@@ -232,14 +232,14 @@ VexRenderer::VexRenderer()
 			.type = vex::ShaderType::VertexShader,
 			.compiler = ShaderCompilerBackend::Slang,
 		},
-		.vertexInputLayout = pbrVertexLayout,
-		.depthStencilState = depthStencilState,
 		.pixelShader = {
 			.path = shader_path / "shadow_depth.slang",
-			.type = ShaderType::PixelShader,
+			.entryPoint = "PSMain",
+			.type = vex::ShaderType::PixelShader,
 			.compiler = ShaderCompilerBackend::Slang,
-			.entryPoint = "PSMain"
-		}
+		},
+		.vertexInputLayout = pbrVertexLayout,
+		.depthStencilState = depthStencilState,
 	};
 
 	// Pre-allocate shadow maps (can expand dynamically)
@@ -463,6 +463,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		std::array renderTargets = { vex::TextureBinding { .texture = backBuffer } };
 
+		ConstantBinding entityConstant { &entityUniforms, sizeof(EntityUniforms) };
 		ctx.DrawIndexed(_pbr_draw_desc,
 				{
 						.renderTargets = renderTargets,
@@ -470,7 +471,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 						.vertexBuffers = { &vertexBufferBinding, 1 },
 						.indexBuffer = indexBufferBinding,
 				},
-				vex::ConstantBinding(entityUniforms), meshBuffers.index_count);
+				entityConstant, meshBuffers.index_count);
 	}
 }
 
