@@ -73,6 +73,7 @@ set(PROJECT_HEADERS
         core/resources/material.h
         core/resources/shader.h
         core/resources/texture.h
+        core/framework/bytes.h
 )
 
 # Source files (shared between both targets)

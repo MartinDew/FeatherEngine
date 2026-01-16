@@ -2,6 +2,7 @@
 
 #include "Vex/Shaders/ShaderKey.h"
 #include "Vex/Texture.h"
+#include "framework/bytes.h"
 #include <core/main/engine.h>
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
@@ -56,6 +57,26 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 }
 
+struct CameraUniforms {
+	Matrix viewProj;
+	Vector3 cameraPos;
+	float _padding;
+};
+
+struct EntityUniforms {
+	Matrix model;
+	Matrix normalMatrix;
+	Color baseColorFactor;
+	float metallicFactor;
+	float roughnessFactor;
+	float _padding1;
+	Color emissiveFactor;
+	vex::BindlessHandle baseColorHandle;
+	vex::BindlessHandle metallicRoughnessHandle;
+	vex::BindlessHandle normalHandle;
+	vex::BindlessHandle emissiveHandle;
+};
+
 void VexRenderer::_bind_members() {}
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
@@ -89,23 +110,24 @@ VexRenderer::VexRenderer()
 	vex::CommandContext ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
 	// Create GPU buffers
-	_camera_uniform_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", 80));
+	_camera_uniform_buffer =
+			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraUniforms)));
 	_lights_structured_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", 80));
-	_per_entity_uniform_buffer =
-			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", 512));
+	_per_entity_uniform_buffer = graphics.CreateBuffer(
+			vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", sizeof(EntityUniforms)));
 
 	// Create default textures
 	// White 1x1 texture
 	{
-		std::vector<uint8_t> whitePixel = { 255, 255, 255, 255 };
+		std::array<uint8_t, 4> whitePixel = { 255, 255, 255, 255 };
 		_default_white_texture = graphics.CreateTexture({ .name = "Default White",
 				.type = vex::TextureType::Texture2D,
 				.format = vex::TextureFormat::RGBA8_UNORM,
 				.width = 1,
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
-		ctx.EnqueueDataUpload(
-				_default_white_texture, std::as_bytes(std::span(whitePixel)), vex::TextureRegion::SingleMip(0));
+		std::span bytes = to_bytes(whitePixel);
+		ctx.EnqueueDataUpload(_default_white_texture, bytes, vex::TextureRegion::SingleMip(0));
 		ctx.Barrier(_default_white_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
 				vex::RHITextureLayout::ShaderResource);
 		_default_white_handle = graphics.GetBindlessHandle(vex::TextureBinding {
@@ -114,15 +136,14 @@ VexRenderer::VexRenderer()
 
 	// Default normal map (0.5, 0.5, 1.0, 1.0)
 	{
-		std::vector<uint8_t> normalPixel = { 128, 128, 255, 255 };
+		std::array<uint8_t, 4> normalPixel = { 128, 128, 255, 255 };
 		_default_normal_texture = graphics.CreateTexture({ .name = "Default Normal",
 				.type = vex::TextureType::Texture2D,
 				.format = vex::TextureFormat::RGBA8_UNORM,
 				.width = 1,
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
-		ctx.EnqueueDataUpload(
-				_default_normal_texture, std::as_bytes(std::span(normalPixel)), vex::TextureRegion::SingleMip(0));
+		ctx.EnqueueDataUpload(_default_normal_texture, to_bytes(normalPixel), vex::TextureRegion::SingleMip(0));
 		ctx.Barrier(_default_normal_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
 				vex::RHITextureLayout::ShaderResource);
 		_default_normal_handle = graphics.GetBindlessHandle(vex::TextureBinding {
@@ -131,15 +152,14 @@ VexRenderer::VexRenderer()
 
 	// Default metallic/roughness (0, 1, 0, 0) - non-metallic, rough
 	{
-		std::vector<uint8_t> mrPixel = { 0, 255, 0, 0 };
+		std::array<uint8_t, 4> mrPixel = { 0, 255, 0, 0 };
 		_default_metallic_roughness_texture = graphics.CreateTexture({ .name = "Default Metallic/Roughness",
 				.type = vex::TextureType::Texture2D,
 				.format = vex::TextureFormat::RGBA8_UNORM,
 				.width = 1,
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
-		ctx.EnqueueDataUpload(_default_metallic_roughness_texture, std::as_bytes(std::span(mrPixel)),
-				vex::TextureRegion::SingleMip(0));
+		ctx.EnqueueDataUpload(_default_metallic_roughness_texture, to_bytes(mrPixel), vex::TextureRegion::SingleMip(0));
 		ctx.Barrier(_default_metallic_roughness_texture, vex::RHIBarrierSync::PixelShader,
 				vex::RHIBarrierAccess::ShaderRead, vex::RHITextureLayout::ShaderResource);
 		_default_mr_handle = graphics.GetBindlessHandle(vex::TextureBinding {
@@ -413,19 +433,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 				pbrMat ? pbrMat->get_emissive_texture().get() : nullptr, ctx, vex::BindlessHandle {});
 
 		// Build per-entity uniforms
-		struct EntityUniforms {
-			Matrix model;
-			Matrix normalMatrix;
-			Color baseColorFactor;
-			float metallicFactor;
-			float roughnessFactor;
-			float _padding1;
-			Color emissiveFactor;
-			vex::BindlessHandle baseColorHandle;
-			vex::BindlessHandle metallicRoughnessHandle;
-			vex::BindlessHandle normalHandle;
-			vex::BindlessHandle emissiveHandle;
-		} entityUniforms;
+		EntityUniforms entityUniforms;
 
 		entityUniforms.model = entity.transform.to_matrix_with_scale();
 		entityUniforms.normalMatrix = _compute_normal_matrix(entityUniforms.model);
@@ -475,11 +483,7 @@ void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::Com
 	Matrix proj = projection.get_matrix();
 	Matrix viewProj = view * proj;
 
-	struct CameraUniforms {
-		Matrix viewProj;
-		Vector3 cameraPos;
-		float _padding;
-	} uniforms;
+	CameraUniforms uniforms;
 
 	uniforms.viewProj = viewProj;
 	uniforms.cameraPos = transform.position;
