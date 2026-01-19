@@ -465,21 +465,17 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entityUniforms));
 
-		struct {
-			vex::BindlessHandle camera_handle;
-			vex::BindlessHandle per_entity_handle;
-			vex::BindlessHandle lights_handle;
-		} bindless_handles { graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _camera_uniform_buffer,
-									 .usage = BufferBindingUsage::ConstantBuffer,
-									 .strideByteSize = sizeof(CameraUniforms) }),
-			graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _per_entity_uniform_buffer,
-					.usage = BufferBindingUsage::ConstantBuffer,
-					.strideByteSize = sizeof(EntityUniforms) }),
-			graphics.GetBindlessHandle(vex::BufferBinding { .buffer = _lights_structured_buffer,
+		std::array<ResourceBinding, 3> bindings {
+			BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
+			BufferBinding { .buffer = _per_entity_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
+			BufferBinding { .buffer = _lights_structured_buffer,
 					.usage = BufferBindingUsage::StructuredBuffer,
-					.strideByteSize = 80 }) };
+					.strideByteSize = 80 },
+		};
 
-		ConstantBinding entityConstant { bindless_handles };
+		auto handles = graphics.GetBindlessHandles(bindings);
+
+		ConstantBinding constant_bindings { std::span(handles) };
 		ctx.DrawIndexed(_pbr_draw_desc,
 				{
 						.renderTargets = renderTargets,
@@ -487,7 +483,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 						.vertexBuffers = { &vertexBufferBinding, 1 },
 						.indexBuffer = indexBufferBinding,
 				},
-				entityConstant, meshBuffers.index_count);
+				constant_bindings, meshBuffers.index_count);
 	}
 }
 

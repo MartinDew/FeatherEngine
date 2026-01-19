@@ -2,6 +2,7 @@
 // Implements physically-based rendering with multiple light types and shadow mapping
 module pbr;
 
+import Vex;
 import common.vex_common;
 import common.math_utils;
 import common.lighting_common;
@@ -31,13 +32,12 @@ struct EntityUniforms {
 };
 
 struct Uniforms {
-    uint camera_handle;
-    uint lights_handle;
-    uint entity_handle;
-};
+uniform uint camera_handle;
+uniform uint entity_handle;
+uniform uint lights_handle;
+}
 
-static let EntityUniforms entity = GetBindlessResource<EntityUniforms>(uniforms.entity_handle);
-static let CameraUniforms camera = GetBindlessResource<CameraUniforms>(uniforms.camera_handle);
+[vk::push_constant] uniform Uniforms uniforms;
 
 // Vertex input (matches Vertex struct in C++)
 struct VSInput {
@@ -52,24 +52,26 @@ struct VSOutput {
     float3 worldNormal : NORMAL;
 };
 
+static let entity = *GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
+static let camera = *GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
+
 // Vertex shader
 [shader("vertex")]
 VSOutput VSMain(
-    VSInput input,
-    uniform Uniforms uniforms
+    VSInput input
 ) {
     VSOutput output;
 
     // Transform position to world space
-    float4 worldPos = mul(float4(input.position, 1.0), entity.model);
+    float4 worldPos = mul(float4(input.position, 1.0), entity->model);
     output.worldPos = worldPos.xyz;
 
     // Transform position to clip space
-    output.position = mul(worldPos, camera.viewProj);
+    output.position = mul(worldPos, camera->viewProj);
 
     // Transform normal to world space
     // Use normalMatrix for non-uniform scaling support
-    output.worldNormal = normalize(mul(float4(input.normal, 0.0), entity.normalMatrix).xyz);
+    output.worldNormal = normalize(mul(float4(input.normal, 0.0), entity->normalMatrix).xyz);
 
     return output;
 }
@@ -83,7 +85,7 @@ float4 PSMain(
     float3 N = normalize(input.worldNormal);
 
     // View direction
-    float3 V = normalize(camera.cameraPos - input.worldPos);
+    float3 V = normalize(camera->cameraPos - input.worldPos);
 
     // Sample material textures (if available)
     // For now, use procedural UVs based on world position (since we don't have UVs in vertex data)
@@ -91,18 +93,18 @@ float4 PSMain(
     float2 uv = input.worldPos.xz * 0.1;  // Simple planar mapping for testing
 
     // Base color
-    float3 baseColor = entity.baseColorFactor.rgb;
-    if (entity.baseColorHandle != 0) {
-        Texture2D<float4> baseColorTex = GetBindlessTexture2D(entity.baseColorHandle);
+    float3 baseColor = entity->baseColorFactor.rgb;
+    if (entity->baseColorHandle != 0) {
+        Texture2D<float4> baseColorTex = GetBindlessTexture2D(entity->baseColorHandle);
         float4 texColor = baseColorTex.SampleLevel(LinearSampler, uv, 0);
         baseColor *= texColor.rgb;
     }
 
     // Metallic and roughness
-    float metallic = entity.metallicFactor;
-    float roughness = entity.roughnessFactor;
-    if (entity.metallicRoughnessHandle != 0) {
-        Texture2D<float4> mrTex = GetBindlessTexture2D(entity.metallicRoughnessHandle);
+    float metallic = entity->metallicFactor;
+    float roughness = entity->roughnessFactor;
+    if (entity->metallicRoughnessHandle != 0) {
+        Texture2D<float4> mrTex = GetBindlessTexture2D(entity->metallicRoughnessHandle);
         float4 mr = mrTex.SampleLevel(LinearSampler, uv, 0);
         roughness *= mr.g;  // Green channel = roughness
         metallic *= mr.b;   // Blue channel = metallic
@@ -111,14 +113,14 @@ float4 PSMain(
     // Normal mapping (TODO: requires tangent space)
     // For now, use vertex normal
     float3 normal = N;
-    // if (entity.normalHandle != 0) {
+    // if (entity->normalHandle != 0) {
     //     // Sample normal map and transform to world space (requires TBN matrix)
     // }
 
     // Emissive
-    float3 emissive = entity.emissiveFactor;
-    if (entity.emissiveHandle != 0) {
-        Texture2D<float4> emissiveTex = GetBindlessTexture2D(entity.emissiveHandle);
+    float3 emissive = entity->emissiveFactor;
+    if (entity->emissiveHandle != 0) {
+        Texture2D<float4> emissiveTex = GetBindlessTexture2D(entity->emissiveHandle);
         float4 emissiveColor = emissiveTex.SampleLevel(LinearSampler, uv, 0);
         emissive *= emissiveColor.rgb;
     }

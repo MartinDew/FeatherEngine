@@ -38,7 +38,9 @@ void RenderingServer::_render_function() {
 
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
+		_render_scene_lock.lock();
 		const RenderCapture capture = _capture_buffers[read_idx];
+		_render_scene_lock.unlock();
 
 		_renderer->_render_scene(capture);
 		_last_rendered_frame.store(capture.get_frame_index(), std::memory_order_relaxed);
@@ -70,6 +72,7 @@ void RenderingServer::stop() {
 }
 
 void RenderingServer::set_render_capture(const RenderCapture& capture) {
+	std::unique_lock<spinlock> lock { _render_scene_lock };
 	// Lockless write: copy to write buffer, then swap
 	int write_idx = _write_index.load(std::memory_order_relaxed);
 	_capture_buffers[write_idx] = std::move(capture); // CowVector makes this cheap

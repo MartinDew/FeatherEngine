@@ -29,6 +29,7 @@ class RenderingServer {
 
 	std::jthread _render_thread;
 	spinlock _render_lock;
+	spinlock _render_scene_lock;
 	std::condition_variable_any _render_cv;
 
 	void _run();
