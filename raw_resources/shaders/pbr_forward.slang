@@ -52,8 +52,8 @@ struct VSOutput {
     float3 worldNormal : NORMAL;
 };
 
-static let entity = *GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
-static let camera = *GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
+static const let entity = *GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
+static const let camera = *GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
 
 // Vertex shader
 [shader("vertex")]
@@ -125,8 +125,15 @@ float4 PSMain(
         emissive *= emissiveColor.rgb;
     }
 
+
+    static let lights = GetBindlessResource<StructuredBuffer<GPULight>>(uniforms.lights_handle);
+
+	uint lightCount;
+	uint stride;
+	lights.GetDimensions(lightCount, stride);
+
     // Evaluate all lights
-    /*float3 litColor = EvaluateAllLights(
+    float3 litColor = EvaluateAllLights(
         lights,
         lightCount,
         input.worldPos,
@@ -136,8 +143,8 @@ float4 PSMain(
         metallic,
         roughness
     );
-*/
-	float3 litColor = float3(0.0,0.0,0.0);
+
+	// float3 litColor = float3(0.0,0.0,0.0);
     // Add ambient lighting (simple constant for now)
     // TODO: Use environment lighting from RenderCapture
     float3 ambient = baseColor * 0.03;
@@ -147,5 +154,5 @@ float4 PSMain(
     litColor += emissive;
 
     // Output HDR color (tonemapping will be applied later if needed)
-    return float4(1.0 ,1.0 ,1.0 , 1.0);
+    return float4(litColor, 1.0);
 }

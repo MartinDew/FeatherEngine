@@ -77,6 +77,18 @@ struct EntityUniforms {
 	vex::BindlessHandle emissiveHandle;
 };
 
+struct GPULight {
+	uint32_t type;
+	Vector3 position;
+	Vector3 direction;
+	Color color; // RGB + intensity in alpha
+	float range;
+	float spotAngleCos;
+	uint32_t shadowMapIndex;
+	float shadowBias;
+	float _;
+};
+
 void VexRenderer::_bind_members() {}
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
@@ -112,7 +124,8 @@ VexRenderer::VexRenderer()
 	// Create GPU buffers
 	_camera_uniform_buffer =
 			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraUniforms)));
-	_lights_structured_buffer = graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", 80));
+	_lights_structured_buffer =
+			graphics.CreateBuffer(vex::BufferDesc::CreateStructuredBufferDesc("Lights Buffer", sizeof(GPULight)));
 	_per_entity_uniform_buffer = graphics.CreateBuffer(
 			vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", sizeof(EntityUniforms)));
 
@@ -429,18 +442,18 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 				pbrMat ? pbrMat->get_metallic_roughness_texture().get() : nullptr, ctx, _default_mr_handle);
 		vex::BindlessHandle normalHandle =
 				_get_texture_handle(pbrMat ? pbrMat->get_normal_texture().get() : nullptr, ctx, _default_normal_handle);
-		vex::BindlessHandle emissiveHandle = _get_texture_handle(
-				pbrMat ? pbrMat->get_emissive_texture().get() : nullptr, ctx, vex::BindlessHandle {});
+		vex::BindlessHandle emissiveHandle =
+				_get_texture_handle(pbrMat ? pbrMat->get_emissive_texture().get() : nullptr, ctx, { 0 });
 
 		// Build per-entity uniforms
 		EntityUniforms entityUniforms;
 
 		entityUniforms.model = entity.transform.to_matrix_with_scale();
 		entityUniforms.normalMatrix = _compute_normal_matrix(entityUniforms.model);
-		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1, 1, 1, 1);
+		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1.f, 1.f, 1.f, 1.f);
 		entityUniforms.metallicFactor = pbrMat ? pbrMat->get_metallic_factor() : 1.0f;
 		entityUniforms.roughnessFactor = pbrMat ? pbrMat->get_roughness_factor() : 1.0f;
-		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0, 0, 0, 1);
+		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 0.f, 0.f, 1.f);
 		entityUniforms.baseColorHandle = baseColorHandle;
 		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
 		entityUniforms.normalHandle = normalHandle;
@@ -470,7 +483,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 			BufferBinding { .buffer = _per_entity_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
 			BufferBinding { .buffer = _lights_structured_buffer,
 					.usage = BufferBindingUsage::StructuredBuffer,
-					.strideByteSize = 80 },
+					.strideByteSize = sizeof(GPULight) },
 		};
 
 		auto handles = graphics.GetBindlessHandles(bindings);
@@ -508,20 +521,6 @@ void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::Com
 // Upload lights buffer
 void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
-
-	struct GPULight {
-		uint32_t type;
-		float _padding1[3];
-		Vector3 position;
-		float _padding2;
-		Vector3 direction;
-		float _padding3;
-		Color color; // RGB + intensity in alpha
-		float range;
-		float spotAngleCos;
-		uint32_t shadowMapIndex;
-		float shadowBias;
-	};
 
 	std::vector<GPULight> gpuLights;
 	for (size_t i = 0; i < lights.size(); ++i) {
