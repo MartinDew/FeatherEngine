@@ -69,7 +69,6 @@ struct EntityUniforms {
 	Color baseColorFactor;
 	float metallicFactor;
 	float roughnessFactor;
-	float _padding1;
 	Color emissiveFactor;
 	vex::BindlessHandle baseColorHandle;
 	vex::BindlessHandle metallicRoughnessHandle;
@@ -453,7 +452,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1.f, 1.f, 1.f, 1.f);
 		entityUniforms.metallicFactor = pbrMat ? pbrMat->get_metallic_factor() : 1.0f;
 		entityUniforms.roughnessFactor = pbrMat ? pbrMat->get_roughness_factor() : 1.0f;
-		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 0.f, 0.f, 1.f);
+		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 1.f, 0.f, 0.f);
 		entityUniforms.baseColorHandle = baseColorHandle;
 		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
 		entityUniforms.normalHandle = normalHandle;

@@ -24,7 +24,7 @@ struct EntityUniforms {
     float4 baseColorFactor;
     float metallicFactor;
     float roughnessFactor;
-    float3 emissiveFactor;
+    float4 emissiveFactor;
     uint baseColorHandle;
     uint metallicRoughnessHandle;
     uint normalHandle;
@@ -118,7 +118,7 @@ float4 PSMain(
     // }
 
     // Emissive
-    float3 emissive = entity->emissiveFactor;
+    float4 emissive = entity->emissiveFactor;
     if (entity->emissiveHandle != 0) {
         Texture2D<float4> emissiveTex = GetBindlessTexture2D(entity->emissiveHandle);
         float4 emissiveColor = emissiveTex.SampleLevel(LinearSampler, uv, 0);
