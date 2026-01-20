@@ -43,7 +43,7 @@ struct SimulationTest {
 	Projection camera_projection;
 
 	SimulationTest() {
-		entities.emplace_back(Transform { Vector3 { 0, 0, -15 }, Quaternion {}, Vector3::one },
+		entities.emplace_back(Transform { Vector3 { 0, 0, -2 }, Quaternion {}, Vector3::one },
 				std::make_shared<BoxMesh>(), std::make_shared<PBRMaterial>());
 
 		// Setup camera

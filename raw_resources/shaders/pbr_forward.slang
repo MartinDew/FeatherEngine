@@ -63,11 +63,11 @@ VSOutput VSMain(
     VSOutput output;
 
     // Transform position to world space
-    float4 worldPos = mul(float4(input.position, 1.0), entity->model);
+    float4 worldPos = mul(entity->model, float4(input.position, 1.0));
     output.worldPos = worldPos.xyz;
 
     // Transform position to clip space
-    output.position = mul(worldPos, camera->viewProj);
+    output.position = mul(camera->viewProj, worldPos);
 
     // Transform normal to world space
     // Use normalMatrix for non-uniform scaling support
