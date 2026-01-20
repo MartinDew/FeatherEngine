@@ -13,6 +13,7 @@
 *std.*
 *.vcxproj
 *.sln
+*.gen.h
 *DotSettings.user
 .vs/
 compile_commands.json
@@ -30,4 +31,3 @@ build/
 ConanPresets.json
 CMakeUserPresets.json
 logs/
-raw_resources/**.h

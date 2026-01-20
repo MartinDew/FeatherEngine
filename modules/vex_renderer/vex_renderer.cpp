@@ -10,8 +10,8 @@
 #include <core/resources/material.h>
 #include <core/resources/texture.h>
 
-#include <raw_resources/shaders/pbr_forward.slang.h>
-#include <raw_resources/shaders/shadow_depth.slang.h>
+#include <raw_resources/shaders/pbr_forward.slang.gen.h>
+#include <raw_resources/shaders/shadow_depth.slang.gen.h>
 
 #include <array>
 #include <cstdint>

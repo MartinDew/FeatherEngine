@@ -117,7 +117,7 @@ def main():
             continue
 
         # Generate output path (same location as source, with .h appended)
-        output_file = source_file.parent / f"{source_file.name}.h"
+        output_file = source_file.parent / f"{source_file.name}.gen.h"
         # skip existing files
         if (os.path.exists(output_file)):
             continue
