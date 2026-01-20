@@ -30,3 +30,4 @@ build/
 ConanPresets.json
 CMakeUserPresets.json
 logs/
+raw_resources/**.h
