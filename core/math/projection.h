@@ -19,7 +19,7 @@ class Projection {
 	float _aspect_ratio = 16.0f / 9.0f;
 
 	// Perspective parameters
-	float _fov_y = 1.047f; // ~60 degrees in radians
+	float _fov_y = 1.047f;
 
 	// Orthographic parameters
 	float _width = 10.0f;

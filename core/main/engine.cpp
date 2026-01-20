@@ -43,12 +43,12 @@ struct SimulationTest {
 	Projection camera_projection;
 
 	SimulationTest() {
-		entities.emplace_back(Transform { Vector3 { -5, 0, -10 }, Quaternion {}, Vector3::one },
+		entities.emplace_back(Transform { Vector3 { 0, 0, -15 }, Quaternion {}, Vector3::one },
 				std::make_shared<BoxMesh>(), std::make_shared<PBRMaterial>());
 
 		// Setup camera
-		camera_transform = Transform { Vector3 { 0, 0, 0 }, Quaternion {}, Vector3::one };
-		camera_projection = Projection::create_perspective(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+
+		camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 	}
 
 	void update(double dt) {
