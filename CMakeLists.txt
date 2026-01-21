@@ -206,7 +206,9 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Standalone)
 endif ()
 
-if (WIN32)
+option(COPY_SHADERS "Copy shaders to output directory after build instead of symlinking" OFF)
+
+if (${COPY_SHADERS})
     add_custom_command(
             TARGET Editor POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different

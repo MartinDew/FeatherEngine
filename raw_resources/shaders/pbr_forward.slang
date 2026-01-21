@@ -32,9 +32,9 @@ struct EntityUniforms {
 };
 
 struct Uniforms {
-uniform uint camera_handle;
-uniform uint entity_handle;
-uniform uint lights_handle;
+uint camera_handle;
+uint entity_handle;
+uint lights_handle;
 }
 
 [vk::push_constant] uniform Uniforms uniforms;
@@ -52,8 +52,8 @@ struct VSOutput {
     float3 worldNormal : NORMAL;
 };
 
-static const let entity = *GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
-static const let camera = *GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
+static  let entity_desc = GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
+static  let camera_desc = GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
 
 // Vertex shader
 [shader("vertex")]
@@ -62,6 +62,8 @@ VSOutput VSMain(
 ) {
     VSOutput output;
 
+    let entity = *entity_desc;
+    let camera = *camera_desc;
     // Transform position to world space
     float4 worldPos = mul(entity->model, float4(input.position, 1.0));
     output.worldPos = worldPos.xyz;
@@ -81,6 +83,9 @@ VSOutput VSMain(
 float4 PSMain(
     VSOutput input,
 ) : SV_Target {
+    let entity = *entity_desc;
+    let camera = *camera_desc;
+
     // Normalize interpolated normal
     float3 N = normalize(input.worldNormal);
 
@@ -122,7 +127,7 @@ float4 PSMain(
     if (entity->emissiveHandle != 0) {
         Texture2D<float4> emissiveTex = GetBindlessTexture2D(entity->emissiveHandle);
         float4 emissiveColor = emissiveTex.SampleLevel(LinearSampler, uv, 0);
-        emissive *= emissiveColor.rgb;
+        emissive *= emissiveColor;
     }
 
 
@@ -150,9 +155,10 @@ float4 PSMain(
     float3 ambient = baseColor * 0.03;
     litColor += ambient;
 
+    float4 result_color = float4(litColor, 0.0);
     // Add emissive
-    litColor += emissive;
+    result_color += emissive;
 
     // Output HDR color (tonemapping will be applied later if needed)
-    return float4(litColor, 1.0);
+    return float4(result_color);
 }
