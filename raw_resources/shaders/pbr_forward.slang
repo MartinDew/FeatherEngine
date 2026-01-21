@@ -22,9 +22,9 @@ struct EntityUniforms {
     float4x4 model;
     float4x4 normalMatrix;      // For transforming normals
     float4 baseColorFactor;
+    float4 emissiveFactor;
     float metallicFactor;
     float roughnessFactor;
-    float4 emissiveFactor;
     uint baseColorHandle;
     uint metallicRoughnessHandle;
     uint normalHandle;
@@ -131,7 +131,8 @@ float4 PSMain(
     }
 
 
-    static let lights = GetBindlessResource<StructuredBuffer<GPULight>>(uniforms.lights_handle);
+    static let lightsDesc = GetBindlessResource<StructuredBuffer<GPULight>>(uniforms.lights_handle);
+    StructuredBuffer<GPULight> lights = *lightsDesc;
 
 	uint lightCount;
 	uint stride;
@@ -149,16 +150,15 @@ float4 PSMain(
         roughness
     );
 
-	// float3 litColor = float3(0.0,0.0,0.0);
     // Add ambient lighting (simple constant for now)
     // TODO: Use environment lighting from RenderCapture
     float3 ambient = baseColor * 0.03;
     litColor += ambient;
 
-    float4 result_color = float4(litColor, 0.0);
+    float4 result_color = float4(litColor.rgb, 0.0);
     // Add emissive
     result_color += emissive;
 
     // Output HDR color (tonemapping will be applied later if needed)
-    return float4(result_color);
+    return result_color;
 }

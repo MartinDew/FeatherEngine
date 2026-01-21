@@ -15,7 +15,6 @@ struct GPULight {
     float spotAngleCos;         // cos(spot_angle) for fast comparison
     uint shadowMapIndex;        // Shadow map bindless handle (or -1 if no shadows)
     float shadowBias;           // Shadow bias to prevent acne
-    float _;
 };
 
 // Material properties for PBR

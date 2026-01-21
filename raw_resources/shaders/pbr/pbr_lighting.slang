@@ -147,5 +147,5 @@ float3 EvaluateAllLights(
         }
     }
 
-    return totalLight;
+ 	return totalLight;
 }

@@ -67,9 +67,9 @@ struct EntityUniforms {
 	Matrix model;
 	Matrix normalMatrix;
 	Color baseColorFactor;
+	Color emissiveFactor;
 	float metallicFactor;
 	float roughnessFactor;
-	Color emissiveFactor;
 	vex::BindlessHandle baseColorHandle;
 	vex::BindlessHandle metallicRoughnessHandle;
 	vex::BindlessHandle normalHandle;
@@ -85,7 +85,6 @@ struct GPULight {
 	float spotAngleCos;
 	uint32_t shadowMapIndex;
 	float shadowBias;
-	float _;
 };
 
 void VexRenderer::_bind_members() {}
@@ -452,7 +451,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1.f, 1.f, 1.f, 1.f);
 		entityUniforms.metallicFactor = pbrMat ? pbrMat->get_metallic_factor() : 1.0f;
 		entityUniforms.roughnessFactor = pbrMat ? pbrMat->get_roughness_factor() : 1.0f;
-		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 1.f, 0.f, 0.f);
+		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 0.f, 0.f, 1.f);
 		entityUniforms.baseColorHandle = baseColorHandle;
 		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
 		entityUniforms.normalHandle = normalHandle;
@@ -482,7 +481,8 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 			BufferBinding { .buffer = _per_entity_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
 			BufferBinding { .buffer = _lights_structured_buffer,
 					.usage = BufferBindingUsage::StructuredBuffer,
-					.strideByteSize = sizeof(GPULight) },
+					.strideByteSize = sizeof(GPULight),
+					.rangeByteSize = capture.get_light_count() * sizeof(GPULight) },
 		};
 
 		auto handles = graphics.GetBindlessHandles(bindings);
@@ -542,7 +542,8 @@ void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::Comma
 	}
 
 	if (!gpuLights.empty()) {
-		ctx.EnqueueDataUpload(_lights_structured_buffer, std::as_bytes(std::span(gpuLights)));
+		auto bytes = std::as_bytes(std::span(gpuLights));
+		ctx.EnqueueDataUpload(_lights_structured_buffer, bytes);
 	}
 }
 
@@ -608,7 +609,7 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, 
 		Matrix proj = Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, 0.1f, sceneRadius * 4.0f);
 		return view * proj;
 	}
-	else if (light.type == RenderCapture::Light::Type::Spot) {
+	if (light.type == RenderCapture::Light::Type::Spot) {
 		// Perspective projection
 		Matrix view = Matrix::create_look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
 		float fov = light.spot_angle * 2.0f;
