@@ -43,8 +43,11 @@ struct SimulationTest {
 	Projection camera_projection;
 
 	SimulationTest() {
+		auto material = std::make_shared<PBRMaterial>();
 		entities.emplace_back(
-				Transform { Vector3 { 0, 0, -2 }, Quaternion {}, Vector3::one }, std::make_shared<BoxMesh>(), nullptr);
+				Transform { Vector3 { 0, 0, -2 }, Quaternion {}, Vector3::one }, std::make_shared<BoxMesh>(), material);
+
+		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		// Setup camera
 
@@ -80,7 +83,7 @@ struct SimulationTest {
 					.receive_shadows = true });
 		}
 
-		auto dir = Vector3 { 0.5f, -1.0f, -1.f };
+		auto dir = Vector3 { -0.5f, -1.0f, -1.f };
 		dir.normalize();
 
 		// Add a basic directional light
