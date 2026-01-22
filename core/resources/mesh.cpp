@@ -53,13 +53,35 @@ static constexpr Vector3 N3(0.0f, 1.0f, 0.0f); // up
 static constexpr Vector3 N4(-1.0f, 0.0f, 0.0f); // left
 static constexpr Vector3 N5(1.0f, 0.0f, 0.0f); // right
 
-static constexpr std::array<Vertex, 24> cube_vertices { Vertex { Point[0], N0 }, Vertex { Point[1], N0 },
-	Vertex { Point[2], N0 }, Vertex { Point[3], N0 }, Vertex { Point[4], N1 }, Vertex { Point[5], N1 },
-	Vertex { Point[6], N1 }, Vertex { Point[7], N1 }, Vertex { Point[3], N2 }, Vertex { Point[2], N2 },
-	Vertex { Point[6], N2 }, Vertex { Point[5], N2 }, Vertex { Point[0], N3 }, Vertex { Point[4], N3 },
-	Vertex { Point[7], N3 }, Vertex { Point[1], N3 }, Vertex { Point[0], N4 }, Vertex { Point[3], N4 },
-	Vertex { Point[5], N4 }, Vertex { Point[4], N4 }, Vertex { Point[1], N5 }, Vertex { Point[7], N5 },
-	Vertex { Point[6], N5 }, Vertex { Point[2], N5 } };
+// clang-format off
+
+static constexpr std::array<Vertex, 24> cube_vertices {
+	Vertex { Point[0], N0 },
+	Vertex { Point[1], N0 },
+	Vertex { Point[2], N0 },
+	Vertex { Point[3], N0 },
+	Vertex { Point[4], N1 },
+	Vertex { Point[5], N1 },
+	Vertex { Point[6], N1 },
+	Vertex { Point[7], N1 },
+	Vertex { Point[3], N2 },
+	Vertex { Point[2], N2 },
+	Vertex { Point[6], N2 },
+	Vertex { Point[5], N2 },
+	Vertex { Point[0], N3 },
+	Vertex { Point[4], N3 },
+	Vertex { Point[7], N3 },
+	Vertex { Point[1], N3 },
+	Vertex { Point[0], N4 },
+	Vertex { Point[3], N4 },
+	Vertex { Point[5], N4 },
+	Vertex { Point[4], N4 },
+	Vertex { Point[1], N5 },
+	Vertex { Point[7], N5 },
+	Vertex { Point[6], N5 },
+	Vertex { Point[2], N5 } };
+
+// clang-format on
 
 constexpr std::array<uint32_t, 36> cube_indices {
 	// Front face
@@ -77,7 +99,6 @@ constexpr std::array<uint32_t, 36> cube_indices {
 
 	19, 16, 17, // left
 	19, 17, 18, // left
-
 	20, 21, 22, // right
 	20, 22, 23 // right
 };
