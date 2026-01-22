@@ -427,9 +427,6 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 		// Get mesh buffers
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
 
-		if (!&entity.material)
-			continue;
-
 		// Get material (try to cast to PBRMaterial)
 		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material.get());
 
