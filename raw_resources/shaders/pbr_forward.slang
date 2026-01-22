@@ -73,7 +73,7 @@ VSOutput VSMain(
 
     // Transform normal to world space
     // Use normalMatrix for non-uniform scaling support
-    output.worldNormal = normalize(mul(float4(input.normal, 0.0), entity->normalMatrix).xyz);
+    output.worldNormal = normalize(mul(entity->normalMatrix, float4(input.normal, 0.0)).xyz);
 
     return output;
 }

@@ -80,7 +80,7 @@ struct SimulationTest {
 					.receive_shadows = true });
 		}
 
-		auto dir = Vector3 { 0.5f, -1.0f, 0.5f };
+		auto dir = Vector3 { 0.5f, -1.0f, -1.f };
 		dir.normalize();
 
 		// Add a basic directional light
