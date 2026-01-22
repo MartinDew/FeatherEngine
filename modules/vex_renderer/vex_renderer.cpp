@@ -429,16 +429,19 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		// Get material (try to cast to PBRMaterial)
 		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material.get());
+		if (!pbrMat) {
+			static PBRMaterial defaultMat;
+			pbrMat = &defaultMat;
+		}
 
 		// Get texture handles
-		vex::BindlessHandle baseColorHandle = _get_texture_handle(
-				pbrMat ? pbrMat->get_base_color_texture().get() : nullptr, ctx, _default_white_handle);
-		vex::BindlessHandle metallicRoughnessHandle = _get_texture_handle(
-				pbrMat ? pbrMat->get_metallic_roughness_texture().get() : nullptr, ctx, _default_mr_handle);
+		vex::BindlessHandle baseColorHandle =
+				_get_texture_handle(pbrMat->get_base_color_texture().get(), ctx, _default_white_handle);
+		vex::BindlessHandle metallicRoughnessHandle =
+				_get_texture_handle(pbrMat->get_metallic_roughness_texture().get(), ctx, _default_mr_handle);
 		vex::BindlessHandle normalHandle =
-				_get_texture_handle(pbrMat ? pbrMat->get_normal_texture().get() : nullptr, ctx, _default_normal_handle);
-		vex::BindlessHandle emissiveHandle =
-				_get_texture_handle(pbrMat ? pbrMat->get_emissive_texture().get() : nullptr, ctx, { 0 });
+				_get_texture_handle(pbrMat->get_normal_texture().get(), ctx, _default_normal_handle);
+		vex::BindlessHandle emissiveHandle = _get_texture_handle(pbrMat->get_emissive_texture().get(), ctx, { 0 });
 
 		// Build per-entity uniforms
 		EntityUniforms entityUniforms;
