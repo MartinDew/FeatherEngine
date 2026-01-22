@@ -36,8 +36,10 @@ struct Vertex {
 	Vector3 normal;
 
 	Vertex() = default;
+	constexpr Vertex(Vector3 pos, Vector3 normal) : position(pos), normal(normal) {}
 	constexpr Vertex(real_t px, real_t py, real_t pz, real_t nx, real_t ny, real_t nz)
-		: position(px, py, pz), normal(nx, ny, nz) {}
+			: position(px, py, pz)
+			, normal(nx, ny, nz) {}
 	Vertex(const Vertex&) = default;
 	Vertex& operator=(const Vertex&) = default;
 	Vertex(Vertex&&) = default;

@@ -55,7 +55,8 @@ struct SimulationTest {
 		// Rotate each entity
 		for (auto& entity : entities) {
 			entity.transform.rotation = entity.transform.rotation *
-					Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(dt), 0 });
+					Quaternion::create_from_yaw_pitch_roll(
+							Vector3 { static_cast<real_t>(dt) / 2, static_cast<real_t>(dt), 0 });
 		}
 	}
 

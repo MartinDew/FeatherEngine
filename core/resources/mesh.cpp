@@ -37,31 +37,49 @@ HighLevelArray RawMesh::get_indices() const {
 
 //// Box Mesh ////
 
-constexpr std::array<Vertex, 8> cube_vertices {
-	// Front face (normals pointing outward from cube corners)
-	Vertex { -0.5f, -0.5f, 0.5f, -0.577f, -0.577f, 0.577f }, // 0: bottom-left
-	Vertex { 0.5f, -0.5f, 0.5f, 0.577f, -0.577f, 0.577f }, // 1: bottom-right
-	Vertex { 0.5f, 0.5f, 0.5f, 0.577f, 0.577f, 0.577f }, // 2: top-right
-	Vertex { -0.5f, 0.5f, 0.5f, -0.577f, 0.577f, 0.577f }, // 3: top-left
-	// Back face
-	Vertex { -0.5f, -0.5f, -0.5f, -0.577f, -0.577f, -0.577f }, // 4: bottom-left
-	Vertex { 0.5f, -0.5f, -0.5f, 0.577f, -0.577f, -0.577f }, // 5: bottom-right
-	Vertex { 0.5f, 0.5f, -0.5f, 0.577f, 0.577f, -0.577f }, // 6: top-right
-	Vertex { -0.5f, 0.5f, -0.5f, -0.577f, 0.577f, -0.577f }, // 7: top-left}
-};
+static constexpr float DX = 1;
+static constexpr float DY = 1;
+static constexpr float DZ = 1;
 
-constexpr std::array<uint32_t, 36> cube_indices { // Front face
-	{ 0, 1, 2, 2, 3, 0,
-			// Back face
-			4, 6, 5, 6, 4, 7,
-			// Left face
-			4, 0, 3, 3, 7, 4,
-			// Right face
-			1, 5, 6, 6, 2, 1,
-			// Top face
-			3, 2, 6, 6, 7, 3,
-			// Bottom face
-			4, 5, 1, 1, 0, 4 }
+static constexpr Vector3 Point[8] = { Vector3(-DX / 2, DY / 2, -DZ / 2), Vector3(DX / 2, DY / 2, -DZ / 2),
+	Vector3(DX / 2, -DY / 2, -DZ / 2), Vector3(-DX / 2, -DY / 2, -DZ / 2), Vector3(-DX / 2, DY / 2, DZ / 2),
+	Vector3(-DX / 2, -DY / 2, DZ / 2), Vector3(DX / 2, -DY / 2, DZ / 2), Vector3(DX / 2, DY / 2, DZ / 2) };
+
+// Normals
+static constexpr Vector3 N0(0.0f, 0.0f, -1.0f); // front
+static constexpr Vector3 N1(0.0f, 0.0f, 1.0f); // back
+static constexpr Vector3 N2(0.0f, -1.0f, 0.0f); // down
+static constexpr Vector3 N3(0.0f, 1.0f, 0.0f); // up
+static constexpr Vector3 N4(-1.0f, 0.0f, 0.0f); // left
+static constexpr Vector3 N5(1.0f, 0.0f, 0.0f); // right
+
+static constexpr std::array<Vertex, 24> cube_vertices { Vertex { Point[0], N0 }, Vertex { Point[1], N0 },
+	Vertex { Point[2], N0 }, Vertex { Point[3], N0 }, Vertex { Point[4], N1 }, Vertex { Point[5], N1 },
+	Vertex { Point[6], N1 }, Vertex { Point[7], N1 }, Vertex { Point[3], N2 }, Vertex { Point[2], N2 },
+	Vertex { Point[6], N2 }, Vertex { Point[5], N2 }, Vertex { Point[0], N3 }, Vertex { Point[4], N3 },
+	Vertex { Point[7], N3 }, Vertex { Point[1], N3 }, Vertex { Point[0], N4 }, Vertex { Point[3], N4 },
+	Vertex { Point[5], N4 }, Vertex { Point[4], N4 }, Vertex { Point[1], N5 }, Vertex { Point[7], N5 },
+	Vertex { Point[6], N5 }, Vertex { Point[2], N5 } };
+
+constexpr std::array<uint32_t, 36> cube_indices {
+	// Front face
+	0, 1, 2, // front
+	0, 2, 3, // front
+
+	5, 6, 7, // back
+	5, 7, 4, // back
+
+	8, 9, 10, // down
+	8, 10, 11, // down
+
+	13, 14, 15, // up
+	13, 15, 12, // up
+
+	19, 16, 17, // left
+	19, 17, 18, // left
+
+	20, 21, 22, // right
+	20, 22, 23 // right
 };
 
 static std::shared_ptr<TriangleMesh> box_mesh =
