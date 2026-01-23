@@ -87,7 +87,7 @@ struct GPULight {
 	float shadowBias;
 };
 
-void VexRenderer::_bind_members() {}
+void VexRenderer::_bind_members() { ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL); }
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
 
@@ -97,7 +97,8 @@ VexRenderer::VexRenderer()
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
-				  .enableGPUBasedValidation = !VEX_SHIPPING }) {
+				  .enableGPUBasedValidation = !VEX_SHIPPING })
+		, _use_reverse_z { true } {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
@@ -113,7 +114,7 @@ VexRenderer::VexRenderer()
 			.clearValue =
 					vex::TextureClearValue {
 							.clearAspect = vex::TextureAspect::Depth,
-							.depth = 0,
+							.depth = _use_reverse_z ? 0.0f : 1.0f,
 					},
 	});
 
@@ -124,8 +125,12 @@ VexRenderer::VexRenderer()
 			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraUniforms)));
 	_lights_structured_buffer =
 			graphics.CreateBuffer(vex::BufferDesc::CreateGenericBufferDesc("Lights Buffer", sizeof(GPULight)));
-	_per_entity_uniform_buffer = graphics.CreateBuffer(
-			vex::BufferDesc::CreateUniformBufferDesc("Per-Entity Uniforms", sizeof(EntityUniforms)));
+	_per_entity_uniform_buffer = graphics.CreateBuffer({
+			.name = "Per-Entity Uniform",
+			.byteSize = sizeof(EntityUniforms),
+			.usage = vex::BufferUsage::UniformBuffer,
+			.memoryLocality = vex::ResourceMemoryLocality::GPUOnly,
+	});
 
 	// Create default textures
 	// White 1x1 texture
@@ -214,7 +219,7 @@ VexRenderer::VexRenderer()
 	vex::DepthStencilState depthStencilState {
 		.depthTestEnabled = true,
 		.depthWriteEnabled = true,
-		.depthCompareOp = vex::CompareOp::GreaterEqual, // Reverse-Z
+		.depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
 	};
 
 	// PBR forward rendering pipeline
@@ -232,6 +237,9 @@ VexRenderer::VexRenderer()
 			.compiler = ShaderCompilerBackend::Slang,
 		},
 		.vertexInputLayout = pbrVertexLayout,
+		.rasterizerState = {
+			.cullMode = vex::CullMode::Back
+		},
 		.depthStencilState = depthStencilState,
 	};
 
@@ -265,7 +273,7 @@ VexRenderer::VexRenderer()
 				.clearValue =
 						vex::TextureClearValue {
 								.clearAspect = vex::TextureAspect::Depth,
-								.depth = 0,
+								.depth = _use_reverse_z ? 0.0f : 1.0f,
 						},
 		}));
 	}
@@ -286,10 +294,10 @@ void VexRenderer::_render_scene(const RenderCapture capture) {
 	}
 
 	// Shadow pass
-	// if (hasShadows) {
-	// 	VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
-	// 	_render_shadow_pass(capture, ctx);
-	// }
+	if (hasShadows) {
+		VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
+		_render_shadow_pass(capture, ctx);
+	}
 
 	// Forward pass
 	{
@@ -320,7 +328,7 @@ void VexRenderer::_on_resize() {
 			.clearValue =
 					vex::TextureClearValue {
 							.clearAspect = vex::TextureAspect::Depth,
-							.depth = 0,
+							.depth = _use_reverse_z ? 0.0f : 1.0f,
 					},
 	});
 
@@ -350,7 +358,7 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 					.clearValue =
 							vex::TextureClearValue {
 									.clearAspect = vex::TextureAspect::Depth,
-									.depth = 0,
+									.depth = _use_reverse_z ? 0.0f : 1.0f,
 							},
 			}));
 		}
@@ -399,7 +407,7 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 		}
 
 		// Transition shadow map to shader resource
-		ctx.Barrier(shadowMap, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
+		ctx.Barrier(shadowMap, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
 				vex::RHITextureLayout::ShaderResource);
 	}
 }
@@ -459,7 +467,8 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		std::vector<vex::TextureBinding> shadowMapBindings;
 		for (auto& shadowMap : _shadow_maps) {
-			shadowMapBindings.push_back(vex::TextureBinding { .texture = shadowMap });
+			shadowMapBindings.push_back(
+					vex::TextureBinding { .texture = shadowMap, .usage = TextureBindingUsage::ShaderRead });
 		}
 
 		// Draw
@@ -487,6 +496,8 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		auto handles = graphics.GetBindlessHandles(bindings);
 
+		ctx.BarrierBindings(bindings);
+
 		ConstantBinding constant_bindings { std::span(handles) };
 		ctx.DrawIndexed(_pbr_draw_desc,
 				{
@@ -502,7 +513,8 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 // Upload camera uniforms
 void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const {
 	const auto& transform = capture.get_camera_transform();
-	const auto& projection = capture.get_camera_projection();
+	const auto& projection =
+			_use_reverse_z ? capture.get_camera_projection().create_reverse_z() : capture.get_camera_projection();
 
 	Matrix view = transform.to_matrix_no_scale().invert(); // World-to-camera
 	Matrix proj = projection.get_matrix();

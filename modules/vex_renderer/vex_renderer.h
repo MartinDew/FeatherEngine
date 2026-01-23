@@ -56,6 +56,8 @@ class VexRenderer : public Renderer {
 	vex::DrawDesc _pbr_draw_desc;
 	vex::DrawDesc _shadow_draw_desc;
 
+	bool _use_reverse_z;
+
 	// Helper methods
 	void _render_shadow_pass(const RenderCapture& capture, vex::CommandContext& ctx);
 	void _render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx);

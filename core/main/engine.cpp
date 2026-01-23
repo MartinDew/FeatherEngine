@@ -52,11 +52,16 @@ struct SimulationTest {
 		// Setup camera
 
 		camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+
+		// setup a floor
+		entities.emplace_back(Transform { Vector3 { 0, -2, 0 }, Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
+									  Vector3 { 10, 0.1f, 10 } },
+				std::make_shared<BoxMesh>(), nullptr);
 	}
 
 	void update(double dt) {
 		// Rotate each entity
-		for (auto& entity : entities) {
+		if (auto& entity = entities[0]; true) {
 			entity.transform.rotation = entity.transform.rotation *
 					Quaternion::create_from_yaw_pitch_roll(
 							Vector3 { static_cast<real_t>(dt) / 2, static_cast<real_t>(dt), 0 });
