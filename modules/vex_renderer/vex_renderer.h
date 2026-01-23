@@ -59,18 +59,18 @@ class VexRenderer : public Renderer {
 	// Helper methods
 	void _render_shadow_pass(const RenderCapture& capture, vex::CommandContext& ctx);
 	void _render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx);
-	void _upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx);
+	void _upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const;
 	void _upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx);
 	MeshBuffers& _get_or_create_mesh_buffers(const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
 	vex::BindlessHandle _get_texture_handle(
 			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
-	Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture);
+	static Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture);
 
 	// Utility methods
-	Vector3 _compute_scene_center(const RenderCapture& capture);
-	float _compute_scene_radius(const RenderCapture& capture, const Vector3& center);
-	Matrix _compute_normal_matrix(const Matrix& modelMatrix);
+	static Vector3 _compute_scene_center(const RenderCapture& capture);
+	static float _compute_scene_radius(const RenderCapture& capture, const Vector3& center);
+	static Matrix _compute_normal_matrix(const Matrix& modelMatrix);
 
 	static vex::PlatformWindowHandle _create_vex_window(Window& window);
 

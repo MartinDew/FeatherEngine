@@ -448,10 +448,10 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 
 		entityUniforms.model = entity.transform.to_matrix_with_scale();
 		entityUniforms.normalMatrix = _compute_normal_matrix(entityUniforms.model);
-		entityUniforms.baseColorFactor = pbrMat ? pbrMat->get_base_color_factor() : Color(1.f, 1.f, 1.f, 1.f);
-		entityUniforms.metallicFactor = pbrMat ? pbrMat->get_metallic_factor() : 1.0f;
-		entityUniforms.roughnessFactor = pbrMat ? pbrMat->get_roughness_factor() : 1.0f;
-		entityUniforms.emissiveFactor = pbrMat ? pbrMat->get_emissive_factor() : Color(0.f, 0.f, 0.f, 1.f);
+		entityUniforms.baseColorFactor = pbrMat->get_base_color_factor();
+		entityUniforms.metallicFactor = pbrMat->get_metallic_factor();
+		entityUniforms.roughnessFactor = pbrMat->get_roughness_factor();
+		entityUniforms.emissiveFactor = pbrMat->get_emissive_factor();
 		entityUniforms.baseColorHandle = baseColorHandle;
 		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
 		entityUniforms.normalHandle = normalHandle;
@@ -500,7 +500,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 }
 
 // Upload camera uniforms
-void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) {
+void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const {
 	const auto& transform = capture.get_camera_transform();
 	const auto& projection = capture.get_camera_projection();
 
