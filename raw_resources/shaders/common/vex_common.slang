@@ -9,6 +9,7 @@ Texture2D<float4> GetBindlessTexture2D(uint handle) {
 // Samplers (defined by Vex)
 SamplerState LinearSampler;
 SamplerState PointSampler;
+SamplerComparisonState ShadowMapSampler;
 
 // Common constants
 static const float PI = 3.14159265359;

@@ -24,7 +24,7 @@ class VexRenderer : public Renderer {
 
 	// Shadow maps
 	std::vector<vex::Texture> _shadow_maps;
-	std::unordered_map<uint32_t, size_t> _light_to_shadow_map_index;
+	std::unordered_map<uint32_t, vex::BindlessHandle> _light_to_shadow_map_index;
 
 	// GPU buffers
 	vex::Buffer _camera_uniform_buffer;
@@ -67,7 +67,7 @@ class VexRenderer : public Renderer {
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
 	vex::BindlessHandle _get_texture_handle(
 			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
-	static Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture);
+	Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) const;
 
 	// Utility methods
 	static Vector3 _compute_scene_center(const RenderCapture& capture);

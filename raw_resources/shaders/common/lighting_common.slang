@@ -13,8 +13,9 @@ struct GPULight {
     float4 color;               // RGB + intensity in alpha
     float range;                // Range for point/spot lights
     float spotAngleCos;         // cos(spot_angle) for fast comparison
-    uint shadowMapIndex;        // Shadow map bindless handle (or -1 if no shadows)
+    uint shadowMapHandle;        // Shadow map bindless handle (or -1 if no shadows)
     float shadowBias;           // Shadow bias to prevent acne
+    float4x4 viewProj;          // Light View Proj
 };
 
 // Material properties for PBR
@@ -33,3 +34,8 @@ struct ViewProperties {
     float3 direction;   // View direction (normalized)
     float NdotV;        // dot(normal, view)
 };
+
+struct ShadowVP
+{
+
+}

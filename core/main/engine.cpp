@@ -45,27 +45,36 @@ struct SimulationTest {
 	SimulationTest() {
 		auto material = std::make_shared<PBRMaterial>();
 		entities.emplace_back(
-				Transform { Vector3 { 0, 0, -2 }, Quaternion {}, Vector3::one }, std::make_shared<BoxMesh>(), material);
+				Transform { Vector3 { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
+				std::make_shared<BoxMesh>(), material);
+	entities.emplace_back(
+				Transform { Vector3 { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
+				std::make_shared<BoxMesh>(), material);
+
+		entities.emplace_back(
+				Transform { Vector3 { 2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
+				std::make_shared<BoxMesh>(), material);
+
+		// entities.emplace_back(
+		// 		Transform { Vector3 { 0, 1, 0 }, Quaternion {}, { 1, 1, 2 } }, std::make_shared<BoxMesh>(), material);
 
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		// Setup camera
 
+		// camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 		camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
 		// setup a floor
 		entities.emplace_back(Transform { Vector3 { 0, -2, 0 }, Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
-									  Vector3 { 10, 0.1f, 10 } },
+									  Vector3 { 200, 0.1f, 200 } },
 				std::make_shared<BoxMesh>(), nullptr);
 	}
 
 	void update(double dt) {
 		// Rotate each entity
-		if (auto& entity = entities[0]; true) {
-			entity.transform.rotation = entity.transform.rotation *
-					Quaternion::create_from_yaw_pitch_roll(
-							Vector3 { static_cast<real_t>(dt) / 2, static_cast<real_t>(dt), 0 });
-		}
+		entities[0].transform.rotation = entities[0].transform.rotation *
+				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(dt), 0 });
 	}
 
 	RenderCapture generate_render_capture() const {
@@ -89,6 +98,7 @@ struct SimulationTest {
 		}
 
 		auto dir = Vector3 { -0.5f, -1.0f, -1.f };
+		// auto dir = Vector3 { 0.1f, -1.0f, 0.0f };
 		dir.normalize();
 
 		// Add a basic directional light
@@ -96,7 +106,7 @@ struct SimulationTest {
 				.position = Vector3::zero,
 				.direction = dir,
 				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
-				.intensity = 1.0f,
+				.intensity = 10.0f,
 				.cast_shadows = true });
 
 		return capture;

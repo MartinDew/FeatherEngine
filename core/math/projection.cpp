@@ -135,10 +135,10 @@ void Projection::_rebuild_perspective() {
 void Projection::_rebuild_orthographic() {
 	if (_is_off_center) {
 		_projection_matrix =
-				Matrix::create_perspective_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
+				Matrix::create_orthographic_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
 	}
 	else {
-		_projection_matrix = Matrix::create_perspective_field_of_view(_width, _height, _near_plane, _far_plane);
+		_projection_matrix = Matrix::create_orthographic(_width, _height, _near_plane, _far_plane);
 	}
 }
 

@@ -27,7 +27,7 @@ VSOutput VSMain(
     VSOutput output;
 
     // Transform vertex position to light clip space
-    output.position = mul(float4(input.position, 1.0), mvp);
+    output.position = mul(mvp, float4(input.position, 1.0));
 
     return output;
 }

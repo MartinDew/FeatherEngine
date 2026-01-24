@@ -83,8 +83,9 @@ struct GPULight {
 	Color color; // RGB + intensity in alpha
 	float range;
 	float spotAngleCos;
-	uint32_t shadowMapIndex;
+	vex::BindlessHandle shadowMapHandle;
 	float shadowBias;
+	Matrix viewProj;
 };
 
 void VexRenderer::_bind_members() { ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL); }
@@ -98,7 +99,7 @@ VexRenderer::VexRenderer()
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
 				  .enableGPUBasedValidation = !VEX_SHIPPING })
-		, _use_reverse_z { true } {
+		, _use_reverse_z { false } {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
@@ -186,6 +187,13 @@ VexRenderer::VexRenderer()
 	std::array samplers {
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Linear, vex::AddressMode::Clamp),
 		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
+		vex::TextureSampler {
+				.minFilter = FilterMode::Linear,
+				.magFilter = FilterMode::Linear,
+				.addressU = vex::AddressMode::Clamp,
+				.addressV = vex::AddressMode::Clamp,
+				.compareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
+		},
 	};
 	graphics.SetSamplers(samplers);
 
@@ -216,11 +224,11 @@ VexRenderer::VexRenderer()
 		},
 	};
 
-	vex::DepthStencilState depthStencilState {
-		.depthTestEnabled = true,
+	vex::DepthStencilState depthStencilState { .depthTestEnabled = true,
 		.depthWriteEnabled = true,
 		.depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
-	};
+		.minDepthBounds = _use_reverse_z ? 1.0f : 0.0f,
+		.maxDepthBounds = _use_reverse_z ? 0.0f : 1.0f };
 
 	// PBR forward rendering pipeline
 	_pbr_draw_desc = vex::DrawDesc {
@@ -238,7 +246,11 @@ VexRenderer::VexRenderer()
 		},
 		.vertexInputLayout = pbrVertexLayout,
 		.rasterizerState = {
-			.cullMode = vex::CullMode::Back
+			.cullMode = vex::CullMode::Back,
+			.depthBiasEnabled = true,
+			.depthBiasConstantFactor = -0.9f,
+			.depthBiasClamp = -1.0f,
+			// .depthBiasSlopeFactor = -1.5f,
 		},
 		.depthStencilState = depthStencilState,
 	};
@@ -261,29 +273,11 @@ VexRenderer::VexRenderer()
 		.depthStencilState = depthStencilState,
 	};
 
-	// Pre-allocate shadow maps (can expand dynamically)
-	for (int i = 0; i < 4; ++i) {
-		_shadow_maps.push_back(graphics.CreateTexture({
-				.name = "Shadow Map",
-				.type = vex::TextureType::Texture2D,
-				.format = vex::TextureFormat::D32_FLOAT,
-				.width = 1024,
-				.height = 1024,
-				.usage = vex::TextureUsage::DepthStencil | vex::TextureUsage::ShaderRead,
-				.clearValue =
-						vex::TextureClearValue {
-								.clearAspect = vex::TextureAspect::Depth,
-								.depth = _use_reverse_z ? 0.0f : 1.0f,
-						},
-		}));
-	}
-
 	graphics.Submit(ctx);
 }
 
 void VexRenderer::_render_scene(const RenderCapture capture) {
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
-
 	// Check if there are any shadow-casting lights
 	bool hasShadows = false;
 	for (const auto& light : capture.get_lights()) {
@@ -310,6 +304,8 @@ void VexRenderer::_render_scene(const RenderCapture capture) {
 }
 
 void VexRenderer::_on_resize() {
+	graphics.RecompileChangedShaders();
+
 	auto width = _window->properties.width;
 	auto height = _window->properties.height;
 
@@ -346,14 +342,16 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 		if (!light.cast_shadows)
 			continue;
 
+		static constexpr size_t w = 1024 * 2;
+		static constexpr size_t h = 1024 * 2;
 		// Ensure we have a shadow map
-		if (shadow_map_index >= _shadow_maps.size()) {
+		if (i >= _shadow_maps.size()) {
 			_shadow_maps.push_back(graphics.CreateTexture({
 					.name = "Shadow Map",
 					.type = vex::TextureType::Texture2D,
 					.format = vex::TextureFormat::D32_FLOAT,
-					.width = 1024,
-					.height = 1024,
+					.width = w,
+					.height = h,
 					.usage = vex::TextureUsage::DepthStencil | vex::TextureUsage::ShaderRead,
 					.clearValue =
 							vex::TextureClearValue {
@@ -363,16 +361,18 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 			}));
 		}
 
-		vex::Texture& shadowMap = _shadow_maps[shadow_map_index];
-		_light_to_shadow_map_index[static_cast<uint32_t>(i)] = shadow_map_index++;
+		vex::Texture& shadowMap = _shadow_maps[i];
+		auto shadow_map_binding = vex::TextureBinding(shadowMap, TextureBindingUsage::ShaderRead);
+
+		_light_to_shadow_map_index[static_cast<uint32_t>(i)] = graphics.GetBindlessHandle(shadow_map_binding);
 
 		// Compute light view-projection matrix
-		Matrix lightVP = _compute_light_view_proj(light, capture);
+		const Matrix lightVP = _compute_light_view_proj(light, capture);
 
 		// Set render target (depth-only)
 		ctx.ClearTexture(vex::TextureBinding { .texture = shadowMap });
-		ctx.SetViewport(0, 0, 1024, 1024);
-		ctx.SetScissor(0, 0, 1024, 1024);
+		ctx.SetViewport(0, 0, w, h);
+		ctx.SetScissor(0, 0, w, h);
 
 		// Render entities
 		const auto& entities = capture.get_entities();
@@ -399,7 +399,7 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 
 			ctx.DrawIndexed(_shadow_draw_desc,
 					{
-							.depthStencil = vex::TextureBinding(shadowMap),
+							.depthStencil = TextureBinding { shadowMap },
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
@@ -543,12 +543,11 @@ void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::Comma
 		gpuLight.color = Color(light.color.x, light.color.y, light.color.z, light.intensity);
 		gpuLight.range = light.range;
 		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
-
+		gpuLight.viewProj = _compute_light_view_proj(light, capture);
 		// Shadow map index
 		auto it = _light_to_shadow_map_index.find(static_cast<uint32_t>(i));
-		gpuLight.shadowMapIndex = (it != _light_to_shadow_map_index.end()) ? static_cast<uint32_t>(it->second)
-																		   : static_cast<uint32_t>(-1);
-		gpuLight.shadowBias = 0.005f;
+		gpuLight.shadowMapHandle = (it != _light_to_shadow_map_index.end()) ? it->second : vex::GInvalidBindlessHandle;
+		gpuLight.shadowBias = 0.0001f;
 
 		gpuLights.push_back(gpuLight);
 	}
@@ -610,15 +609,22 @@ vex::BindlessHandle VexRenderer::_get_texture_handle(
 }
 
 // Compute light view-projection matrix
-Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) {
+Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) const {
 	if (light.type == RenderCapture::Light::Type::Directional) {
 		// Orthographic projection covering scene
 		Vector3 sceneCenter = _compute_scene_center(capture);
 		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
 
-		Vector3 lightPos = sceneCenter - light.direction * (sceneRadius * 2.0f);
+		Vector3 lightPos = sceneCenter - light.direction; // * (sceneRadius * 2.0f);
+		// lightPos += Vector3(0.0f, 3, 0.0f); // Offset upwards to avoid clipping
 		Matrix view = Matrix::create_look_at(lightPos, sceneCenter, Vector3(0, 1, 0));
-		Matrix proj = Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, 0.1f, sceneRadius * 4.0f);
+		auto nearFar = std::make_pair(-sceneRadius * 4.0f, sceneRadius * 4.0f);
+		if (_use_reverse_z) {
+			std::swap(nearFar.first, nearFar.second);
+		}
+		Matrix proj =
+				Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, nearFar.first, nearFar.second);
+		// Matrix::create_perspective_field_of_view(deg_to_rad(90), 16.0f / 9.0f, 0.5f, 8.0f);
 		return view * proj;
 	}
 	if (light.type == RenderCapture::Light::Type::Spot) {
