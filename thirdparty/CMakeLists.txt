@@ -19,7 +19,7 @@ function(RegisterThirdparty ACCESS)
 endfunction()
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Runtime output directory")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MAP_IMPORTED_CONFIG_Development "RelWithDebInfo" CACHE STRING "" FORCE)
 
 # Setup so that development build matches RelWithDebInfo

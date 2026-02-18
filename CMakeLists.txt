@@ -206,19 +206,13 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Standalone)
 endif ()
 
-add_custom_command(
-        TARGET Editor POST_BUILD
+add_custom_target(copy_shaders ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Editor>/shaders
-        COMMENT "Copying shaders" VERBATIM
-)
+        ${CMAKE_SOURCE_DIR}/raw_resources/shaders ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/<$CONFIG>/shaders
+        COMMENT "Copying shaders" VERBATIM)
 
-add_custom_command(
-        TARGET Standalone POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/raw_resources/shaders $<TARGET_FILE_DIR:Standalone>/shaders
-        COMMENT "Copying shaders" VERBATIM
-)
+add_dependencies(Editor copy_shaders)
+add_dependencies(Standalone copy_shaders)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

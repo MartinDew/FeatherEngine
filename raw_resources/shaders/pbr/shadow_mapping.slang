@@ -1,7 +1,9 @@
 // Shadow mapping utilities with PCF filtering
 implementing pbr;
 
+import Vex;
 import common.vex_common;
+import common.lighting_common;
 
 
 // Sample shadow map with PCF (Percentage-Closer Filtering)
@@ -45,6 +47,38 @@ float SampleShadowMapPCF(
     shadow /= 9.0;
 
     return shadow;
+}
+
+float ComputeShadowMapPCF(GPULight light, float3 worldPos, float3 N) {
+	if (light.shadowMapHandle != GInvalidBindlessHandle)
+	{
+		let shadowMap = GetBindlessResource<Texture2D<float>>(light.shadowMapHandle);
+		let coords = mul(light.viewProj, float4(worldPos + N * 0.1, 1));
+		let projCoords = coords.xyz / coords.w;
+		var projUV = projCoords.xyz * 0.5 + 0.5;
+		if (!(projUV.x < 0.0 || projUV.x > 1.0 || projUV.y < 0.0 || projUV.y > 1.0))
+		{
+			projUV.y = 1.0 - projUV.y;
+
+			float total = 0;
+
+			constexpr int PCFKernelSize = 4;
+			constexpr int PCFHalfKernelSize = (PCFKernelSize / 2);
+
+			[unroll] for (var x = -PCFHalfKernelSize; x < -PCFHalfKernelSize + PCFKernelSize; x++)
+			{
+				[unroll] for (var y = -PCFHalfKernelSize; y < -PCFHalfKernelSize + PCFKernelSize; y++)
+				{
+					total += shadowMap.SampleCmpLevelZero(ShadowMapSampler, projUV.xy, projCoords.z - light.shadowBias, int2(x, y));
+				}
+			}
+
+			return total / pow(PCFKernelSize, 2.0f);
+
+			//shadow = shadowMap.SampleCmpLevelZero(ShadowMapSampler, projUV.xy, projCoords.z - 0.0001); // sharp shadows
+		}
+	}
+	return 1.0;
 }
 
 // Simple shadow map sample without PCF (for comparison/debugging)
