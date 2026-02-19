@@ -58,7 +58,7 @@ VSOutput VSMain(
 // Pixel shader
 [shader("pixel")]
 float4 PSMain(
-    VSOutput input,
+    VSOutput input
 ) : SV_Target {
     let entity = *entity_desc;
     let camera = *camera_desc;

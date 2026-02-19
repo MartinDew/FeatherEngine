@@ -236,13 +236,13 @@ VexRenderer::VexRenderer()
 	_depth_pre_pass_desc = vex::DrawDesc {
 		.vertexShader = {
 			.path = shader_path / "depth_prepass.slang",
-			.entryPoint = "VSMain",
+			.entryPoint = "Vertex",
 			.type = vex::ShaderType::VertexShader,
 			.compiler = ShaderCompilerBackend::Slang,
 		},
 		.pixelShader = {
 			.path = shader_path / "depth_prepass.slang",
-			.entryPoint = "PSMain",
+			.entryPoint = "Pixel",
 			.type = vex::ShaderType::PixelShader,
 			.compiler = ShaderCompilerBackend::Slang,
 		},
@@ -368,7 +368,6 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 
-	// Get the bindless handle for the camera UBO
 	std::array<ResourceBinding, 1> bindings {
 		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
 	};
@@ -390,7 +389,6 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
 		};
 
-		// No render targets — depth only
 		ctx.DrawIndexed(_depth_pre_pass_desc,
 				{
 						.depthStencil = vex::TextureBinding(depthTexture),
@@ -400,7 +398,6 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 				constant_bindings, meshBuffers.index_count);
 	}
 
-	// Barrier so the forward pass reads a fully written depth buffer
 	ctx.Barrier(depthTexture, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
 			vex::RHITextureLayout::ShaderResource);
 }
@@ -491,10 +488,13 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 	auto backBuffer = graphics.GetCurrentPresentTexture();
 	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer },
 			vex::TextureClearValue { .clearAspect = vex::TextureAspect::Color, .color = { 0.2f, 0.2f, 0.2f, 1.0f } });
-	ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
+	// ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
 
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+
+	// ctx.Barrier(depthTexture, vex::RHIBarrierSync::DepthStencil, vex::RHIBarrierAccess::DepthStencilReadWrite,
+	// 		vex::RHITextureLayout::DepthStencilWrite);
 
 	// Upload lights buffer
 	_upload_lights_buffer(capture, ctx);
