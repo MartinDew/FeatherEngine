@@ -39,7 +39,7 @@ void RenderingServer::_render_function() {
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
 		_render_scene_lock.lock();
-		const RenderCapture capture = _capture_buffers[read_idx];
+		const RenderScene capture = _capture_buffers[read_idx];
 		_render_scene_lock.unlock();
 
 		_renderer->_render_scene(capture);
@@ -71,7 +71,7 @@ void RenderingServer::stop() {
 		_render_thread.join();
 }
 
-void RenderingServer::set_render_capture(const RenderCapture& capture) {
+void RenderingServer::set_render_capture(const RenderScene& capture) {
 	std::unique_lock<spinlock> lock { _render_scene_lock };
 	// Lockless write: copy to write buffer, then swap
 	int write_idx = _write_index.load(std::memory_order_relaxed);

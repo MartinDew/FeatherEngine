@@ -5,12 +5,13 @@
 #include "math/transform.h"
 #include "resources/material.h"
 #include "triangle_mesh.h"
+
 namespace feather {
 
 class TriangleMesh;
 class Material;
 
-class RenderCapture {
+class RenderScene {
 public:
 	struct EntityRender {
 		Transform transform;
@@ -39,13 +40,13 @@ public:
 		bool cast_shadows = true;
 	};
 
-	RenderCapture(size_t frame_index = 0);
+	RenderScene(size_t frame_index = 0);
 
 	// With COW vectors, copies are cheap - they just increment ref count
-	RenderCapture(const RenderCapture&) = default;
-	RenderCapture& operator=(const RenderCapture&) = default;
-	RenderCapture(RenderCapture&&) noexcept = default;
-	RenderCapture& operator=(RenderCapture&&) noexcept = default;
+	RenderScene(const RenderScene&) = default;
+	RenderScene& operator=(const RenderScene&) = default;
+	RenderScene(RenderScene&&) noexcept = default;
+	RenderScene& operator=(RenderScene&&) noexcept = default;
 
 	// Camera
 	const Transform& get_camera_transform() const noexcept { return _camera_transform; }

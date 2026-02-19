@@ -277,7 +277,7 @@ VexRenderer::VexRenderer()
 	graphics.Submit(ctx);
 }
 
-void VexRenderer::_render_scene(const RenderCapture capture) {
+void VexRenderer::_render_scene(const RenderScene capture) {
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 	// Check if there are any shadow-casting lights
 	bool hasShadows = false;
@@ -333,7 +333,7 @@ void VexRenderer::_on_resize() {
 }
 
 // Shadow pass implementation
-void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::CommandContext& ctx) {
+void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
 	_light_to_shadow_map_index.clear();
 
@@ -413,7 +413,7 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 	}
 }
 
-void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx) {
+void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
 	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer },
@@ -510,7 +510,7 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 	}
 }
 
-void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const {
+void VexRenderer::_upload_camera_uniforms(const RenderScene& capture, vex::CommandContext& ctx) const {
 	const auto& transform = capture.get_camera_transform();
 	const auto& projection =
 			_use_reverse_z ? capture.get_camera_projection().create_reverse_z() : capture.get_camera_projection();
@@ -528,7 +528,7 @@ void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::Com
 	ctx.EnqueueDataUpload(_camera_uniform_buffer, bytes);
 }
 
-void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx) {
+void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
 
 	std::vector<GPULight> gpuLights;
@@ -607,8 +607,8 @@ vex::BindlessHandle VexRenderer::_get_texture_handle(
 }
 
 // Compute light view-projection matrix
-Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) const {
-	if (light.type == RenderCapture::Light::Type::Directional) {
+Matrix VexRenderer::_compute_light_view_proj(const RenderScene::Light& light, const RenderScene& capture) const {
+	if (light.type == RenderScene::Light::Type::Directional) {
 		// Orthographic projection covering scene
 		Vector3 sceneCenter = _compute_scene_center(capture);
 		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
@@ -623,7 +623,8 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, 
 				Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, nearFar.first, nearFar.second);
 		return view * proj;
 	}
-	if (light.type == RenderCapture::Light::Type::Spot) {
+
+	if (light.type == RenderScene::Light::Type::Spot) {
 		// Perspective projection
 		Matrix view = Matrix::create_look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
 		float fov = light.spot_angle * 2.0f;
@@ -636,7 +637,7 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, 
 }
 
 // Utility: compute scene center
-Vector3 VexRenderer::_compute_scene_center(const RenderCapture& capture) {
+Vector3 VexRenderer::_compute_scene_center(const RenderScene& capture) {
 	const auto& entities = capture.get_entities();
 	if (entities.size() == 0)
 		return Vector3::zero;
@@ -648,7 +649,7 @@ Vector3 VexRenderer::_compute_scene_center(const RenderCapture& capture) {
 	return sum / static_cast<float>(entities.size());
 }
 
-float VexRenderer::_compute_scene_radius(const RenderCapture& capture, const Vector3& center) {
+float VexRenderer::_compute_scene_radius(const RenderScene& capture, const Vector3& center) {
 	const auto& entities = capture.get_entities();
 	float maxDist = 10.0f; // Minimum radius
 

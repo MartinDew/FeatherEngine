@@ -2,7 +2,7 @@
 
 #include <core/framework/reflection_macros.h>
 #include <core/math/math_defs.h>
-#include <core/rendering/render_capture.h>
+#include <core/rendering/render_scene.h>
 #include <core/rendering/renderer.h>
 #include <array>
 #include <unordered_map>
@@ -59,25 +59,25 @@ class VexRenderer : public Renderer {
 	bool _use_reverse_z;
 
 	// Helper methods
-	void _render_shadow_pass(const RenderCapture& capture, vex::CommandContext& ctx);
-	void _render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx);
-	void _upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const;
-	void _upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx);
+	void _render_shadow_pass(const RenderScene& capture, vex::CommandContext& ctx);
+	void _render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx);
+	void _upload_camera_uniforms(const RenderScene& capture, vex::CommandContext& ctx) const;
+	void _upload_lights_buffer(const RenderScene& capture, vex::CommandContext& ctx);
 	MeshBuffers& _get_or_create_mesh_buffers(const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
 	vex::BindlessHandle _get_texture_handle(
 			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
-	Matrix _compute_light_view_proj(const RenderCapture::Light& light, const RenderCapture& capture) const;
+	Matrix _compute_light_view_proj(const RenderScene::Light& light, const RenderScene& capture) const;
 
 	// Utility methods
-	static Vector3 _compute_scene_center(const RenderCapture& capture);
-	static float _compute_scene_radius(const RenderCapture& capture, const Vector3& center);
+	static Vector3 _compute_scene_center(const RenderScene& capture);
+	static float _compute_scene_radius(const RenderScene& capture, const Vector3& center);
 	static Matrix _compute_normal_matrix(const Matrix& modelMatrix);
 
 	static vex::PlatformWindowHandle _create_vex_window(Window& window);
 
 protected:
-	void _render_scene(RenderCapture capture) override;
+	void _render_scene(RenderScene capture) override;
 	void _on_resize() override;
 
 	static void _bind_members();

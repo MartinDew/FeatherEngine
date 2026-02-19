@@ -77,9 +77,9 @@ struct SimulationTest {
 				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(dt), 0 });
 	}
 
-	RenderCapture generate_render_capture() const {
+	RenderScene generate_render_capture() const {
 		static size_t frame = 0;
-		RenderCapture capture { frame++ };
+		RenderScene capture { frame++ };
 		// Set camera
 		capture.set_camera_transform(camera_transform);
 		capture.set_camera_projection(camera_projection);
@@ -89,7 +89,7 @@ struct SimulationTest {
 
 		// Add all entities to the render capture
 		for (const auto& entity : entities) {
-			capture.add_entity(RenderCapture::EntityRender { .transform = entity.transform,
+			capture.add_entity(RenderScene::EntityRender { .transform = entity.transform,
 					.triangle_mesh = entity.mesh->get_triangle_mesh(),
 					.material = entity.material,
 					.entity_id = 0, // You could add an ID field to Entity if needed
@@ -109,7 +109,7 @@ struct SimulationTest {
 		// 		.intensity = 10.0f,
 		// 		.cast_shadows = true });
 
-		capture.add_light(RenderCapture::Light { .type = RenderCapture::Light::Type::Point,
+		capture.add_light(RenderScene::Light { .type = RenderScene::Light::Type::Point,
 				.position = Vector3 { 1, -0.5f, 0 },
 				.direction = dir,
 				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
