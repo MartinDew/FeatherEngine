@@ -47,7 +47,7 @@ struct SimulationTest {
 		entities.emplace_back(
 				Transform { Vector3 { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
 				std::make_shared<BoxMesh>(), material);
-	entities.emplace_back(
+		entities.emplace_back(
 				Transform { Vector3 { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
 				std::make_shared<BoxMesh>(), material);
 
@@ -102,8 +102,15 @@ struct SimulationTest {
 		dir.normalize();
 
 		// Add a basic directional light
-		capture.add_light(RenderCapture::Light { .type = RenderCapture::Light::Type::Directional,
-				.position = Vector3::zero,
+		// capture.add_light(RenderCapture::Light { .type = RenderCapture::Light::Type::Directional,
+		// 		.position = Vector3::zero,
+		// 		.direction = dir,
+		// 		.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
+		// 		.intensity = 10.0f,
+		// 		.cast_shadows = true });
+
+		capture.add_light(RenderCapture::Light { .type = RenderCapture::Light::Type::Point,
+				.position = Vector3 { 1, -0.5f, 0 },
 				.direction = dir,
 				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
 				.intensity = 10.0f,

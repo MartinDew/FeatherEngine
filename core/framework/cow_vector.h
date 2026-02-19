@@ -78,7 +78,7 @@ private:
 				buf_->data[i].~T();
 			}
 
-			std::free(buf_->data);
+			aligned_free(buf_->data);
 			buf_->data = new_data;
 			buf_->capacity = new_cap;
 		}

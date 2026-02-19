@@ -126,6 +126,7 @@ VexRenderer::VexRenderer()
 			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraUniforms)));
 	_lights_structured_buffer =
 			graphics.CreateBuffer(vex::BufferDesc::CreateGenericBufferDesc("Lights Buffer", sizeof(GPULight)));
+
 	_per_entity_uniform_buffer = graphics.CreateBuffer({
 			.name = "Per-Entity Uniform",
 			.byteSize = sizeof(EntityUniforms),
