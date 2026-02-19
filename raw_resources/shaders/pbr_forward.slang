@@ -150,9 +150,6 @@ float4 PSMain(
         roughness
     );
 
-   //if (true)
-   //     return float4(litColor, 1);
-
     // Add ambient lighting (simple constant for now)
     // TODO: Use environment lighting from RenderCapture
     float3 ambient = baseColor * 0.3;

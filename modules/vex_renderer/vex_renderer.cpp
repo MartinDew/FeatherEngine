@@ -412,7 +412,6 @@ void VexRenderer::_render_shadow_pass(const RenderCapture& capture, vex::Command
 	}
 }
 
-// Forward pass implementation
 void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::CommandContext& ctx) {
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
@@ -510,7 +509,6 @@ void VexRenderer::_render_forward_pass(const RenderCapture& capture, vex::Comman
 	}
 }
 
-// Upload camera uniforms
 void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::CommandContext& ctx) const {
 	const auto& transform = capture.get_camera_transform();
 	const auto& projection =
@@ -529,7 +527,6 @@ void VexRenderer::_upload_camera_uniforms(const RenderCapture& capture, vex::Com
 	ctx.EnqueueDataUpload(_camera_uniform_buffer, bytes);
 }
 
-// Upload lights buffer
 void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
 
@@ -544,6 +541,7 @@ void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::Comma
 		gpuLight.range = light.range;
 		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
 		gpuLight.viewProj = _compute_light_view_proj(light, capture);
+
 		// Shadow map index
 		auto it = _light_to_shadow_map_index.find(static_cast<uint32_t>(i));
 		gpuLight.shadowMapHandle = (it != _light_to_shadow_map_index.end()) ? it->second : vex::GInvalidBindlessHandle;
@@ -558,7 +556,6 @@ void VexRenderer::_upload_lights_buffer(const RenderCapture& capture, vex::Comma
 	}
 }
 
-// Get or create mesh buffers
 VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
 		const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx) {
 	auto it = _mesh_cache.find(mesh);
@@ -616,7 +613,6 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, 
 		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
 
 		Vector3 lightPos = sceneCenter - light.direction; // * (sceneRadius * 2.0f);
-		// lightPos += Vector3(0.0f, 3, 0.0f); // Offset upwards to avoid clipping
 		Matrix view = Matrix::create_look_at(lightPos, sceneCenter, Vector3(0, 1, 0));
 		auto nearFar = std::make_pair(-sceneRadius * 4.0f, sceneRadius * 4.0f);
 		if (_use_reverse_z) {
@@ -624,7 +620,6 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderCapture::Light& light, 
 		}
 		Matrix proj =
 				Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, nearFar.first, nearFar.second);
-		// Matrix::create_perspective_field_of_view(deg_to_rad(90), 16.0f / 9.0f, 0.5f, 8.0f);
 		return view * proj;
 	}
 	if (light.type == RenderCapture::Light::Type::Spot) {
@@ -652,7 +647,6 @@ Vector3 VexRenderer::_compute_scene_center(const RenderCapture& capture) {
 	return sum / static_cast<float>(entities.size());
 }
 
-// Utility: compute scene radius
 float VexRenderer::_compute_scene_radius(const RenderCapture& capture, const Vector3& center) {
 	const auto& entities = capture.get_entities();
 	float maxDist = 10.0f; // Minimum radius
@@ -660,15 +654,12 @@ float VexRenderer::_compute_scene_radius(const RenderCapture& capture, const Vec
 	for (const auto& entity : entities) {
 		float dist = Vector3::distance(center, entity.transform.position);
 		// TODO: Add mesh bounding sphere radius
-		maxDist = std::max(maxDist, dist + 10.0f); // Rough estimate
+		maxDist = std::max(maxDist, dist + 10.0f);
 	}
 	return maxDist;
 }
 
-// Utility: compute normal matrix
 Matrix VexRenderer::_compute_normal_matrix(const Matrix& modelMatrix) {
-	// Normal matrix is inverse-transpose of model matrix
-	// For proper normal transformation with non-uniform scaling
 	Matrix inv = modelMatrix.invert();
 	return inv.transpose();
 }

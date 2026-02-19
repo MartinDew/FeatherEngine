@@ -206,10 +206,23 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Standalone)
 endif ()
 
-add_custom_target(copy_shaders ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/raw_resources/shaders ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/<$CONFIG>/shaders
-        COMMENT "Copying shaders" VERBATIM)
+get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+if(_isMultiConfig)
+    add_custom_target(copy_shaders ALL
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/shaders
+            COMMENT "Copying shaders"
+            VERBATIM)
+else()
+    add_custom_target(copy_shaders ALL
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
+            COMMENT "Copying shaders"
+            VERBATIM)
+endif()
 
 add_dependencies(Editor copy_shaders)
 add_dependencies(Standalone copy_shaders)
