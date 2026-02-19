@@ -2,8 +2,7 @@
 implementing pbr;
 
 import Vex;
-import common.vex_common;
-import common.lighting_common;
+import feather;
 
 
 // Sample shadow map with PCF (Percentage-Closer Filtering)

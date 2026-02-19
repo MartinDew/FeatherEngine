@@ -53,12 +53,14 @@ class VexRenderer : public Renderer {
 	vex::BindlessHandle _default_mr_handle;
 
 	// Shader pipeline states
+	vex::DrawDesc _depth_pre_pass_desc;
 	vex::DrawDesc _pbr_draw_desc;
 	vex::DrawDesc _shadow_draw_desc;
 
 	bool _use_reverse_z;
 
 	// Helper methods
+	void _render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx);
 	void _render_shadow_pass(const RenderScene& capture, vex::CommandContext& ctx);
 	void _render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx);
 	void _upload_camera_uniforms(const RenderScene& capture, vex::CommandContext& ctx) const;

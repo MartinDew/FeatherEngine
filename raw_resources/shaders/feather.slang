@@ -1,3 +1,6 @@
 ﻿module feather;
 
-__include "pbr_forward.slang"
+__include feather.vex_common;
+__include feather.math_utils;
+__include feather.lighting_common;
+__include feather.entities;

@@ -2,9 +2,7 @@
 implementing pbr;
 
 import Vex;
-import common.vex_common;
-import common.math_utils;
-import common.lighting_common;
+import feather;
 
 __include shadow_mapping;
 __include pbr_common;

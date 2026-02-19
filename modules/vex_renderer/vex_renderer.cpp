@@ -196,6 +196,7 @@ VexRenderer::VexRenderer()
 				.compareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
 		},
 	};
+
 	graphics.SetSamplers(samplers);
 
 	// Load and compile shaders
@@ -230,6 +231,27 @@ VexRenderer::VexRenderer()
 		.depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
 		.minDepthBounds = _use_reverse_z ? 1.0f : 0.0f,
 		.maxDepthBounds = _use_reverse_z ? 0.0f : 1.0f };
+
+	// Depth Pre-pass
+	_depth_pre_pass_desc = vex::DrawDesc {
+		.vertexShader = {
+			.path = shader_path / "depth_prepass.slang",
+			.entryPoint = "VSMain",
+			.type = vex::ShaderType::VertexShader,
+			.compiler = ShaderCompilerBackend::Slang,
+		},
+		.pixelShader = {
+			.path = shader_path / "depth_prepass.slang",
+			.entryPoint = "PSMain",
+			.type = vex::ShaderType::PixelShader,
+			.compiler = ShaderCompilerBackend::Slang,
+		},
+		.vertexInputLayout = pbrVertexLayout, // reuse the same layout, position is at offset 0
+		.rasterizerState = {
+			.cullMode = vex::CullMode::Back,
+		},
+		.depthStencilState = depthStencilState,
+	};
 
 	// PBR forward rendering pipeline
 	_pbr_draw_desc = vex::DrawDesc {
@@ -279,6 +301,9 @@ VexRenderer::VexRenderer()
 
 void VexRenderer::_render_scene(const RenderScene capture) {
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
+	// Upload camera uniforms
+	_upload_camera_uniforms(capture, ctx);
+
 	// Check if there are any shadow-casting lights
 	bool hasShadows = false;
 	for (const auto& light : capture.get_lights()) {
@@ -286,6 +311,11 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 			hasShadows = true;
 			break;
 		}
+	}
+
+	{
+		VEX_GPU_SCOPED_EVENT(ctx, "Depth Pre-Pass");
+		_render_depth_pre_pass(capture, ctx);
 	}
 
 	// Shadow pass
@@ -330,6 +360,49 @@ void VexRenderer::_on_resize() {
 	});
 
 	graphics.OnWindowResized(width, height);
+}
+
+void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {
+	// Clear and set up depth target
+	ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
+	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
+	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+
+	// Get the bindless handle for the camera UBO
+	std::array<ResourceBinding, 1> bindings {
+		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
+	};
+
+	auto handles = graphics.GetBindlessHandles(bindings);
+	ctx.BarrierBindings(bindings);
+	ConstantBinding constant_bindings { std::span(handles) };
+
+	const auto& entities = capture.get_entities();
+	for (const auto& entity : entities) {
+		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
+
+		vex::BufferBinding vertexBufferBinding {
+			.buffer = meshBuffers.vertex_buffer,
+			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+		};
+		vex::BufferBinding indexBufferBinding {
+			.buffer = meshBuffers.index_buffer,
+			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+		};
+
+		// No render targets — depth only
+		ctx.DrawIndexed(_depth_pre_pass_desc,
+				{
+						.depthStencil = vex::TextureBinding(depthTexture),
+						.vertexBuffers = { &vertexBufferBinding, 1 },
+						.indexBuffer = indexBufferBinding,
+				},
+				constant_bindings, meshBuffers.index_count);
+	}
+
+	// Barrier so the forward pass reads a fully written depth buffer
+	ctx.Barrier(depthTexture, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
+			vex::RHITextureLayout::ShaderResource);
 }
 
 // Shadow pass implementation
@@ -422,9 +495,6 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
-
-	// Upload camera uniforms
-	_upload_camera_uniforms(capture, ctx);
 
 	// Upload lights buffer
 	_upload_lights_buffer(capture, ctx);

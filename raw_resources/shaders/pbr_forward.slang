@@ -2,34 +2,11 @@
 // Implements physically-based rendering with multiple light types and shadow mapping
 module pbr;
 
+import feather;
 import Vex;
-import common.vex_common;
-import common.math_utils;
-import common.lighting_common;
 __include pbr.pbr_common;
 __include pbr.pbr_lighting;
 // __include pbr.shadow_mapping;
-
-// Camera uniforms
-struct CameraUniforms {
-    float4x4 viewProj;
-    float3 cameraPos;
-    float _padding;
-};
-
-// Per-entity uniforms
-struct EntityUniforms {
-    float4x4 model;
-    float4x4 normalMatrix;      // For transforming normals
-    float4 baseColorFactor;
-    float4 emissiveFactor;
-    float metallicFactor;
-    float roughnessFactor;
-    uint baseColorHandle;
-    uint metallicRoughnessHandle;
-    uint normalHandle;
-    uint emissiveHandle;
-};
 
 struct Uniforms {
 uint camera_handle;

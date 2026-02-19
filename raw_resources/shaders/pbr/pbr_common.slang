@@ -1,8 +1,7 @@
 // PBR BRDF functions - Cook-Torrance microfacet model
 implementing pbr;
 
-import common.vex_common;
-import common.math_utils;
+import feather;
 
 // GGX/Trowbridge-Reitz normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {
