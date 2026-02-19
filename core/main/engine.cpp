@@ -101,14 +101,15 @@ struct SimulationTest {
 		// auto dir = Vector3 { 0.1f, -1.0f, 0.0f };
 		dir.normalize();
 
-		// Add a basic directional light
-		// capture.add_light(RenderCapture::Light { .type = RenderCapture::Light::Type::Directional,
-		// 		.position = Vector3::zero,
-		// 		.direction = dir,
-		// 		.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
-		// 		.intensity = 10.0f,
-		// 		.cast_shadows = true });
+		// Basic directional light
+		capture.add_light(RenderScene::Light { .type = RenderScene::Light::Type::Directional,
+				.position = Vector3::zero,
+				.direction = dir,
+				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
+				.intensity = 10.0f,
+				.cast_shadows = true });
 
+		// Basic point light
 		capture.add_light(RenderScene::Light { .type = RenderScene::Light::Type::Point,
 				.position = Vector3 { 1, -0.5f, 0 },
 				.direction = dir,

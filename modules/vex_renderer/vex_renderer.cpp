@@ -553,6 +553,15 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 
 	if (!gpuLights.empty()) {
 		auto bytes = std::as_bytes(std::span(gpuLights));
+
+		if (_lights_structured_buffer.desc.byteSize != bytes.size()) {
+			auto old_buffer = _lights_structured_buffer;
+			_lights_structured_buffer =
+					graphics.CreateBuffer(vex::BufferDesc::CreateGenericBufferDesc("Lights Buffer", bytes.size()));
+
+			graphics.DestroyBuffer(old_buffer);
+		}
+
 		ctx.EnqueueDataUpload(_lights_structured_buffer, bytes);
 	}
 }
