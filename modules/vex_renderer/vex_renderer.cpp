@@ -98,7 +98,8 @@ VexRenderer::VexRenderer()
 						  .width = static_cast<uint32_t>(Engine::get().get_main_window().properties.width),
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
-				  .enableGPUBasedValidation = !VEX_SHIPPING })
+				  .enableGPUBasedValidation = !VEX_SHIPPING,
+				  .shaderCompilerSettings = ShaderCompilerSettings { .enableShaderDebugging = false } })
 		, _use_reverse_z { false } {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
@@ -111,7 +112,7 @@ VexRenderer::VexRenderer()
 			.format = vex::TextureFormat::D32_FLOAT,
 			.width = width,
 			.height = height,
-			.usage = vex::TextureUsage::DepthStencil,
+			.usage = vex::TextureUsage::DepthStencil | TextureUsage::ShaderRead,
 			.clearValue =
 					vex::TextureClearValue {
 							.clearAspect = vex::TextureAspect::Depth,
@@ -351,7 +352,7 @@ void VexRenderer::_on_resize() {
 			.format = vex::TextureFormat::D32_FLOAT,
 			.width = static_cast<uint32_t>(width),
 			.height = static_cast<uint32_t>(height),
-			.usage = vex::TextureUsage::DepthStencil,
+			.usage = vex::TextureUsage::DepthStencil | TextureUsage::ShaderRead,
 			.clearValue =
 					vex::TextureClearValue {
 							.clearAspect = vex::TextureAspect::Depth,
