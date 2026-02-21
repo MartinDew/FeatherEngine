@@ -8,7 +8,7 @@
 #ifdef _MSC_VER
 #define aligned_alloc(align, size) _aligned_malloc(size, align)
 #define aligned_free _aligned_free
-#else
+#elifdef __linux__
 #define aligned_free free
 #endif
 

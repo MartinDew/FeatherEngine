@@ -3,8 +3,10 @@
 #include <atomic>
 
 inline void Pause() {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__SSE2__)
 	_mm_pause();
+#elifdef __arm__
+	__yield();
 #else
 	__builtin_ia32_pause();
 #endif
