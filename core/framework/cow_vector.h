@@ -1,4 +1,4 @@
-#include <malloc.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <initializer_list>
@@ -9,6 +9,7 @@
 #define aligned_alloc(align, size) _aligned_malloc(size, align)
 #define aligned_free _aligned_free
 #elifdef __linux__
+#include <malloc.h>
 #define aligned_free free
 #endif
 

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __SSE2__
+#include <xmmintrin.h>
+#endif
+
 #include <atomic>
 
 inline void Pause() {
