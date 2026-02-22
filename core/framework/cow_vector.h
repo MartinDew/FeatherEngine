@@ -11,11 +11,13 @@
 #elifdef __linux__
 #include <malloc.h>
 #define aligned_free free
+#else
+#define aligned_free free
 #endif
 
 namespace feather {
 
-template <typename T>
+template <class T>
 class CowVector {
 private:
 	struct buffer {

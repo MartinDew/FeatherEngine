@@ -11,6 +11,10 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if (${APPLE})
+    add_compile_options("-fexperimental-library")
+endif()
+
 # Set default build type to Release if not specified
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)

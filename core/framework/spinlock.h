@@ -4,12 +4,16 @@
 #include <xmmintrin.h>
 #endif
 
+#if defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
+#include <arm_acle.h>
+#endif
+
 #include <atomic>
 
 inline void Pause() {
 #if defined(_MSC_VER) || defined(__SSE2__)
 	_mm_pause();
-#elifdef __arm__
+#elif defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
 	__yield();
 #else
 	__builtin_ia32_pause();
