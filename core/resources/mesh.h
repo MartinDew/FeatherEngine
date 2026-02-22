@@ -1,6 +1,6 @@
 #pragma once
 
-#include "framework/high_level_array.h"
+#include "framework/variant_array.h"
 #include "math/math_defs.h"
 #include "resource.h"
 #include <core/framework/reflection_macros.h>
@@ -35,11 +35,11 @@ protected:
 public:
 	RawMesh() = default;
 
-	void add_vertices(const HighLevelArray vertices);
-	void add_indices(const HighLevelArray indices);
+	void add_vertices(const VariantArray vertices);
+	void add_indices(const VariantArray indices);
 
-	HighLevelArray get_vertices() const;
-	HighLevelArray get_indices() const;
+	VariantArray get_vertices() const;
+	VariantArray get_indices() const;
 };
 
 class BoxMesh : public Mesh {

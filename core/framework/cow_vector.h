@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <cstdlib>
 #include <initializer_list>

@@ -8,7 +8,7 @@ namespace feather {
 
 class Variant;
 
-class HighLevelArray {
+class VariantArray {
 	class Buffer;
 	std::unique_ptr<Buffer> _buffer;
 
@@ -23,14 +23,14 @@ public:
 	class const_iterator;
 
 	// Constructors
-	HighLevelArray();
-	explicit HighLevelArray(size_type count);
-	HighLevelArray(size_type count, const Variant& value);
-	HighLevelArray(std::initializer_list<Variant> ilist);
+	VariantArray();
+	explicit VariantArray(size_type count);
+	VariantArray(size_type count, const Variant& value);
+	VariantArray(std::initializer_list<Variant> ilist);
 
 	// Constructor from iterator range (type-erased)
 	template <class TIterator>
-	HighLevelArray(TIterator first, TIterator last) : HighLevelArray() {
+	VariantArray(TIterator first, TIterator last) : VariantArray() {
 		reserve(std::distance(first, last));
 		for (auto it = first; it != last; ++it) {
 			push_back(*it);
@@ -38,13 +38,13 @@ public:
 	}
 
 	// Copy and move
-	HighLevelArray(const HighLevelArray& other);
-	HighLevelArray(HighLevelArray&& other) noexcept;
-	HighLevelArray& operator=(const HighLevelArray& other);
-	HighLevelArray& operator=(HighLevelArray&& other) noexcept;
-	HighLevelArray& operator=(std::initializer_list<Variant> ilist);
+	VariantArray(const VariantArray& other);
+	VariantArray(VariantArray&& other) noexcept;
+	VariantArray& operator=(const VariantArray& other);
+	VariantArray& operator=(VariantArray&& other) noexcept;
+	VariantArray& operator=(std::initializer_list<Variant> ilist);
 
-	~HighLevelArray();
+	~VariantArray();
 
 	// Element access
 	Variant& at(size_type pos);
@@ -88,14 +88,14 @@ public:
 	size_t use_count() const noexcept;
 
 	// Comparison
-	bool operator==(const HighLevelArray& other) const;
-	bool operator!=(const HighLevelArray& other) const;
+	bool operator==(const VariantArray& other) const;
+	bool operator!=(const VariantArray& other) const;
 };
 
 // Iterator classes
-class HighLevelArray::iterator {
+class VariantArray::iterator {
 	Variant* ptr_;
-	friend class HighLevelArray;
+	friend class VariantArray;
 
 public:
 	using iterator_category = std::random_access_iterator_tag;
@@ -127,9 +127,9 @@ public:
 	bool operator>=(const iterator& other) const;
 };
 
-class HighLevelArray::const_iterator {
+class VariantArray::const_iterator {
 	const Variant* ptr_;
-	friend class HighLevelArray;
+	friend class VariantArray;
 
 public:
 	using iterator_category = std::random_access_iterator_tag;

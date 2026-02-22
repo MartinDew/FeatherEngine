@@ -23,15 +23,6 @@ bool Texture::load_from_file() {
 		return false;
 	}
 
-	// TODO: Implement actual image loading using stb_image or DirectXTex
-	// For now, return false to indicate not loaded
-	// When implemented, this should:
-	// 1. Load image from _file_path
-	// 2. Decode pixel data
-	// 3. Store in _pixel_data
-	// 4. Set _width, _height, _format
-	// 5. Set _is_loaded = true
-
 	_is_loaded = false;
 	return false;
 }

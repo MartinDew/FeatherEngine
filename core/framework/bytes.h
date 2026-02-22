@@ -6,7 +6,6 @@
 
 using Byte = std::byte;
 
-// Convert a reference to object into a read-only Byte span
 template <class T>
 std::span<const Byte, sizeof(T)> to_bytes(const T& obj) {
 	static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable for Byte conversion");
@@ -14,7 +13,6 @@ std::span<const Byte, sizeof(T)> to_bytes(const T& obj) {
 	return std::span<const Byte, sizeof(T)>(reinterpret_cast<const Byte*>(&obj), sizeof(T));
 }
 
-// Mutable version for non-const references
 template <class T>
 std::span<Byte, sizeof(T)> to_bytes(T& obj) {
 	static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable for Byte conversion");
@@ -22,7 +20,6 @@ std::span<Byte, sizeof(T)> to_bytes(T& obj) {
 	return std::span<Byte, sizeof(T)>(reinterpret_cast<Byte*>(&obj), sizeof(T));
 }
 
-// Pointer overloads with null checking
 template <class T>
 std::span<const Byte, sizeof(T)> to_bytes(const T* ptr) {
 	static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable for Byte conversion");

@@ -73,8 +73,6 @@ float ComputeShadowMapPCF(GPULight light, float3 worldPos, float3 N) {
 			}
 
 			return total / pow(PCFKernelSize, 2.0f);
-
-			//shadow = shadowMap.SampleCmpLevelZero(ShadowMapSampler, projUV.xy, projCoords.z - 0.0001); // sharp shadows
 		}
 	}
 	return 1.0;

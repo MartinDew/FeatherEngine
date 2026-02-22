@@ -1,7 +1,7 @@
 #pragma once
 
 #include "container_utils.h"
-#include "high_level_array.h"
+#include "variant_array.h"
 
 #include "reflected.h"
 #include "rendering/triangle_mesh.h"
@@ -60,7 +60,7 @@ consteval VariantType get_variant_type() {
 	else if constexpr (std::is_same_v<T, std::string>) {
 		return VariantType::STRING;
 	}
-	else if constexpr (std::is_same_v<T, HighLevelArray> || std::is_array_v<T> || is_contiguous_container<T>) {
+	else if constexpr (std::is_same_v<T, VariantArray> || std::is_array_v<T> || is_contiguous_container<T>) {
 		return VariantType::ARRAY;
 	}
 	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
@@ -84,7 +84,7 @@ class ClassInfo;
 
 class Variant {
 	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, Color,
-			std::string, HighLevelArray, Reflected*>;
+			std::string, VariantArray, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
@@ -124,10 +124,10 @@ public:
 			_data = std::move(value);
 		}
 		else if constexpr (type == VariantType::ARRAY) {
-			if constexpr (std::is_same_v<T, HighLevelArray>)
+			if constexpr (std::is_same_v<T, VariantArray>)
 				_data = std::move(value);
 			else {
-				_data = HighLevelArray { value.begin(), value.end() };
+				_data = VariantArray { value.begin(), value.end() };
 			}
 		}
 		else if constexpr (type == VariantType::OBJECT) {

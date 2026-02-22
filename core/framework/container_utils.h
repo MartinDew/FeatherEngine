@@ -17,18 +17,16 @@ void swap_remove(std::vector<T, U>& vec, size_t index) {
 }
 
 // Type trait to check if a type is a container
-template <typename T>
+template <class T>
 concept is_container = std::ranges::range<T> && requires { typename T::value_type; };
 
-template <typename T>
+template <class T>
 concept is_contiguous_container = is_container<T> && std::contiguous_iterator<std::ranges::iterator_t<T>>;
 
-template <typename T>
+template <class T>
 concept is_associative_container = is_container<T> && requires(T a) {
 	typename T::key_type;
-	{
-		a.find(std::declval<typename T::key_type>())
-	} -> std::sentinel_for<std::ranges::iterator_t<T>>;
+	{ a.find(std::declval<typename T::key_type>()) } -> std::sentinel_for<std::ranges::iterator_t<T>>;
 };
 
 } //namespace feather
