@@ -99,7 +99,7 @@ VexRenderer::VexRenderer()
 						  .height = static_cast<uint32_t>(Engine::get().get_main_window().properties.height) },
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
 				  .enableGPUBasedValidation = !VEX_SHIPPING,
-				  .shaderCompilerSettings = ShaderCompilerSettings { .enableShaderDebugging = false } })
+		  })
 		, _use_reverse_z { false } {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
