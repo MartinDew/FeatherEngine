@@ -4,7 +4,7 @@
 #include "variant_array.h"
 
 #include "reflected.h"
-#include "rendering/triangle_mesh.h"
+#include "rendering/mesh_data.h"
 #include <math/math_defs.h>
 
 #include <expected>

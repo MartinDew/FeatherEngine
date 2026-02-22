@@ -1,7 +1,7 @@
 #pragma once
 
+#include "mesh_data.h"
 #include "render_scene.h"
-#include "triangle_mesh.h"
 
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>

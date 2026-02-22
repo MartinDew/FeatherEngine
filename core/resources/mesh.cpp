@@ -3,7 +3,7 @@
 #include "framework/container_utils.h"
 #include "framework/variant_array.h"
 #include "math/math_defs.h"
-#include "rendering/triangle_mesh.h"
+#include "rendering/mesh_data.h"
 #include <core/main/class_db.h>
 #include <framework/reflection_macros.h>
 #include <set>
@@ -11,7 +11,7 @@
 
 namespace feather {
 
-Mesh::Mesh(const std::shared_ptr<TriangleMesh>& triangle_mesh) : _triangle_mesh(triangle_mesh) {}
+Mesh::Mesh(const std::shared_ptr<MeshData>& triangle_mesh) : _triangle_mesh(triangle_mesh) {}
 
 void Mesh::_bind_members() {}
 
@@ -101,8 +101,8 @@ constexpr std::array<uint32_t, 36> cube_indices {
 	20, 22, 23 // right
 };
 
-static std::shared_ptr<TriangleMesh> box_mesh =
-		std::make_shared<TriangleMesh>(std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
+static std::shared_ptr<MeshData> box_mesh =
+		std::make_shared<MeshData>(std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
 				std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() });
 
 BoxMesh::BoxMesh() : Super(box_mesh) {}

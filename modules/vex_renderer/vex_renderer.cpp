@@ -629,7 +629,7 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 }
 
 VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
-		const std::shared_ptr<TriangleMesh>& mesh, vex::CommandContext& ctx) {
+		const std::shared_ptr<MeshData>& mesh, vex::CommandContext& ctx) {
 	auto it = _mesh_cache.find(mesh);
 	if (it != _mesh_cache.end()) {
 		return it->second;

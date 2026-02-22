@@ -5,7 +5,7 @@
 #include "main/class_db.h"
 #include "main/engine.h"
 #include "main/window.h"
-#include "rendering/triangle_mesh.h"
+#include "rendering/mesh_data.h"
 
 namespace feather {
 

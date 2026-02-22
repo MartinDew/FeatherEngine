@@ -3,19 +3,19 @@
 #include "framework/cow_vector.h"
 #include "math/projection.h"
 #include "math/transform.h"
+#include "mesh_data.h"
 #include "resources/material.h"
-#include "triangle_mesh.h"
 
 namespace feather {
 
-class TriangleMesh;
+class MeshData;
 class Material;
 
 class RenderScene {
 public:
 	struct EntityRender {
 		Transform transform;
-		const std::shared_ptr<TriangleMesh> triangle_mesh;
+		const std::shared_ptr<MeshData> triangle_mesh;
 		const std::shared_ptr<Material> material;
 		uint32_t entity_id = 0; // For debugging/identification
 		bool cast_shadows = true;
