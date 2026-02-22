@@ -319,13 +319,11 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 		_render_depth_pre_pass(capture, ctx);
 	}
 
-	// Shadow pass
 	if (hasShadows) {
 		VEX_GPU_SCOPED_EVENT(ctx, "Shadow Pass");
 		_render_shadow_pass(capture, ctx);
 	}
 
-	// Forward pass
 	{
 		VEX_GPU_SCOPED_EVENT(ctx, "Forward Pass");
 		_render_forward_pass(capture, ctx);
@@ -433,8 +431,8 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 			}));
 		}
 
-		vex::Texture& shadowMap = _shadow_maps[i];
-		auto shadow_map_binding = vex::TextureBinding(shadowMap, TextureBindingUsage::ShaderRead);
+		vex::Texture& shadow_map = _shadow_maps[i];
+		auto shadow_map_binding = vex::TextureBinding(shadow_map, TextureBindingUsage::ShaderRead);
 
 		_light_to_shadow_map_index[static_cast<uint32_t>(i)] = graphics.GetBindlessHandle(shadow_map_binding);
 
@@ -442,7 +440,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 		const Matrix lightVP = _compute_light_view_proj(light, capture);
 
 		// Set render target (depth-only)
-		ctx.ClearTexture(vex::TextureBinding { .texture = shadowMap });
+		ctx.ClearTexture(vex::TextureBinding { .texture = shadow_map });
 		ctx.SetViewport(0, 0, w, h);
 		ctx.SetScissor(0, 0, w, h);
 
@@ -471,7 +469,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 
 			ctx.DrawIndexed(_shadow_draw_desc,
 					{
-							.depthStencil = TextureBinding { shadowMap },
+							.depthStencil = TextureBinding { shadow_map },
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
@@ -479,7 +477,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 		}
 
 		// Transition shadow map to shader resource
-		ctx.Barrier(shadowMap, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
+		ctx.Barrier(shadow_map, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
 				vex::RHITextureLayout::ShaderResource);
 	}
 }
@@ -489,24 +487,17 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 	auto backBuffer = graphics.GetCurrentPresentTexture();
 	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer },
 			vex::TextureClearValue { .clearAspect = vex::TextureAspect::Color, .color = { 0.2f, 0.2f, 0.2f, 1.0f } });
-	// ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
 
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 
-	// ctx.Barrier(depthTexture, vex::RHIBarrierSync::DepthStencil, vex::RHIBarrierAccess::DepthStencilReadWrite,
-	// 		vex::RHITextureLayout::DepthStencilWrite);
-
-	// Upload lights buffer
 	_upload_lights_buffer(capture, ctx);
 
 	// Render entities
 	const auto& entities = capture.get_entities();
 	for (const auto& entity : entities) {
-		// Get mesh buffers
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
 
-		// Get material (try to cast to PBRMaterial)
 		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material.get());
 		if (!pbrMat) {
 			static PBRMaterial defaultMat;
@@ -523,18 +514,18 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 		vex::BindlessHandle emissiveHandle = _get_texture_handle(pbrMat->get_emissive_texture().get(), ctx, { 0 });
 
 		// Build per-entity uniforms
-		EntityUniforms entityUniforms;
+		EntityUniforms entity_uniforms;
 
-		entityUniforms.model = entity.transform.to_matrix_with_scale();
-		entityUniforms.normalMatrix = _compute_normal_matrix(entityUniforms.model);
-		entityUniforms.baseColorFactor = pbrMat->get_base_color_factor();
-		entityUniforms.metallicFactor = pbrMat->get_metallic_factor();
-		entityUniforms.roughnessFactor = pbrMat->get_roughness_factor();
-		entityUniforms.emissiveFactor = pbrMat->get_emissive_factor();
-		entityUniforms.baseColorHandle = baseColorHandle;
-		entityUniforms.metallicRoughnessHandle = metallicRoughnessHandle;
-		entityUniforms.normalHandle = normalHandle;
-		entityUniforms.emissiveHandle = emissiveHandle;
+		entity_uniforms.model = entity.transform.to_matrix_with_scale();
+		entity_uniforms.normalMatrix = _compute_normal_matrix(entity_uniforms.model);
+		entity_uniforms.baseColorFactor = pbrMat->get_base_color_factor();
+		entity_uniforms.metallicFactor = pbrMat->get_metallic_factor();
+		entity_uniforms.roughnessFactor = pbrMat->get_roughness_factor();
+		entity_uniforms.emissiveFactor = pbrMat->get_emissive_factor();
+		entity_uniforms.baseColorHandle = baseColorHandle;
+		entity_uniforms.metallicRoughnessHandle = metallicRoughnessHandle;
+		entity_uniforms.normalHandle = normalHandle;
+		entity_uniforms.emissiveHandle = emissiveHandle;
 
 		std::vector<vex::TextureBinding> shadowMapBindings;
 		for (auto& shadowMap : _shadow_maps) {
@@ -554,7 +545,7 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		std::array renderTargets = { vex::TextureBinding { .texture = backBuffer } };
 
-		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entityUniforms));
+		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entity_uniforms));
 
 		std::array<ResourceBinding, 3> bindings {
 			BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
@@ -661,7 +652,6 @@ VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
 	return _mesh_cache[mesh];
 }
 
-// Get or create texture
 VexRenderer::TextureGPUData& VexRenderer::_get_or_create_texture(const Texture* texture, vex::CommandContext& ctx) {
 	auto it = _texture_cache.find(texture);
 	if (it != _texture_cache.end()) {
@@ -675,7 +665,6 @@ VexRenderer::TextureGPUData& VexRenderer::_get_or_create_texture(const Texture* 
 	return _texture_cache[texture];
 }
 
-// Get texture handle with fallback to default
 vex::BindlessHandle VexRenderer::_get_texture_handle(
 		const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle) {
 	if (!texture) {
@@ -686,10 +675,8 @@ vex::BindlessHandle VexRenderer::_get_texture_handle(
 	return gpuData.bindless_handle;
 }
 
-// Compute light view-projection matrix
 Matrix VexRenderer::_compute_light_view_proj(const RenderScene::Light& light, const RenderScene& capture) const {
 	if (light.type == RenderScene::Light::Type::Directional) {
-		// Orthographic projection covering scene
 		Vector3 sceneCenter = _compute_scene_center(capture);
 		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
 
@@ -705,7 +692,6 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderScene::Light& light, co
 	}
 
 	if (light.type == RenderScene::Light::Type::Spot) {
-		// Perspective projection
 		Matrix view = Matrix::create_look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
 		float fov = light.spot_angle * 2.0f;
 		Matrix proj = Matrix::create_perspective_field_of_view(deg_to_rad(fov), 1.0f, 0.1f, light.range);
@@ -716,7 +702,6 @@ Matrix VexRenderer::_compute_light_view_proj(const RenderScene::Light& light, co
 	return Matrix::identity;
 }
 
-// Utility: compute scene center
 Vector3 VexRenderer::_compute_scene_center(const RenderScene& capture) {
 	const auto& entities = capture.get_entities();
 	if (entities.size() == 0)
@@ -731,7 +716,7 @@ Vector3 VexRenderer::_compute_scene_center(const RenderScene& capture) {
 
 float VexRenderer::_compute_scene_radius(const RenderScene& capture, const Vector3& center) {
 	const auto& entities = capture.get_entities();
-	float maxDist = 10.0f; // Minimum radius
+	float maxDist = 10.0f;
 
 	for (const auto& entity : entities) {
 		float dist = Vector3::distance(center, entity.transform.position);
