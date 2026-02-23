@@ -120,18 +120,14 @@ else ()
     #    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
     #    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
 
-    if (${STATIC_CPP})
+    if (STATIC_CPP AND LINUX)
         # For a specific executable target
 
-        if (NOT ${USE_LLVM})
-            target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
-            target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
-        else()
+        target_link_libraries(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
+        target_link_libraries(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
+        if (USE_LLVM)
             set_target_properties(Editor PROPERTIES LINK_SEARCH_START_STATIC ON)
             set_target_properties(Standalone PROPERTIES LINK_SEARCH_START_STATIC ON)
-
-            target_link_options(Standalone PRIVATE "-static-libgcc" "-static")
-            target_link_options(Editor PRIVATE "-static-libgcc" "-static")
 
             set_target_properties(Editor PROPERTIES LINK_SEARCH_END_STATIC ON)
             set_target_properties(Standalone PROPERTIES LINK_SEARCH_END_STATIC ON)

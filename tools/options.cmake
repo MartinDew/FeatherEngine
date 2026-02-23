@@ -2,25 +2,23 @@
 option(USE_LTO "USE_LTO" OFF)
 if (NOT APPLE)
     option(STATIC_CPP "Wether to use static linking with the std lib" OFF)
-else()
-    set(STATIC_CPP OFF)
-endif ()
+endif()
 
 option(STATIC_DEPS "STATIC_DEPS" ON)
 
-if (${CMAKE_BUILD_TYPE} MATCHES "Release")
+if (CMAKE_BUILD_TYPE MATCHES "Release")
     option(PRODUCTION "Sets multiple flags for production env" ON)
 else()
     option(PRODUCTION "Sets multiple flags for production env" OFF)
 endif()
 
-if (${PRODUCTION})
+if (PRODUCTION)
     set(USE_LTO ON)
     set(STATIC_CPP ON)
     set(STATIC_DEPS ON)
 endif()
 
-if (${STATIC_DEPS})
+if (STATIC_DEPS)
     set(FEATHER_BUILD_TYPE STATIC CACHE INTERNAL "Build type symbol for libraries")
     set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build shared libraries")
 else ()
@@ -28,7 +26,7 @@ else ()
     set(BUILD_SHARED_LIBS ON CACHE INTERNAL "Build shared libraries")
 endif ()
 
-if (${STATIC_CPP})
+if (STATIC_CPP)
     if (MSVC)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     elseif(LINUX)
@@ -41,13 +39,13 @@ endif()
 if (NOT WIN32)
     option(USE_MINGW "USE_MINGW" OFF)
 
-    if (${USE_MINGW})
+    if (USE_MINGW)
         set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/tools/toolchain-mingw64.cmake" CACHE STRING "Toolchain file for MinGW-w64 cross-compilation")
     endif ()
 endif ()
 
 option(USE_ANDROID "USE_ANDROID" OFF)
-if (${USE_ANDROID})
+if (USE_ANDROID)
     # get ANDROID_NDK_HOME from environment variable
     if (NOT DEFINED ENV{ANDROID_NDK_HOME})
         message(FATAL_ERROR "ANDROID_NDK_HOME environment variable not set")
@@ -60,7 +58,7 @@ endif ()
 
 option(USE_LLVM "USE_LLVM" OFF)
 
-if(${USE_LLVM})
+if(USE_LLVM)
     # Check if we're using Visual Studio generator with toolset support
     if(CMAKE_GENERATOR MATCHES "Visual Studio" AND WIN32)
         # For Visual Studio generators, use toolset instead of toolchain file
