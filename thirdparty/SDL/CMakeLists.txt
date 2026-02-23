@@ -16,7 +16,7 @@ endif()
 
 
 # if release build then use static linking
-IF (${STATIC_CPP})
+IF (${STATIC_DEPS})
     set(SDL_SHARED OFF CACHE BOOL "Use shared SDL library" FORCE)
     set(SDL_STATIC ON CACHE BOOL "Use shared SDL library" FORCE)
 ELSE()

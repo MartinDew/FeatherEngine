@@ -255,7 +255,7 @@ if(NOT WIN32)
 endif()
 
 # Advanced optimization options
-option(LLVM_ENABLE_LTO "Enable Link Time Optimization" OFF)
+option(LLVM_ENABLE_LTO "Enable Link Time Optimization" ${USE_LTO})
 option(LLVM_ENABLE_PGO "Enable Profile Guided Optimization" OFF)
 option(LLVM_USE_LIBCXX "Use LLVM's libc++ standard library" OFF)
 option(LLVM_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers in Debug builds" OFF)

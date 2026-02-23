@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 
+# Configuration types for multi-config generators
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Development" CACHE STRING "" FORCE)
+# Set default build type to Release if not specified
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif ()
 include(tools/options.cmake)
 
 project(feather VERSION 1.0.0 LANGUAGES CXX)
@@ -15,15 +21,9 @@ if (${APPLE})
     add_compile_options("-fexperimental-library")
 endif()
 
-# Set default build type to Release if not specified
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif ()
+
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Configuration types for multi-config generators
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Development" CACHE STRING "" FORCE)
 
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -121,6 +121,12 @@ else ()
 
     #    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
     #    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+
+    if (${STATIC_CPP})
+        # For a specific executable target
+#        target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
+#        target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
+    endif()
 endif ()
 
 add_subdirectory(modules)
