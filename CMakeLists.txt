@@ -21,8 +21,6 @@ if (${APPLE})
     add_compile_options("-fexperimental-library")
 endif()
 
-
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Output directories
@@ -124,8 +122,20 @@ else ()
 
     if (${STATIC_CPP})
         # For a specific executable target
-#        target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
-#        target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
+
+        if (NOT ${USE_LLVM})
+            target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
+            target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
+        else()
+            set_target_properties(Editor PROPERTIES LINK_SEARCH_START_STATIC ON)
+            set_target_properties(Standalone PROPERTIES LINK_SEARCH_START_STATIC ON)
+
+            target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++" "-static")
+            target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++" "-static")
+
+            set_target_properties(Editor PROPERTIES LINK_SEARCH_END_STATIC ON)
+            set_target_properties(Standalone PROPERTIES LINK_SEARCH_END_STATIC ON)
+        endif ()
     endif()
 endif ()
 
@@ -137,6 +147,11 @@ if (${enable_vex_renderer})
 endif ()
 
 get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+file(GLOB_RECURSE Resources CONFIGURE "raw_resources/**.slang")
+
+set_target_properties(Editor PROPERTIES RESOURCE ${Resources})
+set_target_properties(Standalone PROPERTIES RESOURCE ${Resources})
 
 if(_isMultiConfig)
     add_custom_target(copy_shaders ALL

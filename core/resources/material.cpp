@@ -4,7 +4,6 @@
 #include "texture.h"
 #include <framework/variant.h>
 #include <main/class_db.h>
-#include <raw_resources/shaders/placeholder_mat.slang.gen.h>
 
 namespace feather {
 
