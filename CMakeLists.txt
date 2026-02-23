@@ -130,8 +130,8 @@ else ()
             set_target_properties(Editor PROPERTIES LINK_SEARCH_START_STATIC ON)
             set_target_properties(Standalone PROPERTIES LINK_SEARCH_START_STATIC ON)
 
-            target_link_options(Standalone PRIVATE "-static-libgcc" "-static-libstdc++" "-static")
-            target_link_options(Editor PRIVATE "-static-libgcc" "-static-libstdc++" "-static")
+            target_link_options(Standalone PRIVATE "-static-libgcc" "-static")
+            target_link_options(Editor PRIVATE "-static-libgcc" "-static")
 
             set_target_properties(Editor PROPERTIES LINK_SEARCH_END_STATIC ON)
             set_target_properties(Standalone PROPERTIES LINK_SEARCH_END_STATIC ON)
@@ -147,11 +147,6 @@ if (${enable_vex_renderer})
 endif ()
 
 get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-
-file(GLOB_RECURSE Resources CONFIGURE "raw_resources/**.slang")
-
-set_target_properties(Editor PROPERTIES RESOURCE ${Resources})
-set_target_properties(Standalone PROPERTIES RESOURCE ${Resources})
 
 if(_isMultiConfig)
     add_custom_target(copy_shaders ALL
