@@ -1,7 +1,7 @@
 # General Setup Options
 option(USE_LTO "USE_LTO" OFF)
 if (NOT APPLE)
-    option(STATIC_CPP "Wether to use static linking with the std lib" OFF)
+    option(STATIC_CPP "Wether to use static linking with the std lib" ON)
 endif()
 
 option(STATIC_DEPS "STATIC_DEPS" ON)

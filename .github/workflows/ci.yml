@@ -29,11 +29,6 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '4.1.x'
-
-      - name: Setup GCC 14
-        uses: egor-tensin/setup-gcc@v1
-        with:
-          version: 14 # Specify the exact version
       
       - name: Verify GCC installation
         run: g++ --version
@@ -63,7 +58,7 @@ jobs:
       - name: Configure CMake
         run: |
           cmake --version
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON
+          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON -DUSE_LIBCXX=ON
 
       - name: Build Editor
         run: |
