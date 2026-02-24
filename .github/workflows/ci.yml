@@ -60,17 +60,6 @@ jobs:
           vulkan-use-cache: true
           vulkan-query-version: latest
 
-      - name: Cache CMake configuration
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/CMakeCache.txt
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/CMakeFiles
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/*.cmake
-          key: linux-cmake-${{ matrix.config }}-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
-          restore-keys: |
-            linux-cmake-${{ matrix.config }}-
-
       - name: Configure CMake
         run: |
           cmake --version
