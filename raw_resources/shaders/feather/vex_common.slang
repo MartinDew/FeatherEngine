@@ -6,7 +6,7 @@ import Vex;
 // Bindless resource access (using Vex's bindless system)
 public Texture2D<float4> GetBindlessTexture2D(uint handle) { return GetBindlessResource<Texture2D<float4>>(handle); }
 
-// Samplers (defined by Vex)
+// Samplers
 public SamplerState LinearSampler;
 public SamplerState PointSampler;
 public SamplerComparisonState ShadowMapSampler;

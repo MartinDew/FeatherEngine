@@ -147,8 +147,7 @@ VexRenderer::VexRenderer()
 				.usage = vex::TextureUsage::ShaderRead });
 		std::span bytes = to_bytes(whitePixel);
 		ctx.EnqueueDataUpload(_default_white_texture, bytes, vex::TextureRegion::SingleMip(0));
-		ctx.Barrier(_default_white_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
-				vex::RHITextureLayout::ShaderResource);
+		ctx.BarrierBinding({ _default_white_texture, TextureBindingUsage::ShaderRead, true });
 		_default_white_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_white_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -163,8 +162,7 @@ VexRenderer::VexRenderer()
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
 		ctx.EnqueueDataUpload(_default_normal_texture, to_bytes(normalPixel), vex::TextureRegion::SingleMip(0));
-		ctx.Barrier(_default_normal_texture, vex::RHIBarrierSync::PixelShader, vex::RHIBarrierAccess::ShaderRead,
-				vex::RHITextureLayout::ShaderResource);
+		ctx.BarrierBinding(TextureBinding { _default_normal_texture, TextureBindingUsage::ShaderRead, true });
 		_default_normal_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_normal_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -179,8 +177,8 @@ VexRenderer::VexRenderer()
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
 		ctx.EnqueueDataUpload(_default_metallic_roughness_texture, to_bytes(mrPixel), vex::TextureRegion::SingleMip(0));
-		ctx.Barrier(_default_metallic_roughness_texture, vex::RHIBarrierSync::PixelShader,
-				vex::RHIBarrierAccess::ShaderRead, vex::RHITextureLayout::ShaderResource);
+		ctx.BarrierBinding(
+				TextureBinding { _default_metallic_roughness_texture, TextureBindingUsage::ShaderRead, true });
 		_default_mr_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_metallic_roughness_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -239,18 +237,16 @@ VexRenderer::VexRenderer()
 			.path = shader_path / "depth_prepass.slang",
 			.entryPoint = "Vertex",
 			.type = vex::ShaderType::VertexShader,
-			.compiler = ShaderCompilerBackend::Slang,
+			.compiler = ShaderCompilerBackend::Slang, // Specified because of when we will support embedded shaders
 		},
 		.pixelShader = {
 			.path = shader_path / "depth_prepass.slang",
 			.entryPoint = "Pixel",
 			.type = vex::ShaderType::PixelShader,
-			.compiler = ShaderCompilerBackend::Slang,
+			.compiler = ShaderCompilerBackend::Slang, // Specified because of when we will support embedded shaders
 		},
 		.vertexInputLayout = pbrVertexLayout, // reuse the same layout, position is at offset 0
-		.rasterizerState = {
-			.cullMode = vex::CullMode::Back,
-		},
+		.rasterizerState = {},
 		.depthStencilState = depthStencilState,
 	};
 
@@ -485,8 +481,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
-	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer },
-			vex::TextureClearValue { .clearAspect = vex::TextureAspect::Color, .color = { 0.2f, 0.2f, 0.2f, 1.0f } });
+	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer });
 
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
@@ -547,14 +542,10 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entity_uniforms));
 
-		std::array<ResourceBinding, 3> bindings {
-			BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
-			BufferBinding { .buffer = _per_entity_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
-			BufferBinding { .buffer = _lights_structured_buffer,
-					.usage = BufferBindingUsage::StructuredBuffer,
-					.strideByteSize = sizeof(GPULight),
-					.rangeByteSize = capture.get_light_count() * sizeof(GPULight) },
-		};
+		std::array<ResourceBinding, 3> bindings { BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
+			BufferBinding::CreateConstantBuffer(_per_entity_uniform_buffer),
+			BufferBinding::CreateStructuredBuffer(
+					_lights_structured_buffer, sizeof(GPULight), 0, capture.get_light_count()) };
 
 		auto handles = graphics.GetBindlessHandles(bindings);
 
