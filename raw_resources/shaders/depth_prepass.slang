@@ -6,6 +6,7 @@ import feather;
 struct VSInput {
     float3 position : POSITION;
     float3 normal : NORMAL;
+    float2 uv : TEXCOORD;
 };
 
 struct VSOutput {
@@ -20,7 +21,7 @@ struct Uniforms
 [[vk::push_constant]]
 Uniforms uniforms;
 
-static let camera_desc = GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
+static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniforms.camera_handle);
 
 [shader("vertex")]
 VSOutput Vertex(

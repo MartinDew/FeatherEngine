@@ -7,6 +7,7 @@
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
 #include <core/math/math_defs.h>
+#include <core/rendering/render_data.h>
 #include <core/resources/material.h>
 #include <core/resources/texture.h>
 
@@ -18,6 +19,8 @@
 #include <span>
 
 namespace feather {
+
+DEFINE_RENDER_DATA_TYPES(vex::BindlessHandle);
 
 using namespace vex;
 
@@ -57,37 +60,6 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 }
 
-struct CameraUniforms {
-	Matrix viewProj;
-	Vector3 cameraPos;
-	float _padding;
-};
-
-struct EntityUniforms {
-	Matrix model;
-	Matrix normalMatrix;
-	Color baseColorFactor;
-	Color emissiveFactor;
-	float metallicFactor;
-	float roughnessFactor;
-	vex::BindlessHandle baseColorHandle;
-	vex::BindlessHandle metallicRoughnessHandle;
-	vex::BindlessHandle normalHandle;
-	vex::BindlessHandle emissiveHandle;
-};
-
-struct GPULight {
-	uint32_t type;
-	Vector3 position;
-	Vector3 direction;
-	Color color; // RGB + intensity in alpha
-	float range;
-	float spotAngleCos;
-	vex::BindlessHandle shadowMapHandle;
-	float shadowBias;
-	Matrix viewProj;
-};
-
 void VexRenderer::_bind_members() { ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL); }
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
@@ -123,14 +95,21 @@ VexRenderer::VexRenderer()
 	vex::CommandContext ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 
 	// Create GPU buffers
-	_camera_uniform_buffer =
-			graphics.CreateBuffer(vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraUniforms)));
+	_camera_uniform_buffer = graphics.CreateBuffer(
+			vex::BufferDesc::CreateUniformBufferDesc("Camera Uniforms", sizeof(CameraBufferData)));
 	_lights_structured_buffer =
-			graphics.CreateBuffer(vex::BufferDesc::CreateGenericBufferDesc("Lights Buffer", sizeof(GPULight)));
+			graphics.CreateBuffer(vex::BufferDesc::CreateGenericBufferDesc("Lights Buffer", sizeof(LightBufferData)));
 
 	_per_entity_uniform_buffer = graphics.CreateBuffer({
 			.name = "Per-Entity Uniform",
-			.byteSize = sizeof(EntityUniforms),
+			.byteSize = sizeof(InstanceBufferData),
+			.usage = vex::BufferUsage::UniformBuffer,
+			.memoryLocality = vex::ResourceMemoryLocality::GPUOnly,
+	});
+
+	_material_buffer = graphics.CreateBuffer({
+			.name = "Material Buffer",
+			.byteSize = sizeof(PbrMaterialBufferData),
 			.usage = vex::BufferUsage::UniformBuffer,
 			.memoryLocality = vex::ResourceMemoryLocality::GPUOnly,
 	});
@@ -214,7 +193,14 @@ VexRenderer::VexRenderer()
 				.binding = 0,
 				.format = vex::TextureFormat::RGB32_FLOAT,
 				.offset = sizeof(float) * 3,
-			}
+			},
+			{
+				.semanticName = "TEXCOORD",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RG32_FLOAT,
+				.offset = sizeof(float) * 6,
+			},
 		},
 		.bindings = {
 			{
@@ -509,18 +495,23 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 		vex::BindlessHandle emissiveHandle = _get_texture_handle(pbrMat->get_emissive_texture().get(), ctx, { 0 });
 
 		// Build per-entity uniforms
-		EntityUniforms entity_uniforms;
+		InstanceBufferData entity_uniforms;
 
 		entity_uniforms.model = entity.transform.to_matrix_with_scale();
 		entity_uniforms.normalMatrix = _compute_normal_matrix(entity_uniforms.model);
-		entity_uniforms.baseColorFactor = pbrMat->get_base_color_factor();
-		entity_uniforms.metallicFactor = pbrMat->get_metallic_factor();
-		entity_uniforms.roughnessFactor = pbrMat->get_roughness_factor();
-		entity_uniforms.emissiveFactor = pbrMat->get_emissive_factor();
-		entity_uniforms.baseColorHandle = baseColorHandle;
-		entity_uniforms.metallicRoughnessHandle = metallicRoughnessHandle;
-		entity_uniforms.normalHandle = normalHandle;
-		entity_uniforms.emissiveHandle = emissiveHandle;
+
+		PbrMaterialBufferData materialData;
+
+		materialData.baseColorFactor = pbrMat->get_base_color_factor();
+		materialData.metallicFactor = pbrMat->get_metallic_factor();
+		materialData.roughnessFactor = pbrMat->get_roughness_factor();
+		materialData.emissiveFactor = pbrMat->get_emissive_factor();
+		materialData.baseColorHandle = baseColorHandle;
+		materialData.metallicRoughnessHandle = metallicRoughnessHandle;
+		materialData.normalHandle = normalHandle;
+		materialData.emissiveHandle = emissiveHandle;
+
+		ctx.EnqueueDataUpload(_material_buffer, to_bytes(materialData));
 
 		std::vector<vex::TextureBinding> shadowMapBindings;
 		for (auto& shadowMap : _shadow_maps) {
@@ -542,10 +533,11 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entity_uniforms));
 
-		std::array<ResourceBinding, 3> bindings { BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
+		std::array<ResourceBinding, 4> bindings { BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
 			BufferBinding::CreateConstantBuffer(_per_entity_uniform_buffer),
+			BufferBinding::CreateConstantBuffer(_material_buffer),
 			BufferBinding::CreateStructuredBuffer(
-					_lights_structured_buffer, sizeof(GPULight), 0, capture.get_light_count()) };
+					_lights_structured_buffer, sizeof(LightBufferData), 0, capture.get_light_count()) };
 
 		auto handles = graphics.GetBindlessHandles(bindings);
 
@@ -572,7 +564,7 @@ void VexRenderer::_upload_camera_uniforms(const RenderScene& capture, vex::Comma
 	Matrix proj = projection.get_matrix();
 	Matrix viewProj = view * proj;
 
-	CameraUniforms uniforms;
+	CameraBufferData uniforms;
 
 	uniforms.viewProj = viewProj;
 	uniforms.cameraPos = transform.position;
@@ -584,10 +576,10 @@ void VexRenderer::_upload_camera_uniforms(const RenderScene& capture, vex::Comma
 void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
 
-	std::vector<GPULight> gpuLights;
+	std::vector<LightBufferData> gpuLights;
 	for (size_t i = 0; i < lights.size(); ++i) {
 		const auto& light = lights[i];
-		GPULight gpuLight {};
+		LightBufferData gpuLight {};
 		gpuLight.type = static_cast<uint32_t>(light.type);
 		gpuLight.position = light.position;
 		gpuLight.direction = light.direction;

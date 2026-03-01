@@ -30,6 +30,7 @@ class VexRenderer : public Renderer {
 	vex::Buffer _camera_uniform_buffer;
 	vex::Buffer _lights_structured_buffer;
 	vex::Buffer _per_entity_uniform_buffer;
+	vex::Buffer _material_buffer;
 
 	// Resource caches
 	struct MeshBuffers {

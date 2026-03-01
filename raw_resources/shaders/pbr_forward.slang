@@ -10,7 +10,8 @@ __include pbr.pbr_lighting;
 
 struct Uniforms {
 uint camera_handle;
-uint entity_handle;
+uint instance_handle;
+uint material_handle;
 uint lights_handle;
 }
 
@@ -20,6 +21,7 @@ uint lights_handle;
 struct VSInput {
     float3 position : POSITION;
     float3 normal : NORMAL;
+    float2 uv : TEXCOORD;  // Optional UVs for texturing (not used in this example)
 };
 
 // Vertex shader output
@@ -29,8 +31,8 @@ struct VSOutput {
     float3 worldNormal : NORMAL;
 };
 
-static  let entity_desc = GetBindlessResource<ConstantBuffer<EntityUniforms>>(uniforms.entity_handle);
-static  let camera_desc = GetBindlessResource<ConstantBuffer<CameraUniforms>>(uniforms.camera_handle);
+static let entity_desc = GetBindlessResource<ConstantBuffer<InstanceData>>(uniforms.instance_handle);
+static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniforms.camera_handle);
 
 // Vertex shader
 [shader("vertex")]
@@ -63,6 +65,8 @@ float4 PSMain(
     let entity = *entity_desc;
     let camera = *camera_desc;
 
+    let material = *GetBindlessResource<ConstantBuffer<MaterialData>>(uniforms.material_handle);
+
     // Normalize interpolated normal
     float3 N = normalize(input.worldNormal);
 
@@ -75,18 +79,18 @@ float4 PSMain(
     float2 uv = input.worldPos.xz * 0.1;  // Simple planar mapping for testing
 
     // Base color
-    float3 baseColor = entity->baseColorFactor.rgb;
-    if (entity->baseColorHandle != 0) {
-        Texture2D<float4> baseColorTex = GetBindlessTexture2D(entity->baseColorHandle);
+    float3 baseColor = material->baseColorFactor.rgb;
+    if (material->baseColorHandle != 0) {
+        Texture2D<float4> baseColorTex = GetBindlessTexture2D(material->baseColorHandle);
         float4 texColor = baseColorTex.SampleLevel(LinearSampler, uv, 0);
         baseColor *= texColor.rgb;
     }
 
     // Metallic and roughness
-    float metallic = entity->metallicFactor;
-    float roughness = entity->roughnessFactor;
-    if (entity->metallicRoughnessHandle != 0) {
-        Texture2D<float4> mrTex = GetBindlessTexture2D(entity->metallicRoughnessHandle);
+    float metallic = material->metallicFactor;
+    float roughness = material->roughnessFactor;
+    if (material->metallicRoughnessHandle != 0) {
+        Texture2D<float4> mrTex = GetBindlessTexture2D(material->metallicRoughnessHandle);
         float4 mr = mrTex.SampleLevel(LinearSampler, uv, 0);
         roughness *= mr.g;  // Green channel = roughness
         metallic *= mr.b;   // Blue channel = metallic
@@ -100,9 +104,9 @@ float4 PSMain(
     // }
 
     // Emissive
-    float4 emissive = entity->emissiveFactor;
-    if (entity->emissiveHandle != 0) {
-        Texture2D<float4> emissiveTex = GetBindlessTexture2D(entity->emissiveHandle);
+    float4 emissive = material->emissiveFactor;
+    if (material->emissiveHandle != 0) {
+        Texture2D<float4> emissiveTex = GetBindlessTexture2D(material->emissiveHandle);
         float4 emissiveColor = emissiveTex.SampleLevel(LinearSampler, uv, 0);
         emissive *= emissiveColor;
     }
