@@ -539,11 +539,15 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 			BufferBinding::CreateStructuredBuffer(
 					_lights_structured_buffer, sizeof(LightBufferData), 0, capture.get_light_count()) };
 
-		auto handles = graphics.GetBindlessHandles(bindings);
+		std::vector<BindlessHandle> handles = graphics.GetBindlessHandles(bindings);
 
 		ctx.BarrierBindings(bindings);
 
-		ConstantBinding constant_bindings { std::span(handles) };
+		std::vector<uint32_t> push_data(handles.size());
+		std::copy_n(reinterpret_cast<uint32_t*>(handles.data()), handles.size(), push_data.begin());
+		push_data.push_back(capture.get_light_count());
+
+		ConstantBinding constant_bindings { std::span(push_data) };
 		ctx.DrawIndexed(_pbr_draw_desc,
 				{
 						.renderTargets = renderTargets,

@@ -13,6 +13,7 @@ uint camera_handle;
 uint instance_handle;
 uint material_handle;
 uint lights_handle;
+uint num_lights;
 }
 
 [vk::push_constant] uniform Uniforms uniforms;
@@ -115,14 +116,10 @@ float4 PSMain(
     static let lightsDesc = GetBindlessResource<StructuredBuffer<GPULight>>(uniforms.lights_handle);
     StructuredBuffer<GPULight> lights = *lightsDesc;
 
-	uint lightCount;
-	uint stride;
-	lights.GetDimensions(lightCount, stride);
-
     // Evaluate all lights
     float3 litColor = EvaluateAllLights(
         lights,
-        lightCount,
+        uniforms.num_lights,
         input.worldPos,
         normal,
         V,
