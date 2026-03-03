@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 
+# Configuration types for multi-config generators
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Development" CACHE STRING "" FORCE)
+# Set default build type to Release if not specified
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif ()
 include(tools/options.cmake)
 
 project(feather VERSION 1.0.0 LANGUAGES CXX)
@@ -11,15 +17,11 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set default build type to Release if not specified
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif ()
+if (${APPLE})
+    add_compile_options("-fexperimental-library")
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Configuration types for multi-config generators
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Development" CACHE STRING "" FORCE)
 
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -28,63 +30,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
-set(PROJECT_HEADERS
-        # Root Core files
-        # main
-        core/main/launch_settings.h
-        core/main/window.h
-        core/main/engine.h
-        core/main/engine_settings.h
-        core/main/class_db.h
-        core/main/class_db.inl
-
-        # Math
-        core/math/transform.h
-        core/math/math_defs.h
-        core/main/notification.h
-
-        #Framework
-        core/framework/assert.h
-        core/framework/callable.h
-        core/framework/static_string.hpp
-        core/framework/delegate.h
-        core/framework/container_utils.h
-        core/framework/static_indexed_array.h
-        core/framework/functions.h
-        core/framework/cow_vector.h
-        core/framework/variant.h
-        core/framework/high_level_array.h
-        core/framework/macro_utils.h
-        core/framework/reflected.h
-        core/framework/reflection_macros.h
-        core/framework/reflection_utils.h
-
-        #Rendering
-        core/rendering/rendering_server.h
-        core/rendering/renderer.h
-        core/rendering/triangle_mesh.h
-)
-
-# Source files (shared between both targets)
-set(PROJECT_SOURCES
-        # Root
-        core/main/main.cpp
-        core/main/launch_settings.cpp
-        core/main/window.cpp
-        core/main/engine.cpp
-        core/main/engine_settings.cpp
-        core/main/class_db.cpp
-        # Math
-        core/math/transform.cpp
-        core/math/math_defs.cpp
-        # Rendering
-        core/rendering/renderer.cpp
-        core/rendering/rendering_server.cpp
-        core/rendering/triangle_mesh.cpp
-        # Framework
-        core/framework/reflected.cpp
-        core/framework/variant.cpp
-)
+file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS "core/*.h" "core/*.hpp")
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "core/*.cpp")
 
 # Editor target
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
@@ -124,6 +71,19 @@ target_compile_options(Standalone PRIVATE
         $<$<CONFIG:Development>:-g -O2>
 )
 
+# Generate embedded resource headers using #embed
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+add_custom_target(GenerateEmbeddedResources
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating embedded resource headers with #embed directives"
+        VERBATIM
+)
+
+# Make both targets depend on resource generation
+add_dependencies(Editor GenerateEmbeddedResources)
+add_dependencies(Standalone GenerateEmbeddedResources)
 
 add_subdirectory(thirdparty)
 
@@ -159,6 +119,20 @@ else ()
 
     #    target_compile_options(Editor PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
     #    target_compile_options(Standalone PUBLIC "--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
+
+    if (STATIC_CPP AND LINUX)
+        # For a specific executable target
+
+        target_link_libraries(Editor PRIVATE "-static-libgcc" "-static-libstdc++")
+        target_link_libraries(Standalone PRIVATE "-static-libgcc" "-static-libstdc++")
+        if (USE_LLVM)
+            set_target_properties(Editor PROPERTIES LINK_SEARCH_START_STATIC ON)
+            set_target_properties(Standalone PROPERTIES LINK_SEARCH_START_STATIC ON)
+
+            set_target_properties(Editor PROPERTIES LINK_SEARCH_END_STATIC ON)
+            set_target_properties(Standalone PROPERTIES LINK_SEARCH_END_STATIC ON)
+        endif ()
+    endif()
 endif ()
 
 add_subdirectory(modules)
@@ -167,6 +141,27 @@ if (${enable_vex_renderer})
     vex_setup_runtime(Editor)
     vex_setup_runtime(Standalone)
 endif ()
+
+get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+if(_isMultiConfig)
+    add_custom_target(copy_shaders ALL
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/shaders
+            COMMENT "Copying shaders"
+            VERBATIM)
+else()
+    add_custom_target(copy_shaders ALL
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
+            COMMENT "Copying shaders"
+            VERBATIM)
+endif()
+
+add_dependencies(Editor copy_shaders)
+add_dependencies(Standalone copy_shaders)
 
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

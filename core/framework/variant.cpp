@@ -8,6 +8,34 @@ namespace feather {
 
 Variant::Variant(Reflected& ref) : Variant(&ref) {}
 
+bool Variant::operator==(const Variant& other) const {
+	// Types must match
+	if (_type != other._type) {
+		return false;
+	}
+
+	// Use std::visit to compare the values
+	return std::visit(
+			[](const auto& lhs, const auto& rhs) -> bool {
+				using LhsType = std::decay_t<decltype(lhs)>;
+				using RhsType = std::decay_t<decltype(rhs)>;
+
+				// If types don't match at compile time, return false
+				if constexpr (!std::is_same_v<LhsType, RhsType>) {
+					return false;
+				}
+				// monostate (NIL) is always equal
+				else if constexpr (std::is_same_v<LhsType, std::monostate>) {
+					return true;
+				}
+				// For all other types, use their operator==
+				else {
+					return lhs == rhs;
+				}
+			},
+			_data, other._data);
+}
+
 std::string Variant::to_string() const {
 	switch (_type) {
 	case VariantType::NIL:
@@ -26,6 +54,7 @@ std::string Variant::to_string() const {
 		return "[Object] : " + get_name();
 	case VariantType::INVALID:
 		return "[Invalid]";
+	default:;
 	}
 	return "[Unknown]";
 }

@@ -4,9 +4,19 @@
 #include <memory>
 #include <stdexcept>
 
+#ifdef _MSC_VER
+#define aligned_alloc(align, size) _aligned_malloc(size, align)
+#define aligned_free _aligned_free
+#elifdef __linux__
+#include <malloc.h>
+#define aligned_free free
+#else
+#define aligned_free free
+#endif
+
 namespace feather {
 
-template <typename T>
+template <class T>
 class CowVector {
 private:
 	struct buffer {
@@ -27,7 +37,7 @@ private:
 				for (size_t i = 0; i < size; ++i) {
 					data[i].~T();
 				}
-				std::free(data);
+				aligned_free(data);
 			}
 		}
 
@@ -70,7 +80,7 @@ private:
 				buf_->data[i].~T();
 			}
 
-			std::free(buf_->data);
+			aligned_free(buf_->data);
 			buf_->data = new_data;
 			buf_->capacity = new_cap;
 		}

@@ -114,4 +114,20 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::str
 	get()._current_info->methods.push_back(std::move(method_info));
 }
 
+template <class T, class TRet, class... TArgs>
+inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, std::string_view name) {
+	if (!get()._current_info) {
+		return;
+	}
+
+	// Create a function that takes T* as first parameter, then the method args
+	std::function<TRet(T*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
+		return (object_cast<T>(instance)->*method)(args...);
+	};
+
+	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
+
+	get()._current_info->methods.push_back(std::move(method_info));
+}
+
 } //namespace feather

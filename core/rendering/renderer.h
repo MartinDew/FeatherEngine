@@ -1,12 +1,11 @@
 #pragma once
 
-#include "triangle_mesh.h"
+#include "mesh_data.h"
+#include "render_scene.h"
 
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>
-
 #include <main/engine_settings.h>
-#include <math/math_defs.h>
 
 class SDL_Window;
 
@@ -21,8 +20,6 @@ class Renderer : public Reflected {
 protected:
 	Renderer();
 
-	static TriangleMesh get_example_cube();
-
 	virtual void _on_resize() = 0;
 
 	static SDL_Window* _extract_internal_window(Window& window);
@@ -32,8 +29,8 @@ protected:
 	static void _bind_members();
 
 public:
-	virtual void _render_scene() = 0;
-	virtual ~Renderer() = default;
+	virtual void _render_scene(RenderScene capture) = 0;
+	~Renderer() override = default;
 };
 
 } // namespace feather

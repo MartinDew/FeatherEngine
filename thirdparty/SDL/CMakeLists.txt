@@ -1,12 +1,22 @@
+option(SDL_FORCE_VENDORED "" OFF)
+if (${SDL_FORCE_VENDORED})
+    FetchContent_Declare(SDL3
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+            GIT_TAG release-3.4.0 # release 3.4.x
+            EXCLUDE_FROM_ALL
+    )
+else()
 FetchContent_Declare(SDL3
         GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG release-3.2.26 # release 3.2.x
+        GIT_TAG release-3.4.0 # release 3.4.x
         EXCLUDE_FROM_ALL
-        FIND_PACKAGE_ARGS 3.2.26 GLOBAL
+        FIND_PACKAGE_ARGS 3.4.0 GLOBAL
 )
+endif()
+
 
 # if release build then use static linking
-IF (${STATIC_CPP})
+IF (${STATIC_DEPS})
     set(SDL_SHARED OFF CACHE BOOL "Use shared SDL library" FORCE)
     set(SDL_STATIC ON CACHE BOOL "Use shared SDL library" FORCE)
 ELSE()
@@ -18,7 +28,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 option(SDL_RENDERER "" ON)
 
-set(SDL_MAIN OFF)
+set(SDL_MAIN     OFF)
 set(SDL_AUDIO    OFF)
 set(SDL_VIDEO    ON)
 set(SDL_GPU      OFF)
@@ -30,6 +40,10 @@ set(SDL_HIDAPI   OFF)
 set(SDL_POWER    OFF)
 set(SDL_SENSOR   OFF)
 set(SDL_DIALOG   OFF)
+
+if (${CMAKE_GENERATOR} MATCHES "FASTBuild")
+    set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
+endif()
 
 FetchContent_MakeAvailable(SDL3)
 RegisterThirdparty(PRIVATE SDL3::SDL3)

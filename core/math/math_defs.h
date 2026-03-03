@@ -8,6 +8,12 @@
 
 namespace feather {
 
+#ifdef DOUBLE_PRECISION
+using real_t = double;
+#else
+using real_t = float;
+#endif
+
 using Matrix = DirectX::SimpleMath::Matrix;
 using Vector2 = DirectX::SimpleMath::Vector2;
 using Vector3 = DirectX::SimpleMath::Vector3;
@@ -24,6 +30,45 @@ using Vector2ui = DirectX::XMUINT2;
 using Vector4i = DirectX::XMINT4;
 using Vector3i = DirectX::XMINT3;
 using Vector2i = DirectX::XMINT2;
+
+struct Vertex {
+	Vector3 position;
+	Vector3 normal;
+	Vector2 uv;
+
+	Vertex() = default;
+	constexpr Vertex(Vector3 pos, Vector3 normal, Vector2 uv = Vector2::zero) : position(pos), normal(normal), uv(uv) {}
+	constexpr Vertex(real_t px, real_t py, real_t pz, real_t nx, real_t ny, real_t nz, real_t u = 0, real_t v = 0)
+			: position(px, py, pz)
+			, normal(nx, ny, nz)
+			, uv(u, v) {}
+	Vertex(const Vertex&) = default;
+	Vertex& operator=(const Vertex&) = default;
+	Vertex(Vertex&&) = default;
+	Vertex& operator=(Vertex&&) = default;
+
+	bool operator==(const Vertex&) const;
+};
+
+struct AABB {
+	Vector3 min;
+	Vector3 max;
+
+	AABB() = default;
+	constexpr AABB(Vector3 min, Vector3 max) : min(min), max(max) {}
+	constexpr AABB(real_t min_x, real_t min_y, real_t min_z, real_t max_x, real_t max_y, real_t max_z)
+			: min(min_x, min_y, min_z)
+			, max(max_x, max_y, max_z) {}
+	AABB(const AABB&) = default;
+	AABB& operator=(const AABB&) = default;
+	AABB(AABB&&) = default;
+	AABB& operator=(AABB&&) = default;
+
+	bool operator==(const AABB&) const;
+
+	[[nodiscard]] bool intersects(const AABB& other) const;
+	[[nodiscard]] bool intersects(const Vector3& point) const;
+};
 
 // Helper Functions
 float deg_to_rad(float degrees);
@@ -52,12 +97,6 @@ inline bool is_power_of_two(int n) {
 	return ceil(log2(n)) == floor(log2(n));
 }
 
-#ifdef DOUBLE_PRECISION
-using real_t = double;
-#else
-using real_t = float;
-#endif
-
 namespace math::matrices {
 
 inline void remove_scaling(Matrix& m) {
@@ -84,7 +123,11 @@ inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
 	m.m[i][2] = axis.z;
 }
 
-enum class Axis : uint8_t { X = 0, Y, Z };
+enum class Axis : uint8_t {
+	X = 0,
+	Y,
+	Z
+};
 
 inline Vector3 get_axis(const Matrix& mat, Axis axis) {
 	const uint8_t i = std::to_underlying(axis);
