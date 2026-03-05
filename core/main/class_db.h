@@ -43,6 +43,9 @@ public:
 	template <is_reflected_class_type T>
 	static void register_abstract_class();
 
+	template <is_reflected_class_type T>
+	static void register_singleton_class();
+
 	template <class T, class U>
 	static constexpr void bind_property(U T::* member, std::string_view name, VariantType variant_type);
 
