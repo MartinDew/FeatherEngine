@@ -18,9 +18,7 @@ void has_bind_method(const T& t) {
 
 template <typename T>
 concept has_bind_method_v = requires(T t) {
-	{
-		has_bind_method(t)
-	};
+	{ has_bind_method(t) };
 };
 
 template <is_reflected_class_type T>
@@ -65,6 +63,11 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	T::_bind_members();
 
 	instance._current_info = nullptr;
+}
+
+template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
+	// Todo implement singleton specific logic
+	register_abstract_class<T>();
 }
 
 // Property binding
