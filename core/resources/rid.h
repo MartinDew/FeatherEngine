@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include <cstddef>
 #include <type_traits>
+#include <utility>
 
 namespace feather {
 
@@ -18,7 +20,8 @@ struct RID {
 
 // Hash support for use in unordered_map/set
 namespace std {
-template <> struct hash<feather::RID> {
+template <>
+struct hash<feather::RID> {
 	size_t operator()(const feather::RID& r) const noexcept { return r.id; }
 };
 } //namespace std

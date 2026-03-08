@@ -6,6 +6,8 @@
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>
 
+#include <atomic>
+
 namespace feather {
 
 class ResourceLoader : public Reflected {

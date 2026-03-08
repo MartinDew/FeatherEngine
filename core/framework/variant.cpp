@@ -92,6 +92,22 @@ void Variant::set_class_info(StaticString class_name) {
 	_object_info = ClassDB::get()._get_class_info_internal(class_name);
 }
 
+Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args) const {
+	auto info = _object_info;
+	while (info) {
+		for (auto& method : info->methods) {
+			if (method.name == method_name) {
+				Callable& callable = method.callable;
+
+				return callable.call(args);
+			}
+		}
+		info = ClassDB::_get_class_info_internal(info->parent);
+	}
+
+	return {};
+}
+
 Variant Variant::call(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
 	auto info = _object_info;
@@ -105,18 +121,6 @@ Variant Variant::call(std::string_view method_name) {
 		info = ClassDB::_get_class_info_internal(info->parent);
 	}
 	return {};
-}
-
-Variant Variant::call(std::string_view method_name, auto&&... args) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = _object_info;
-	for (auto& method : info->methods) {
-		if (method.name == method_name) {
-			Callable& callable = method.callable;
-			Variant params[] = { as<Reflected*>().value(), args... };
-			return callable.call(std::span<Variant>(params, sizeof...(args)));
-		}
-	}
 }
 
 } //namespace feather
