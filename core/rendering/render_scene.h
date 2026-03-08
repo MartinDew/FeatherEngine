@@ -11,7 +11,8 @@ namespace feather {
 class MeshData;
 class Material;
 
-class RenderScene {
+class RenderScene : public Reflected {
+	FCLASS(RenderScene, Reflected)
 public:
 	struct EntityRender {
 		Transform transform;
@@ -91,6 +92,9 @@ public:
 
 	const EnvironmentSettings& get_environment() const noexcept { return _environment; }
 	void set_environment(const EnvironmentSettings& env) { _environment = env; }
+
+protected:
+	static void _bind_methods() {};
 
 private:
 	Transform _camera_transform;
