@@ -2,6 +2,7 @@
 
 #include "assert.h"
 #include "container_utils.h"
+#include "path.h"
 #include "variant_array.h"
 
 #include "reflected.h"
@@ -30,6 +31,7 @@ enum class VariantType : uint8_t {
 	RID,
 	STRING,
 	ARRAY,
+	PATH,
 	// Objects
 	OBJECT,
 	// Invalid
@@ -72,6 +74,7 @@ consteval VariantType get_variant_type() {
 		return VariantType::ARRAY;
 	}
 	VARIANT_TYPE_OPTION(RID, RID)
+	VARIANT_TYPE_OPTION(Path, PATH)
 	// object
 	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>> ||
 			std::is_base_of_v<Reflected, T>) {
@@ -94,8 +97,8 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 class ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, Color,
-			std::string, VariantArray, RID, Reflected*>;
+	using InternalVariant = std::variant<std::monostate, bool, int, real_t, Vector2, Vector3, Vertex, Color,
+			std::string, Path, VariantArray, RID, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
@@ -125,7 +128,7 @@ public:
 			_data = std::move(value);
 		}
 		else if constexpr (type == VariantType::INT) {
-			_data = static_cast<size_t>(value);
+			_data = static_cast<int>(value);
 		}
 		else if constexpr (type == VariantType::FLOAT) {
 			_data = static_cast<real_t>(value);
@@ -186,7 +189,7 @@ public:
 				return std::get<bool>(_data);
 			}
 			else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-				return static_cast<T>(std::get<size_t>(_data));
+				return static_cast<T>(std::get<int>(_data));
 			}
 			else if constexpr (std::is_floating_point_v<T>) {
 				return static_cast<T>(std::get<real_t>(_data));

@@ -43,7 +43,7 @@ std::string Variant::to_string() const {
 	case VariantType::BOOL:
 		return std::get<bool>(_data) ? "true" : "false";
 	case VariantType::INT:
-		return std::to_string(std::get<size_t>(_data));
+		return std::to_string(std::get<int>(_data));
 	case VariantType::FLOAT:
 		return std::to_string(std::get<real_t>(_data));
 	case VariantType::STRING:
