@@ -1,8 +1,7 @@
 #pragma once
 
-#include "variant.h"
-
 #include "assert.h"
+#include "variant.h"
 
 #include <cstdint>
 #include <functional>
@@ -14,17 +13,17 @@ namespace feather {
 
 class Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
-
-	// A function will likely not have more thant 255 params
 	uint8_t _param_amount;
 
 public:
 	template <class TRet, class... TArgs>
-		requires(VariantCompatible<TRet>) && (VariantCompatible<TArgs> && ...)
+		requires(VariantCompatible<std::decay_t<TRet>>) && (VariantCompatible<std::decay_t<TArgs>> && ...)
 	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
 				size_t i = 0;
-				std::tuple<TArgs...> converted_args = { params[i++].as<TArgs>().value()... };
+				std::tuple<std::decay_t<TArgs>...> converted_args = {
+					params[i++].as<std::decay_t<TArgs>>().value()...
+				};
 				if constexpr (std::is_void_v<TRet>) {
 					std::apply(func, converted_args);
 					return Variant();
@@ -56,4 +55,4 @@ public:
 	}
 };
 
-} //namespace feather
+} // namespace feather
