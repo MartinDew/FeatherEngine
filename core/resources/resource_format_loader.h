@@ -10,13 +10,14 @@ namespace feather {
 
 class ResourceFormatLoader : public Reflected {
 	FCLASS(ResourceFormatLoader, Reflected);
+	friend ResourceLoader;
 
 protected:
 	static void _bind_members();
 
 public:
 	virtual bool recognize_extension(const std::string& extension) const = 0;
-	virtual std::shared_ptr<Resource> load(const std::string& path) = 0;
+	virtual std::shared_ptr<Resource> load(const Path& path) = 0;
 };
 
 } // namespace feather
