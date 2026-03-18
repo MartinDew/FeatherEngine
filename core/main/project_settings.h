@@ -24,6 +24,9 @@ protected:
 
 public:
 	static ProjectSettings* get();
+
+	Path get_project_path();
+	Path localize_path(std::string);
 };
 
 } //namespace feather

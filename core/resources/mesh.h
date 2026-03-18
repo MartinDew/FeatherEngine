@@ -26,14 +26,14 @@ public:
 };
 
 // Mesh using raw vertices and indices data
-class RawMesh : public Mesh {
-	FCLASS(RawMesh, Mesh);
+class ComplexMesh : public Mesh {
+	FCLASS(ComplexMesh, Mesh);
 
 protected:
 	static void _bind_members();
 
 public:
-	RawMesh() = default;
+	ComplexMesh() = default;
 
 	void add_vertices(const VariantArray vertices);
 	void add_indices(const VariantArray indices);
@@ -43,7 +43,7 @@ public:
 };
 
 class BoxMesh : public Mesh {
-	FCLASS(RawMesh, Mesh);
+	FCLASS(ComplexMesh, Mesh);
 
 public:
 	BoxMesh();

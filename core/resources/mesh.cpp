@@ -15,21 +15,21 @@ Mesh::Mesh(const std::shared_ptr<MeshData>& triangle_mesh) : _triangle_mesh(tria
 
 void Mesh::_bind_members() {}
 
-void RawMesh::_bind_members() {
-	ClassDB::bind_method(&RawMesh::add_indices, "add_indices");
-	ClassDB::bind_method(&RawMesh::add_vertices, "add_vertices");
-	ClassDB::bind_method(&RawMesh::get_indices, "get_indices");
-	ClassDB::bind_method(&RawMesh::get_vertices, "get_vertices");
+void ComplexMesh::_bind_members() {
+	ClassDB::bind_method(&ComplexMesh::add_indices, "add_indices");
+	ClassDB::bind_method(&ComplexMesh::add_vertices, "add_vertices");
+	ClassDB::bind_method(&ComplexMesh::get_indices, "get_indices");
+	ClassDB::bind_method(&ComplexMesh::get_vertices, "get_vertices");
 }
 
-void RawMesh::add_vertices(const VariantArray vertices) {}
-void RawMesh::add_indices(const VariantArray indices) {}
+void ComplexMesh::add_vertices(const VariantArray vertices) {}
+void ComplexMesh::add_indices(const VariantArray indices) {}
 
-VariantArray RawMesh::get_vertices() const {
+VariantArray ComplexMesh::get_vertices() const {
 	return { _triangle_mesh->get_vertices().begin(), _triangle_mesh->get_vertices().end() };
 }
 
-VariantArray RawMesh::get_indices() const {
+VariantArray ComplexMesh::get_indices() const {
 	return { _triangle_mesh->get_indices().begin(), _triangle_mesh->get_indices().end() };
 }
 
@@ -110,7 +110,7 @@ BoxMesh::BoxMesh() : Super(box_mesh) {}
 
 INPLACE_REGISTER_BEGIN(Mesh);
 ClassDB::register_abstract_class<Mesh>();
-ClassDB::register_class<RawMesh>();
+ClassDB::register_class<ComplexMesh>();
 ClassDB::register_class<BoxMesh>();
 INPLACE_REGISTER_END(Mesh);
 
