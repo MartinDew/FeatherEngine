@@ -15,9 +15,10 @@ class ResourceFormatLoader : public Reflected {
 protected:
 	static void _bind_members();
 
+	virtual std::shared_ptr<Resource> load(const Path& path) = 0;
+
 public:
 	virtual bool recognize_extension(const std::string& extension) const = 0;
-	virtual std::shared_ptr<Resource> load(const Path& path) = 0;
 };
 
 } // namespace feather
