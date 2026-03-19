@@ -75,6 +75,11 @@ struct SimulationTest {
 		// Rotate each entity
 		entities[0].transform.rotation = entities[0].transform.rotation *
 				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(dt), 0 });
+
+		entities[1].transform.rotation = entities[1].transform.rotation *
+				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, -static_cast<real_t>(dt), 0 });
+
+		entities[0].transform.position.z -= 0.5f * dt;
 	}
 
 	RenderScene generate_render_capture() const {

@@ -1,10 +1,10 @@
-#include "mesh_format_loader.h"
+﻿#include "mesh_format_loader.h"
 
 #include "mesh.h"
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
 #include <iostream>
 
 namespace feather {
@@ -12,12 +12,14 @@ namespace feather {
 void MeshFormatLoader::_bind_members() {}
 
 bool MeshFormatLoader::recognize_extension(const std::string& extension) const {
-	return extension == "obj" || extension == "fbx" || extension == "gltf" || extension == "glb" || extension == "dae" || extension == "blend";
+	return extension == "obj" || extension == "fbx" || extension == "gltf" || extension == "glb" ||
+			extension == "dae" || extension == "blend";
 }
 
 std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path.string(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+	const aiScene* scene = importer.ReadFile(path.string(),
+			aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;

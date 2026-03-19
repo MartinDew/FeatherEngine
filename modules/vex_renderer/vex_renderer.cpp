@@ -74,7 +74,7 @@ VexRenderer::VexRenderer()
 				  .enableGPUDebugLayer = !VEX_SHIPPING,
 				  .enableGPUBasedValidation = !VEX_SHIPPING,
 		  })
-		, _use_reverse_z { false } {
+		, _use_reverse_z { true } {
 	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
