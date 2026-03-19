@@ -3,6 +3,7 @@
 #include "resource.h"
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>
+#include <core/framework/path.h>
 
 #include <string>
 

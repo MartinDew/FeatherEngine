@@ -614,13 +614,13 @@ VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
 	const auto& vertices = mesh->get_vertices();
 	vex::Buffer vb =
 			graphics.CreateBuffer(vex::BufferDesc::CreateVertexBufferDesc("Mesh VB", sizeof(Vertex) * vertices.size()));
-	ctx.EnqueueDataUpload(vb, std::as_bytes(std::span(vertices)));
+	ctx.EnqueueDataUpload(vb, std::as_bytes(std::span<Vertex>(vertices)));
 
 	// Create index buffer
 	const auto& indices = mesh->get_indices();
 	vex::Buffer ib =
 			graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc("Mesh IB", sizeof(uint32_t) * indices.size()));
-	ctx.EnqueueDataUpload(ib, std::as_bytes(std::span(indices)));
+	ctx.EnqueueDataUpload(ib, std::as_bytes(std::span<Index>(indices)));
 
 	ctx.Barrier(vb, RHIBarrierAccess::MemoryRead);
 	ctx.Barrier(ib, RHIBarrierAccess::MemoryRead);

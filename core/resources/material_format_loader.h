@@ -4,8 +4,8 @@
 
 namespace feather {
 
-class MeshFormatLoader : public ResourceFormatLoader {
-	FCLASS(MeshFormatLoader, ResourceFormatLoader);
+class MaterialFormatLoader : public ResourceFormatLoader {
+	FCLASS(MaterialFormatLoader, ResourceFormatLoader);
 
 protected:
 	static void _bind_members();
@@ -16,4 +16,4 @@ public:
 	bool recognize_extension(const std::string& extension) const override;
 };
 
-} //namespace feather
+} // namespace feather

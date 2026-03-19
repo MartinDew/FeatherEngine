@@ -4,6 +4,7 @@
 #include "framework/variant_array.h"
 #include "math/math_defs.h"
 #include "rendering/mesh_data.h"
+#include <core/framework/variant.h>
 #include <core/main/class_db.h>
 #include <framework/reflection_macros.h>
 #include <set>
@@ -11,9 +12,21 @@
 
 namespace feather {
 
-Mesh::Mesh(const std::shared_ptr<MeshData>& triangle_mesh) : _triangle_mesh(triangle_mesh) {}
+Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {}
 
 void Mesh::_bind_members() {}
+
+void Mesh::set_vertices(const CowVector<Vertex>& vertices) {
+	if (_mesh_data) {
+		_mesh_data->set_vertices(vertices);
+	}
+}
+
+void Mesh::set_indices(const CowVector<Index>& indices) {
+	if (_mesh_data) {
+		_mesh_data->set_indices(indices);
+	}
+}
 
 void ComplexMesh::_bind_members() {
 	ClassDB::bind_method(&ComplexMesh::add_indices, "add_indices");
@@ -22,15 +35,50 @@ void ComplexMesh::_bind_members() {
 	ClassDB::bind_method(&ComplexMesh::get_vertices, "get_vertices");
 }
 
-void ComplexMesh::add_vertices(const VariantArray vertices) {}
-void ComplexMesh::add_indices(const VariantArray indices) {}
+void ComplexMesh::add_vertices(const VariantArray vertices) {
+	CowVector<Vertex> raw_vertices;
+	if (_mesh_data) {
+		raw_vertices = _mesh_data->get_vertices();
+	}
+	raw_vertices.reserve(raw_vertices.size() + vertices.size());
+	for (const auto& v : vertices) {
+		if (v.is_type(VariantType::VERTEX)) {
+			raw_vertices.push_back(v.as<Vertex>().value());
+		}
+	}
+
+	_mesh_data->set_vertices(raw_vertices);
+}
+
+void ComplexMesh::add_indices(const VariantArray indices) {
+	CowVector<uint32_t> raw_indices;
+	if (_mesh_data) {
+		raw_indices = _mesh_data->get_indices();
+	}
+	raw_indices.reserve(raw_indices.size() + indices.size());
+	for (const auto& v : indices) {
+		if (v.is_type(VariantType::INT)) {
+			raw_indices.push_back(v.as<int>().value());
+		}
+	}
+
+	_mesh_data->set_indices(raw_indices);
+}
+
+void ComplexMesh::set_mesh_data(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+	_mesh_data = std::make_shared<MeshData>(vertices, indices);
+}
 
 VariantArray ComplexMesh::get_vertices() const {
-	return { _triangle_mesh->get_vertices().begin(), _triangle_mesh->get_vertices().end() };
+	if (!_mesh_data)
+		return VariantArray();
+	return { _mesh_data->get_vertices().begin(), _mesh_data->get_vertices().end() };
 }
 
 VariantArray ComplexMesh::get_indices() const {
-	return { _triangle_mesh->get_indices().begin(), _triangle_mesh->get_indices().end() };
+	if (!_mesh_data)
+		return VariantArray();
+	return { _mesh_data->get_indices().begin(), _mesh_data->get_indices().end() };
 }
 
 //// Box Mesh ////

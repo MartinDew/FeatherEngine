@@ -1,7 +1,10 @@
+#pragma once
+
 #include <algorithm>
 #include <cstdlib>
 #include <initializer_list>
 #include <memory>
+#include <span>
 #include <stdexcept>
 
 #ifdef _MSC_VER
@@ -430,6 +433,8 @@ public:
 	bool is_shared() const noexcept { return buf_ && buf_.use_count() > 1; }
 
 	size_t use_count() const noexcept { return buf_ ? buf_.use_count() : 0; }
+
+	operator std::span<T>() const noexcept { return std::span(buf_->data, size()); }
 };
 
 // Non-member functions

@@ -90,7 +90,7 @@ struct SimulationTest {
 		// Add all entities to the render capture
 		for (const auto& entity : entities) {
 			capture.add_entity(RenderScene::EntityRender { .transform = entity.transform,
-					.triangle_mesh = entity.mesh->get_triangle_mesh(),
+					.triangle_mesh = entity.mesh->get_mesh_data(),
 					.material = entity.material,
 					.entity_id = 0, // You could add an ID field to Entity if needed
 					.cast_shadows = true,
