@@ -59,6 +59,7 @@ class VexRenderer : public Renderer {
 	vex::DrawDesc _shadow_draw_desc;
 
 	bool _use_reverse_z;
+	std::atomic_bool _needs_resize = false;
 
 	// Helper methods
 	void _render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx);
@@ -72,6 +73,7 @@ class VexRenderer : public Renderer {
 			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
 	Matrix _compute_light_view_proj(const RenderScene::Light& light, const RenderScene& capture) const;
 
+	void _resize();
 	// Utility methods
 	static Vector3 _compute_scene_center(const RenderScene& capture);
 	static float _compute_scene_radius(const RenderScene& capture, const Vector3& center);

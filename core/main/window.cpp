@@ -52,6 +52,19 @@ Window::Window() : _internal_event(), _fullscreen_mode() {
 	_internal_window = SDL_CreateWindow("Feather", _properties.width, _properties.height, window_flags);
 
 	SDL_GetWindowPosition(_internal_window, &_properties.x, &_properties.y);
+
+	// Add an sdl event watch to call on resize
+	SDL_AddEventWatch(
+			[](void* userdata, SDL_Event* event) {
+				if (event->type == SDL_EVENT_WINDOW_RESIZED || event->type == SDL_EVENT_WINDOW_EXPOSED) {
+					static_cast<Window*>(userdata)->_on_resize();
+				}
+				else if (event->type == SDL_EVENT_WINDOW_MOVED) {
+					static_cast<Window*>(userdata)->_on_move();
+				}
+				return false;
+			},
+			this);
 }
 
 void Window::_on_resize() {
@@ -107,9 +120,9 @@ bool Window::update() {
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 			SDL_LogDebug(0, "Close window requested");
 			return false;
-		case SDL_EVENT_WINDOW_RESIZED:
-			_on_resize();
-			break;
+		// case SDL_EVENT_WINDOW_RESIZED:
+		// 	_on_resize();
+		// 	break;
 		case SDL_EVENT_KEY_DOWN: {
 			// Hard code alt + enter for fullscreen toggle
 			if (_internal_event.key.key == SDLK_F11) {

@@ -284,6 +284,7 @@ VexRenderer::VexRenderer()
 
 void VexRenderer::_render_scene(const RenderScene capture) {
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
+
 	// Upload camera uniforms
 	_upload_camera_uniforms(capture, ctx);
 
@@ -312,10 +313,19 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 	}
 
 	graphics.Submit(ctx);
-	graphics.Present();
+	if (!_needs_resize.load(std::memory_order_consume)) {
+		graphics.Present();
+	}
+	else {
+		_resize();
+	}
 }
 
 void VexRenderer::_on_resize() {
+	_needs_resize.store(true, std::memory_order_release);
+}
+
+void VexRenderer::_resize() {
 	graphics.RecompileChangedShaders();
 
 	auto width = _window->properties.width;
@@ -340,6 +350,7 @@ void VexRenderer::_on_resize() {
 	});
 
 	graphics.OnWindowResized(width, height);
+	_needs_resize.store(false, std::memory_order_release);
 }
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {

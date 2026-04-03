@@ -14,7 +14,9 @@ namespace feather {
 
 RenderingServer* RenderingServer::_instance = nullptr;
 
-void RenderingServer::_run() { _render_thread = std::jthread(bind_method(&RenderingServer::_render_function, this)); }
+void RenderingServer::_run() {
+	_render_thread = std::jthread(bind_method(&RenderingServer::_render_function, this));
+}
 
 void RenderingServer::_render_function() {
 	while (true) {
@@ -29,11 +31,6 @@ void RenderingServer::_render_function() {
 				uint64_t current_frame = _capture_buffers[read_idx].get_frame_index();
 				return current_frame != _last_rendered_frame.load(std::memory_order_relaxed);
 			});
-		}
-
-		if (_needs_resize) {
-			_renderer->_on_resize();
-			_needs_resize = false;
 		}
 
 		// Lockless read of RenderCapture
@@ -57,13 +54,15 @@ void RenderingServer::init() {
 	_renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get());
 
 	Engine::get().get_main_window().register_notification(
-			Notification::WINDOW_RESIZED, [this] { _needs_resize = true; });
+			Notification::WINDOW_RESIZED, [this] { _renderer->_on_resize(); });
 
 	if (!LaunchSettings::get().force_single_thread.Get())
 		_run();
 };
 
-void RenderingServer::update(double dt) const { fassert(_renderer.get(), "no renderer set"); }
+void RenderingServer::update(double dt) const {
+	fassert(_renderer.get(), "no renderer set");
+}
 
 void RenderingServer::stop() {
 	_render_thread.request_stop();
