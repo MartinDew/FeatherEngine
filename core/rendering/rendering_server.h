@@ -35,6 +35,8 @@ class RenderingServer {
 	void _run();
 	void _render_function();
 
+	bool _needs_resize = false;
+
 public:
 	RenderingServer();
 

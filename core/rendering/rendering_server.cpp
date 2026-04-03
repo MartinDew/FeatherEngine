@@ -33,6 +33,11 @@ void RenderingServer::_render_function() {
 			});
 		}
 
+		if (_needs_resize) {
+			_renderer->_on_resize();
+			_needs_resize = false;
+		}
+
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
 		_render_scene_lock.lock();
@@ -54,7 +59,7 @@ void RenderingServer::init() {
 	_renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get());
 
 	Engine::get().get_main_window().register_notification(
-			Notification::WINDOW_RESIZED, [this] { _renderer->_on_resize(); });
+			Notification::WINDOW_RESIZED, [this] { _needs_resize = true; });
 
 	if (!LaunchSettings::get().force_single_thread.Get())
 		_run();
