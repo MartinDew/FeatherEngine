@@ -120,9 +120,6 @@ bool Window::update() {
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 			SDL_LogDebug(0, "Close window requested");
 			return false;
-		// case SDL_EVENT_WINDOW_RESIZED:
-		// 	_on_resize();
-		// 	break;
 		case SDL_EVENT_KEY_DOWN: {
 			// Hard code alt + enter for fullscreen toggle
 			if (_internal_event.key.key == SDLK_F11) {
