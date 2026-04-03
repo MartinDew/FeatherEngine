@@ -14,7 +14,9 @@ namespace feather {
 
 RenderingServer* RenderingServer::_instance = nullptr;
 
-void RenderingServer::_run() { _render_thread = std::jthread(bind_method(&RenderingServer::_render_function, this)); }
+void RenderingServer::_run() {
+	_render_thread = std::jthread(bind_method(&RenderingServer::_render_function, this));
+}
 
 void RenderingServer::_render_function() {
 	while (true) {
@@ -63,7 +65,9 @@ void RenderingServer::init() {
 		_run();
 };
 
-void RenderingServer::update(double dt) const { fassert(_renderer.get(), "no renderer set"); }
+void RenderingServer::update(double dt) const {
+	fassert(_renderer.get(), "no renderer set");
+}
 
 void RenderingServer::stop() {
 	_render_thread.request_stop();

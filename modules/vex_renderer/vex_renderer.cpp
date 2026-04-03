@@ -60,7 +60,9 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 }
 
-void VexRenderer::_bind_members() { ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL); }
+void VexRenderer::_bind_members() {
+	ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL);
+}
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
 
@@ -87,7 +89,6 @@ VexRenderer::VexRenderer()
 			.usage = vex::TextureUsage::DepthStencil | TextureUsage::ShaderRead,
 			.clearValue =
 					vex::TextureClearValue {
-							.clearAspect = vex::TextureAspect::Depth,
 							.depth = _use_reverse_z ? 0.0f : 1.0f,
 					},
 	});
@@ -103,14 +104,14 @@ VexRenderer::VexRenderer()
 	_per_entity_uniform_buffer = graphics.CreateBuffer({
 			.name = "Per-Entity Uniform",
 			.byteSize = sizeof(InstanceBufferData),
-			.usage = vex::BufferUsage::UniformBuffer,
+			.usage = vex::BufferUsage::ShaderReadUniform,
 			.memoryLocality = vex::ResourceMemoryLocality::GPUOnly,
 	});
 
 	_material_buffer = graphics.CreateBuffer({
 			.name = "Material Buffer",
 			.byteSize = sizeof(PbrMaterialBufferData),
-			.usage = vex::BufferUsage::UniformBuffer,
+			.usage = vex::BufferUsage::ShaderReadUniform,
 			.memoryLocality = vex::ResourceMemoryLocality::GPUOnly,
 	});
 
@@ -126,7 +127,7 @@ VexRenderer::VexRenderer()
 				.usage = vex::TextureUsage::ShaderRead });
 		std::span bytes = to_bytes(whitePixel);
 		ctx.EnqueueDataUpload(_default_white_texture, bytes, vex::TextureRegion::SingleMip(0));
-		ctx.BarrierBinding({ _default_white_texture, TextureBindingUsage::ShaderRead, true });
+		ctx.Barrier(_default_white_texture, RHIBarrierAccess::ShaderRead);
 		_default_white_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_white_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -141,7 +142,7 @@ VexRenderer::VexRenderer()
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
 		ctx.EnqueueDataUpload(_default_normal_texture, to_bytes(normalPixel), vex::TextureRegion::SingleMip(0));
-		ctx.BarrierBinding(TextureBinding { _default_normal_texture, TextureBindingUsage::ShaderRead, true });
+		ctx.Barrier(_default_normal_texture, RHIBarrierAccess::ShaderRead);
 		_default_normal_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_normal_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -156,8 +157,7 @@ VexRenderer::VexRenderer()
 				.height = 1,
 				.usage = vex::TextureUsage::ShaderRead });
 		ctx.EnqueueDataUpload(_default_metallic_roughness_texture, to_bytes(mrPixel), vex::TextureRegion::SingleMip(0));
-		ctx.BarrierBinding(
-				TextureBinding { _default_metallic_roughness_texture, TextureBindingUsage::ShaderRead, true });
+		ctx.Barrier(_default_metallic_roughness_texture, RHIBarrierAccess::ShaderRead);
 		_default_mr_handle = graphics.GetBindlessHandle(vex::TextureBinding {
 				.texture = _default_metallic_roughness_texture, .usage = vex::TextureBindingUsage::ShaderRead });
 	}
@@ -312,7 +312,7 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 	}
 
 	graphics.Submit(ctx);
-	graphics.Present(_window->fullscreen_mode == Window::FullscreenMode::FULLSCREEN);
+	graphics.Present();
 }
 
 void VexRenderer::_on_resize() {
@@ -335,7 +335,6 @@ void VexRenderer::_on_resize() {
 			.usage = vex::TextureUsage::DepthStencil | TextureUsage::ShaderRead,
 			.clearValue =
 					vex::TextureClearValue {
-							.clearAspect = vex::TextureAspect::Depth,
 							.depth = _use_reverse_z ? 0.0f : 1.0f,
 					},
 	});
@@ -345,16 +344,15 @@ void VexRenderer::_on_resize() {
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	// Clear and set up depth target
-	ctx.ClearTexture(vex::TextureBinding { .texture = depthTexture });
+	ctx.ClearTexture(depthTexture);
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 
 	std::array<ResourceBinding, 1> bindings {
-		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::ConstantBuffer },
+		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::UniformBuffer },
 	};
 
 	auto handles = graphics.GetBindlessHandles(bindings);
-	ctx.BarrierBindings(bindings);
 	ConstantBinding constant_bindings { std::span(handles) };
 
 	const auto& entities = capture.get_entities();
@@ -376,11 +374,8 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 						.vertexBuffers = { &vertexBufferBinding, 1 },
 						.indexBuffer = indexBufferBinding,
 				},
-				constant_bindings, meshBuffers.index_count);
+				constant_bindings, bindings, meshBuffers.index_count);
 	}
-
-	ctx.Barrier(depthTexture, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
-			vex::RHITextureLayout::ShaderResource);
 }
 
 // Shadow pass implementation
@@ -407,7 +402,6 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 					.usage = vex::TextureUsage::DepthStencil | vex::TextureUsage::ShaderRead,
 					.clearValue =
 							vex::TextureClearValue {
-									.clearAspect = vex::TextureAspect::Depth,
 									.depth = _use_reverse_z ? 0.0f : 1.0f,
 							},
 			}));
@@ -422,7 +416,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 		const Matrix lightVP = _compute_light_view_proj(light, capture);
 
 		// Set render target (depth-only)
-		ctx.ClearTexture(vex::TextureBinding { .texture = shadow_map });
+		ctx.ClearTexture(shadow_map);
 		ctx.SetViewport(0, 0, w, h);
 		ctx.SetScissor(0, 0, w, h);
 
@@ -455,19 +449,15 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 							.vertexBuffers = { &vertexBufferBinding, 1 },
 							.indexBuffer = indexBufferBinding,
 					},
-					vex::ConstantBinding(mvp), meshBuffers.index_count);
+					vex::ConstantBinding(mvp), {}, meshBuffers.index_count);
 		}
-
-		// Transition shadow map to shader resource
-		ctx.Barrier(shadow_map, vex::RHIBarrierSync::AllGraphics, vex::RHIBarrierAccess::ShaderRead,
-				vex::RHITextureLayout::ShaderResource);
 	}
 }
 
 void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
-	ctx.ClearTexture(vex::TextureBinding { .texture = backBuffer });
+	ctx.ClearTexture(backBuffer);
 
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
@@ -513,14 +503,14 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		ctx.EnqueueDataUpload(_material_buffer, to_bytes(materialData));
 
-		std::vector<vex::TextureBinding> shadowMapBindings;
+		std::vector<ResourceBinding> tracked_bindings;
 		for (auto& shadowMap : _shadow_maps) {
-			shadowMapBindings.push_back(
-					vex::TextureBinding { .texture = shadowMap, .usage = TextureBindingUsage::ShaderRead });
+			tracked_bindings.push_back(
+					TextureBinding { .texture = shadowMap, .usage = TextureBindingUsage::ShaderRead });
 		}
 
 		// Draw
-		vex::BufferBinding vertexBufferBinding {
+		BufferBinding vertexBufferBinding {
 			.buffer = meshBuffers.vertex_buffer,
 			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
 		};
@@ -540,9 +530,7 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 					_lights_structured_buffer, sizeof(LightBufferData), 0, capture.get_light_count()) };
 
 		std::vector<BindlessHandle> handles = graphics.GetBindlessHandles(bindings);
-
-		ctx.BarrierBindings(bindings);
-
+		tracked_bindings.append_range(bindings);
 		std::vector<uint32_t> push_data(handles.size());
 		std::copy_n(reinterpret_cast<uint32_t*>(handles.data()), handles.size(), push_data.begin());
 		push_data.push_back(capture.get_light_count());
@@ -555,7 +543,7 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 						.vertexBuffers = { &vertexBufferBinding, 1 },
 						.indexBuffer = indexBufferBinding,
 				},
-				constant_bindings, meshBuffers.index_count);
+				constant_bindings, tracked_bindings, meshBuffers.index_count);
 	}
 }
 
@@ -633,6 +621,9 @@ VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(
 	vex::Buffer ib =
 			graphics.CreateBuffer(vex::BufferDesc::CreateIndexBufferDesc("Mesh IB", sizeof(uint32_t) * indices.size()));
 	ctx.EnqueueDataUpload(ib, std::as_bytes(std::span(indices)));
+
+	ctx.Barrier(vb, RHIBarrierAccess::MemoryRead);
+	ctx.Barrier(ib, RHIBarrierAccess::MemoryRead);
 
 	MeshBuffers buffers { vb, ib, static_cast<uint32_t>(indices.size()) };
 	_mesh_cache[mesh] = buffers;
