@@ -6,7 +6,8 @@
 
 namespace feather {
 
-Variant::Variant(Reflected& ref) : Variant(&ref) {}
+Variant::Variant(Reflected& ref) : Variant(&ref) {
+}
 
 bool Variant::operator==(const Variant& other) const {
 	// Types must match

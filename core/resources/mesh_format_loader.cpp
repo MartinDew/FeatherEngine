@@ -1,6 +1,7 @@
 ﻿#include "mesh_format_loader.h"
 
 #include "mesh.h"
+#include "resource_loader.h"
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -9,20 +10,25 @@
 
 namespace feather {
 
-void MeshFormatLoader::_bind_members() {}
-
-bool MeshFormatLoader::recognize_extension(const std::string& extension) const {
-	return extension == "obj" || extension == "fbx" || extension == "gltf" || extension == "glb" ||
-			extension == "dae" || extension == "blend";
+void MeshFormatLoader::_bind_members() {
+	ClassDB::bind_method(&Type::recognize_extension, "recognize_extension");
 }
 
+MeshFormatLoader::MeshFormatLoader() : _importer { std::make_unique<Assimp::Importer>() } {
+}
+
+bool MeshFormatLoader::recognize_extension(const std::string& extension) const {
+	return _importer->IsExtensionSupported(extension);
+}
+
+MeshFormatLoader::~MeshFormatLoader() = default;
+
 std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path.string(),
+	const aiScene* scene = _importer->ReadFile(path.string(),
 			aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-		std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
+		std::cerr << "Assimp error: " << _importer->GetErrorString() << std::endl;
 		return nullptr;
 	}
 
@@ -58,5 +64,9 @@ std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 
 	return complex_mesh;
 }
+
+INPLACE_REGISTER_BEGIN(MeshFormatLoader);
+ClassDB::register_class<MeshFormatLoader>();
+INPLACE_REGISTER_END(MeshFormatLoader);
 
 } // namespace feather

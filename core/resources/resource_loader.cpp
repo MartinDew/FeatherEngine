@@ -5,19 +5,32 @@
 
 namespace feather {
 
-ResourceLoader* ResourceLoader::_instance = nullptr;
-
-void ResourceLoader::_bind_members() {}
+std::unique_ptr<ResourceLoader> ResourceLoader::_instance = nullptr;
 
 ResourceLoader* ResourceLoader::get() {
-	[[unlikely]]
-	if (!_instance)
-		_instance = new ResourceLoader;
+	if (!_instance) {
+		_instance = std::make_unique<ResourceLoader>();
+	}
 
-	return _instance;
+	return _instance.get();
 }
 
-RID ResourceLoader::generate_rid() { return RID { get()->m_counter.fetch_add(1, std::memory_order_relaxed) }; }
+ResourceLoader::ResourceLoader() {
+	auto children = ClassDB::get_children_names(ResourceFormatLoader::get_class_static());
+	for (const auto& child : children) {
+		std::shared_ptr<ResourceFormatLoader> loader = ClassDB::create_object<ResourceFormatLoader>(child);
+		add_resource_format_loader(loader);
+
+		std::println(std::cout, "Registered resource format loader: {}", child);
+	}
+};
+
+void ResourceLoader::_bind_members() {
+}
+
+RID ResourceLoader::generate_rid() {
+	return RID { get()->m_counter.fetch_add(1, std::memory_order_relaxed) };
+}
 
 void ResourceLoader::register_resource(std::shared_ptr<Resource> res) {
 	res->_rid = generate_rid();
@@ -35,7 +48,7 @@ std::shared_ptr<Resource> ResourceLoader::load(const std::string& path) {
 		std::cerr << "ResourceLoader: Cannot load resource without extension: " << path << std::endl;
 		return nullptr;
 	}
-	
+
 	std::string extension = path.substr(ext_pos + 1);
 
 	for (const auto& loader : get()->_format_loaders) {
@@ -50,16 +63,17 @@ std::shared_ptr<Resource> ResourceLoader::load(const std::string& path) {
 		}
 	}
 
-	std::cerr << "ResourceLoader: No unrecognized loader for extension '" << extension << "' for resource: " << path << std::endl;
+	std::cerr << "ResourceLoader: No unrecognized loader for extension '" << extension << "' for resource: " << path
+			  << std::endl;
 	return nullptr;
 }
 
 void ResourceLoader::add_resource_format_loader(std::shared_ptr<ResourceFormatLoader> loader) {
-	get()->_format_loaders.push_back(loader);
+	_format_loaders.push_back(loader);
 }
 
 void ResourceLoader::remove_resource_format_loader(std::shared_ptr<ResourceFormatLoader> loader) {
-	auto& loaders = get()->_format_loaders;
+	auto& loaders = _format_loaders;
 	auto it = std::find(loaders.begin(), loaders.end(), loader);
 	if (it != loaders.end()) {
 		loaders.erase(it);

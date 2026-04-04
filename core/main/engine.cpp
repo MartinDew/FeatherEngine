@@ -8,6 +8,7 @@
 
 #include "rendering/rendering_server.h"
 #include "resources/mesh.h"
+#include "resources/resource_loader.h"
 
 namespace feather {
 
@@ -69,6 +70,8 @@ struct SimulationTest {
 		entities.emplace_back(Transform { Vector3 { 0, -2, 0 }, Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
 									  Vector3 { 200, 0.1f, 200 } },
 				std::make_shared<BoxMesh>(), nullptr);
+
+		ResourceLoader* loader = ResourceLoader::get();
 	}
 
 	void update(double dt) {
@@ -170,7 +173,9 @@ bool Engine::run() {
 	return true;
 }
 
-double Engine::get_current_delta_time() const { return _current_dt; }
+double Engine::get_current_delta_time() const {
+	return _current_dt;
+}
 
 bool Engine::is_editor() {
 	if constexpr (!EDITOR_BUILD)

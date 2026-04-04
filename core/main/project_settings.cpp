@@ -18,7 +18,9 @@ ProjectSettings* ProjectSettings::get() {
 	return _instance.get();
 }
 
-Path ProjectSettings::get_project_path() { return _project_path; }
+Path ProjectSettings::get_project_path() {
+	return _project_path;
+}
 
 static void replace_all(std::string& path, const std::string& token, const std::string& replacement) {
 	size_t pos = 0;
@@ -28,8 +30,9 @@ static void replace_all(std::string& path, const std::string& token, const std::
 	}
 }
 
-Path ProjectSettings::localize_path(std::string path) {
-	replace_all(path, "Res://", get_project_path().string());
+Path ProjectSettings::localize_path(const Path& path) {
+	std::string new_path = path.string();
+	replace_all(new_path, "res://", get_project_path().string());
 
 #if defined(_WIN32) || defined(_WIN64)
 	char sys_root[MAX_PATH];
@@ -38,7 +41,7 @@ Path ProjectSettings::localize_path(std::string path) {
 #else
 	std::string root = "/";
 #endif
-	replace_all(path, "Sys://", root);
+	replace_all(new_path, "sys://", root);
 
 #if defined(_WIN32) || defined(_WIN64)
 	char home[MAX_PATH];
@@ -52,15 +55,17 @@ Path ProjectSettings::localize_path(std::string path) {
 	}
 	std::string home_path = std::string(home) + "/";
 #endif
-	replace_all(path, "Home://", home_path);
+	replace_all(new_path, "home://", home_path);
 
-	return Path(path);
+	return new_path;
 }
 
 void ProjectSettings::_bind_members() {
 	ClassDB::bind_property(&ProjectSettings::_project_path, "project_path", VariantType::STRING);
 }
 
-void ProjectSettings::set_project_path(Path path) { _project_path = path; }
+void ProjectSettings::set_project_path(Path path) {
+	_project_path = path;
+}
 
 } //namespace feather

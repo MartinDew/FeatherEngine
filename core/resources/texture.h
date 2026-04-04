@@ -1,9 +1,9 @@
 #pragma once
 
 #include "resource.h"
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace feather {
 
@@ -25,7 +25,6 @@ class Texture : public Resource {
 	FCLASS(Texture, Resource);
 
 protected:
-	std::string _file_path;
 	std::vector<uint8_t> _pixel_data;
 	uint32_t _width = 0;
 	uint32_t _height = 0;
@@ -38,12 +37,11 @@ public:
 	Texture() = default;
 
 	// File loading
-	void set_file_path(const std::string_view path);
-	const std::string& get_file_path() const { return _file_path; }
 	bool load_from_file();
 
 	// Direct data setting (for procedural textures)
-	void set_data(const std::vector<uint8_t>& data, uint32_t width, uint32_t height, TextureFormat format);
+	void set_data(const std::string& path, const std::vector<uint8_t>& data, uint32_t width, uint32_t height,
+			TextureFormat format);
 
 	// Getters
 	const std::vector<uint8_t>& get_pixel_data() const { return _pixel_data; }

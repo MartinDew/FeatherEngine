@@ -26,7 +26,7 @@ public:
 	static ProjectSettings* get();
 
 	Path get_project_path();
-	Path localize_path(std::string);
+	Path localize_path(const Path& path);
 };
 
 } //namespace feather

@@ -81,8 +81,6 @@ inline constexpr void ClassDB::bind_property(U T::* member, std::string_view nam
 	ClassInfo::Property prop {
 		.name = StaticString(name),
 		.type = variant_type,
-		.member_offset = offset_of(member),
-		.member_size = sizeof(U),
 	};
 
 	// Getter : takes void*(will be cast to T*), returns Variant

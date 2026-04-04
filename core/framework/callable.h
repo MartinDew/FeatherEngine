@@ -16,6 +16,7 @@ class Callable {
 	uint8_t _param_amount;
 
 public:
+	Callable();
 	template <class TRet, class... TArgs>
 		requires(VariantCompatible<std::decay_t<TRet>>) && (VariantCompatible<std::decay_t<TArgs>> && ...)
 	Callable(std::function<TRet(TArgs...)> func)
@@ -40,19 +41,14 @@ public:
 	Callable& operator=(const Callable&) = default;
 	Callable& operator=(Callable&&) = default;
 
-	Variant call(std::span<Variant> params) {
-		if (params.size() != _param_amount) {
-			fassert(false,
-					std::format("Callable called with incorrect number of parameters. Expected {} and got {}",
-							_param_amount, params.size()));
-		}
-		return _internal_func(params);
-	}
+	Variant call(std::span<Variant> params);
 
 	Variant call(auto&&... args) {
 		Variant params[] = { args... };
 		return call(std::span<Variant>(params, sizeof...(args)));
 	}
+
+	bool is_valid() const;
 };
 
 } // namespace feather

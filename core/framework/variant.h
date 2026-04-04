@@ -119,7 +119,6 @@ public:
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
-		requires(!std::is_reference_v<T>)
 	Variant(T value) {
 		constexpr VariantType type = get_variant_type<T>();
 		_type = type;
@@ -158,6 +157,9 @@ public:
 		}
 		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
+		}
+		else if constexpr (type == VariantType::INVALID) {
+			static_assert(false, "Variant type is unrecognized");
 		}
 		// default case if assignment is 1:1
 		else {
