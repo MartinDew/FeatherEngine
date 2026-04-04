@@ -37,7 +37,12 @@ public:
 	// Useful for resources that are static and don't need to be loaded
 	static void register_resource(std::shared_ptr<Resource> res);
 
-	static std::shared_ptr<Resource> load(const std::string& path);
+	std::shared_ptr<Resource> load(const Path& path);
+	template <std::derived_from<Resource> T>
+	std::shared_ptr<T> load(const Path& path) {
+		auto ptr = load(path);
+		return std::static_pointer_cast<T>(ptr);
+	}
 
 	void add_resource_format_loader(std::shared_ptr<ResourceFormatLoader> loader);
 	void remove_resource_format_loader(std::shared_ptr<ResourceFormatLoader> loader);

@@ -1,5 +1,7 @@
 #include "resource_loader.h"
+
 #include <core/main/class_db.h>
+#include <main/project_settings.h>
 #include <algorithm>
 #include <iostream>
 
@@ -37,27 +39,27 @@ void ResourceLoader::register_resource(std::shared_ptr<Resource> res) {
 	get()->_cache[res->_rid] = res;
 }
 
-std::shared_ptr<Resource> ResourceLoader::load(const std::string& path) {
-	auto it = get()->_path_cache.find(path);
+std::shared_ptr<Resource> ResourceLoader::load(const Path& path) {
+	auto it = get()->_path_cache.find(path.string());
 	if (it != get()->_path_cache.end()) {
 		return it->second;
 	}
 
-	size_t ext_pos = path.find_last_of('.');
+	size_t ext_pos = path.string().find_last_of('.');
 	if (ext_pos == std::string::npos) {
 		std::cerr << "ResourceLoader: Cannot load resource without extension: " << path << std::endl;
 		return nullptr;
 	}
 
-	std::string extension = path.substr(ext_pos + 1);
+	std::string extension = path.string().substr(ext_pos);
 
 	for (const auto& loader : get()->_format_loaders) {
 		if (loader->recognize_extension(extension)) {
-			std::shared_ptr<Resource> res = loader->load(path);
+			std::shared_ptr<Resource> res = loader->load(ProjectSettings::get()->localize_path(path));
 			if (res) {
 				res->_rid = generate_rid();
 				get()->_cache[res->_rid] = res;
-				get()->_path_cache[path] = res;
+				get()->_path_cache[path.string()] = res;
 				return res;
 			}
 		}

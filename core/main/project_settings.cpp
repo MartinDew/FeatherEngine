@@ -12,7 +12,7 @@ ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
 }
 
 ProjectSettings* ProjectSettings::get() {
-	if (_instance)
+	if (!_instance)
 		_instance = std::make_unique<ProjectSettings>();
 
 	return _instance.get();
@@ -32,7 +32,7 @@ static void replace_all(std::string& path, const std::string& token, const std::
 
 Path ProjectSettings::localize_path(const Path& path) {
 	std::string new_path = path.string();
-	replace_all(new_path, "res://", get_project_path().string());
+	replace_all(new_path, "res://", get_project_path().string() + '/');
 
 #if defined(_WIN32) || defined(_WIN64)
 	char sys_root[MAX_PATH];
@@ -57,7 +57,9 @@ Path ProjectSettings::localize_path(const Path& path) {
 #endif
 	replace_all(new_path, "home://", home_path);
 
-	return new_path;
+	Path npath(new_path);
+	npath.make_preferred();
+	return npath;
 }
 
 void ProjectSettings::_bind_members() {
@@ -67,5 +69,9 @@ void ProjectSettings::_bind_members() {
 void ProjectSettings::set_project_path(Path path) {
 	_project_path = path;
 }
+
+INPLACE_REGISTER_BEGIN(ProjectSettings)
+ClassDB::register_singleton_class<ProjectSettings>();
+INPLACE_REGISTER_END(ProjectSettings);
 
 } //namespace feather

@@ -5,7 +5,7 @@
 ### General config, applies to all languages ###
 BasedOnStyle:  LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: DontAlign
+AlignAfterOpenBracket: BlockIndent
 # AlignArrayOfStructures: None
 # AlignConsecutiveMacros: None
 # AlignConsecutiveAssignments: None
@@ -30,8 +30,8 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 AlwaysBreakTemplateDeclarations: Leave
 # AttributeMacros:
 #   - __capability
-# BinPackArguments: true
-# BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
 #   AfterCaseLabel:  false
 #   AfterClass:      false
