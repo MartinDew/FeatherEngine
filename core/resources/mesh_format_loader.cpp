@@ -1,5 +1,6 @@
 ﻿#include "mesh_format_loader.h"
 
+#include "build/development-fbuild/_deps/assimp-src/code/AssetLib/3MF/3MFXmlTags.h"
 #include "mesh.h"
 #include "resource_loader.h"
 
@@ -40,6 +41,9 @@ std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[i];
 		uint32_t index_offset = vertices.size();
+
+		vertices.reserve(mesh->mNumVertices);
+		indices.reserve(mesh->mNumFaces * 3);
 
 		for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
 			Vertex vertex;
