@@ -1,7 +1,10 @@
 ﻿#include "project_settings.h"
 
 #include "launch_settings.h"
+
+#if defined(_WIN32) || defined(_WIN64)
 #include <shlobj_core.h>
+#endif
 
 namespace feather {
 

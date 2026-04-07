@@ -1,13 +1,15 @@
 #pragma once
 
 #include "resource.h"
+#include <core/framework/path.h>
 #include <framework/reflected.h>
 #include <framework/reflection_macros.h>
-#include <core/framework/path.h>
 
 #include <string>
 
 namespace feather {
+
+class ResourceLoader;
 
 class ResourceFormatLoader : public Reflected {
 	FCLASS(ResourceFormatLoader, Reflected);
