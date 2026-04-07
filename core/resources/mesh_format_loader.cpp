@@ -1,6 +1,5 @@
 ﻿#include "mesh_format_loader.h"
 
-#include "build/development-fbuild/_deps/assimp-src/code/AssetLib/3MF/3MFXmlTags.h"
 #include "mesh.h"
 #include "resource_loader.h"
 
