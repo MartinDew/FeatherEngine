@@ -58,7 +58,7 @@ jobs:
       - name: Configure CMake
         run: |
           cmake --version
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON -DLLVM_USE_LIBCXX=ON -DLLVM_ENABLE_LTO=OFF
+          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON -DLLVM_USE_LIBCXX=ON -DENABLE_LTO=OFF
 
       - name: Build Editor
         run: |
@@ -121,17 +121,17 @@ jobs:
 
       - name: Configure CMake with Clang-CL
         run: |
-          cmake --preset windows -T ClangCL
+          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON
         shell: pwsh
 
       - name: Build Editor (${{ matrix.config }})
         run: |
-          cmake --build build/windows --config ${{ matrix.config }} --target Editor
+          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Editor
         shell: pwsh
 
       - name: Build Standalone (${{ matrix.config }})
         run: |
-          cmake --build build/windows --config ${{ matrix.config }} --target Standalone
+          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Standalone
         shell: pwsh
 
       - name: Upload artifacts
