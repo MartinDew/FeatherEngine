@@ -8,6 +8,8 @@ class Importer;
 
 namespace feather {
 
+// Todo : mesh format loader needs to be reworked because we don't necessarily load only mesh.
+// It's possible to load a full scene. The problem is identifying the underlying meshes afterwards from the VFP.
 class MeshFormatLoader : public ResourceFormatLoader {
 	FCLASS(MeshFormatLoader, ResourceFormatLoader);
 
