@@ -8,39 +8,86 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    name: Linux Build (${{ matrix.config }})
-    runs-on: ubuntu-latest
+  build:
+    name: ${{ matrix.config.name }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.config.os }}
+
     strategy:
       fail-fast: false
       matrix:
-        config: [ Debug, Release, Development ]
-    
+        build_type: [ Debug, Release, Development ]
+        config:
+          # ── macOS (Apple Clang) ──────────────────────────────────────────
+          - name: macOS
+            os: macos-latest
+            extra_cmake_flags: ""
+            # vex_renderer returns() early on Apple in its own CMakeLists
+
+          # ── Linux (system Clang) ─────────────────────────────────────────
+          - name: Linux
+            os: ubuntu-24.04
+            extra_cmake_flags: "-DUSE_LLVM=ON -DLLVM_USE_LIBCXX=ON"
+
+          # ── Windows (LLVM / clang-cl, single-config Ninja) ───────────────
+          - name: Windows LLVM
+            os: windows-latest
+            extra_cmake_flags: "-DUSE_LLVM=ON"
+
     steps:
-      - name: Checkout code
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
         with:
-          cmake-version: '4.1.x'
+          submodules: recursive
 
-      - name: Verify GCC installation
-        run: g++ --version
-
-      - name: Setup Clang
-        uses: KyleMayes/install-llvm-action@v2.0.8
+      # ── Python (required by GenerateEmbeddedResources) ────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: 21.1.3
-          env: false
+          python-version: "3.12"
 
-      - name: Setup SDL Prerequisites
+
+      # ── Common dependencies ────────────────────────────────────────────────
+      # Vulkan sdk
+      - name: Setup Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-use-cache: true
+          vulkan-query-version: latest
+
+      - name: Install LLVM
+        if: runner.os == 'Windows' || runner.os == 'Linux'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20"
+
+      # ── macOS dependencies ────────────────────────────────────────────────
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      # ── Linux dependencies ────────────────────────────────────────────────
+      # Add any extra system libs your thirdparties need (SDL3, assimp, etc.)
+      # under the libx11-dev / libgl lines below.
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            ninja-build \
+            clang \
+            lld \
+            python3 \
+            libgl1-mesa-dev \
+            libx11-dev \
+            libxext-dev \
+            libxrandr-dev \
+            libxi-dev \
+            libudev-dev
+
+      - name: Install SDL deps (Linux)
+        if: runner.os == 'Linux'
+        run : |
           sudo apt-get install -y git make \
           pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
           libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
@@ -49,181 +96,65 @@ jobs:
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev  \
           libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
 
-      - name: Setup Vulkan SDK
-        uses: humbletim/setup-vulkan-sdk@v1.2.1
-        with:
-          vulkan-use-cache: true
-          vulkan-query-version: latest
-
-      - name: Configure CMake
+      - name: Install LLVM Gold Plugin (Linux)
+        if: runner.os == 'Linux'
         run: |
-          cmake --version
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON -DLLVM_USE_LIBCXX=ON -DENABLE_LTO=OFF
+          sudo apt-get install -y binutils-gold llvm-20
+          # The install-llvm-action tarball doesn't ship LLVMgold.so.
+          # Clang resolves it relative to its own prefix, so we need it there.
+          sudo mkdir -p "$LLVM_PATH/lib"
+          sudo ln -sf /usr/lib/llvm-20/lib/LLVMgold.so "$LLVM_PATH/lib/LLVMgold.so"
+          sudo mkdir -p /usr/lib/bfd-plugins
+          sudo ln -sf /usr/lib/llvm-20/lib/LLVMgold.so /usr/lib/bfd-plugins/LLVMgold.so
 
-      - name: Build Editor
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Editor
-
-      - name: Build Standalone
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}  --target Standalone
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ matrix.config }}-binaries
-          path: |
-            build/*/bin/*
-          retention-days: 7
-
-  build-windows:
-    name: Windows Build (${{ matrix.config }})
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [ Debug, Release, Development ]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # ── Windows: LLVM toolchain ───────────────────────────────────────────
+      # Puts clang-cl, lld-link and llvm-lib on PATH.
+      # toolchain-llvm.cmake's find_llvm_tool() will pick them up without
+      # needing LLVM_ROOT to be set explicitly.
 
       - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v2
+        if: runner.os == 'Windows'
+        uses: k3DW/setup-msvc@v1
+        with:
+          vs-version: 17.14
 
-      - name: Setup Cmake
+      - name: Setup LLVM In Path
+        if: runner.os == 'Windows'
         run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' --yes
-          cmake --version
-
-      - name: Setup Clang-CL environment
-        run: |
-          echo "CC=clang-cl" >> $env:GITHUB_ENV
-          echo "CXX=clang-cl" >> $env:GITHUB_ENV
           echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
 
-      - name: Verify compiler
+      - name: Remove Strawberry Perl from PATH (Windows)
+        if: runner.os == 'Windows'
         run: |
-          clang-cl --version
-          cmake --version
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Strawberry' }) -join ';'
+          echo "PATH=$env:PATH" >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Cache CMake configuration
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/windows/CMakeCache.txt
-            build/windows/CMakeFiles
-            build/windows/*.cmake
-          key: windows-cmake-${{ matrix.config }}-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
-          restore-keys: |
-            windows-cmake-${{ matrix.config }}-
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        uses: seanmiddleditch/gha-setup-ninja@v5
 
-      - name: Configure CMake with Clang-CL
-        run: |
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} -DUSE_LLVM=ON
-        shell: pwsh
+      - name: Set UTF-8 Code Page
+        if: runner.os == 'Windows'
+        run: chcp 65001
 
-      - name: Build Editor (${{ matrix.config }})
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Editor
-        shell: pwsh
+      # ── Configure (all platforms, single-config Ninja) ────────────────────
+      - name: Configure
+        run: >
+          cmake --preset ${{ matrix.build_type == 'Debug' && 'debug' || matrix.build_type == 'Release' && 'release' || 'development' }} ${{ matrix.config.extra_cmake_flags }}
 
-      - name: Build Standalone (${{ matrix.config }})
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Standalone
-        shell: pwsh
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-${{ matrix.config }}-binaries
-          path: |
-            build/windows/bin/${{ matrix.config }}/*
-          retention-days: 7
-
-  build-macos:
-    name: macOS Build (${{ matrix.config }})
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [ Debug, Release, Development ]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install latest LLVM
-        run: |
-          brew install llvm@19 ninja
-          echo "$(brew --prefix llvm@19)/bin" >> $GITHUB_PATH
-
-      - name: Set Clang as default compiler
-        run: |
-          LLVM_PREFIX=$(brew --prefix llvm@19)
-          echo "CC=$LLVM_PREFIX/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$LLVM_PREFIX/bin/clang++" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$LLVM_PREFIX/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$LLVM_PREFIX/include" >> $GITHUB_ENV
-          echo "LIBRARY_PATH=$LLVM_PREFIX/lib" >> $GITHUB_ENV
-          echo "DYLD_LIBRARY_PATH=$LLVM_PREFIX/lib" >> $GITHUB_ENV
-
-      - name: Verify compiler version
-        run: |
-          $(brew --prefix llvm@19)/bin/clang++ --version
-          cmake --version
-
-      - name: Cache CMake configuration
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/CMakeCache.txt
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/CMakeFiles
-            build/${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}/*.cmake
-          key: macos-cmake-${{ matrix.config }}-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
-          restore-keys: |
-            macos-cmake-${{ matrix.config }}-
-
-
-      - name: Configure CMake
-        run: |
-          cmake --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }}
-
+      # ── Build ──────────────────────────────────────────────────────────────
       - name: Build Editor
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Editor
+        run: cmake --build --preset ${{ matrix.build_type == 'Debug' && 'debug' || matrix.build_type == 'Release' && 'release' || 'development' }} --target Editor --parallel
 
       - name: Build Standalone
-        run: |
-          cmake --build --preset ${{ matrix.config == 'Debug' && 'debug' || matrix.config == 'Release' && 'release' || 'development' }} --target Standalone
+        run: cmake --build --preset ${{ matrix.build_type == 'Debug' && 'debug' || matrix.build_type == 'Release' && 'release' || 'development' }} --target Standalone --parallel
 
-      - name: Upload artifacts
+      # ── Upload artifacts ───────────────────────────────────────────────────
+      - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.config }}-binaries
-          path: |
-            build/*/bin/*
+          name: feather-${{ matrix.config.name }}-${{ matrix.build_type }}
+          path: build/*/bin/*
+          if-no-files-found: warn
           retention-days: 7
-
-  build-summary:
-    name: Build Summary
-    runs-on: ubuntu-latest
-    needs: [ build-linux, build-windows, build-macos ]
-    if: always()
-    
-    steps:
-      - name: Check build status
-        run: |
-          echo "Linux build: ${{ needs.build-linux.result }}"
-          echo "Windows build: ${{ needs.build-windows.result }}"
-          echo "macOS build: ${{ needs.build-macos.result }}"
-          
-          if [ "${{ needs.build-linux.result }}" != "success" ] || \
-             [ "${{ needs.build-windows.result }}" != "success" ] || \
-             [ "${{ needs.build-macos.result }}" != "success" ]; then
-            echo "One or more builds failed!"
-            exit 1
-          fi
-          
-          echo "All builds succeeded!"

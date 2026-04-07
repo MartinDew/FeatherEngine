@@ -7,6 +7,7 @@
 #elif defined(__APPLE__) || defined(__linux__)
 #include <pwd.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 namespace feather {

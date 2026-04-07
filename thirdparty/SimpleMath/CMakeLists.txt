@@ -1,9 +1,6 @@
 
 set(SIMPLEMATH_FILES SimpleMath.cpp SimpleMath.h SimpleMath.inl)
-
-set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 17)
 
 add_library(SimpleMath STATIC EXCLUDE_FROM_ALL ${SIMPLEMATH_FILES})
 
