@@ -161,8 +161,13 @@ jobs:
 
       - name: Set Clang as default compiler
         run: |
-          echo "CC=$(brew --prefix llvm@19)/bin/clang" >> $GITHUB_ENV
-          echo "CXX=$(brew --prefix llvm@19)/bin/clang++" >> $GITHUB_ENV
+          LLVM_PREFIX=$(brew --prefix llvm@19)
+          echo "CC=$LLVM_PREFIX/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$LLVM_PREFIX/bin/clang++" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$LLVM_PREFIX/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$LLVM_PREFIX/include" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LLVM_PREFIX/lib" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=$LLVM_PREFIX/lib" >> $GITHUB_ENV
 
       - name: Verify compiler version
         run: |
