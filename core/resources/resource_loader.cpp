@@ -7,11 +7,10 @@
 
 namespace feather {
 
-std::unique_ptr<ResourceLoader> ResourceLoader::_instance = nullptr;
+FSINGLETON_INSTANCE(ResourceLoader)
 
 ResourceLoader::ResourceLoader() {
-	fassert(!_instance, "Resource loader already initialized");
-	_instance.reset(this);
+	FSINGLETON_CONSTRUCT_INSTANCE();
 
 	auto children = ClassDB::get_children_names(ResourceFormatLoader::get_class_static());
 	for (const auto& child : children) {

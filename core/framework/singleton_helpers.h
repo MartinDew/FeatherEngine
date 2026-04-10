@@ -14,7 +14,7 @@ concept is_singleton_v =
 } // namespace feather
 
 #define FDECLARE_SINGLETON(_type)                                                                                      \
-	static std::unique_ptr<_type> _instance;                                                                           \
+	static _type* _instance;                                                                                           \
 	_type(_type&) = delete;                                                                                            \
 	_type& operator=(const _type&) = delete;                                                                           \
                                                                                                                        \
@@ -22,13 +22,13 @@ public:                                                                         
 	static _type* get() {                                                                                              \
 		if (!_instance)                                                                                                \
 			fassert(false, std::format("Singleton {} not instantiated but an attempt to get was made", #_type));       \
-		return _instance.get();                                                                                        \
+		return _instance;                                                                                              \
 	}                                                                                                                  \
                                                                                                                        \
 private:
 
-#define FSINGLETON_INSTANCE(_name) std::unique_ptr<_name, > _name::_instance = nullptr;
+#define FSINGLETON_INSTANCE(_name) _name* _name::_instance = nullptr;
 
-#define DSINGLETON_CONSTRUCT_INSTANCE()                                                                                \
-	fassert(!instance, "Singleton is already initialized");                                                            \
-	_instance.reset(this);
+#define FSINGLETON_CONSTRUCT_INSTANCE()                                                                                \
+	fassert(!_instance, "Singleton is already initialized");                                                           \
+	_instance = this;

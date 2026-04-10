@@ -12,14 +12,12 @@
 
 namespace feather {
 
-std::unique_ptr<ProjectSettings> ProjectSettings::_instance = nullptr;
+FSINGLETON_INSTANCE(ProjectSettings);
 
-ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
-	_instance.reset(this);
-	_project_path = LaunchSettings::get().project_path.Get();
-}
+ProjectSettings::ProjectSettings()
+		: _project_path(FileSystem::current_path()) { FSINGLETON_CONSTRUCT_INSTANCE() }
 
-Path ProjectSettings::get_project_path() {
+		Path ProjectSettings::get_project_path() {
 	return _project_path;
 }
 

@@ -8,12 +8,10 @@
 
 namespace feather {
 
-std::unique_ptr<ClassDB> ClassDB::_instance = nullptr;
+FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
-	fassert(!_instance, "ClassDB already initialized");
-	_instance.reset(this);
-	
+	FSINGLETON_CONSTRUCT_INSTANCE()
 	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
 }
 

@@ -1,6 +1,7 @@
 ﻿#include "engine.h"
 #include "launch_settings.h"
 #include "project_settings.h"
+#include "resources/resource_loader.h"
 
 #include <framework/register_framework_types.gen.h>
 #include <main/register_main_types.gen.h>
@@ -16,6 +17,7 @@ struct Main {
 	ClassDB _class_db;
 	LaunchSettings _launch_settings;
 	ProjectSettings _project_settings;
+	ResourceLoader _resource_loader;
 
 	Main(int argc, char* argv[]);
 	static void setup_db();
