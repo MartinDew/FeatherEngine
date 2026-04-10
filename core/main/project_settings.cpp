@@ -15,6 +15,7 @@ namespace feather {
 std::unique_ptr<ProjectSettings> ProjectSettings::_instance = nullptr;
 
 ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
+	_instance.reset(this);
 	_project_path = LaunchSettings::get().project_path.Get();
 }
 

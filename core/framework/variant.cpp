@@ -34,7 +34,9 @@ bool Variant::operator==(const Variant& other) const {
 					return lhs == rhs;
 				}
 			},
-			_data, other._data);
+			_data,
+			other._data
+	);
 }
 
 std::string Variant::to_string() const {
@@ -90,7 +92,7 @@ void Variant::set(std::string_view key, const Variant& value) {
 }
 
 void Variant::set_class_info(StaticString class_name) {
-	_object_info = ClassDB::get()._get_class_info_internal(class_name);
+	_object_info = ClassDB::get()->_get_class_info_internal(class_name);
 }
 
 Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args) const {

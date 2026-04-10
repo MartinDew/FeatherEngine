@@ -12,6 +12,7 @@ using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 class Engine {
+	friend Main;
 	static Engine* _instance;
 
 	RenderingServer _rendering_server;
@@ -20,8 +21,9 @@ class Engine {
 	TimePoint start_time = Clock::now();
 	double _current_dt = 0.0;
 
-public:
 	Engine();
+
+public:
 	~Engine();
 
 	bool run();

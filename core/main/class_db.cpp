@@ -11,14 +11,10 @@ namespace feather {
 std::unique_ptr<ClassDB> ClassDB::_instance = nullptr;
 
 ClassDB::ClassDB() {
+	fassert(!_instance, "ClassDB already initialized");
+	_instance.reset(this);
+	
 	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
-}
-
-ClassDB& ClassDB::get() {
-	if (!_instance) {
-		_instance.reset(new ClassDB());
-	}
-	return *_instance;
 }
 
 Reflected* ClassDB::create_object_unsafe(std::string_view name) {
@@ -45,14 +41,14 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 }
 
 ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
-	if (auto it = get()._class_infos.find(name); it != get()._class_infos.end()) {
+	if (auto it = get()->_class_infos.find(name); it != get()->_class_infos.end()) {
 		return &it->second;
 	};
 	return nullptr;
 }
 
 std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
-	if (auto it = ClassDB::get()._class_infos.find(object_name); it != ClassDB::get()._class_infos.end()) {
+	if (auto it = ClassDB::get()->_class_infos.find(object_name); it != ClassDB::get()->_class_infos.end()) {
 		return _get_children_names_internal(it->second, exclusive);
 	}
 

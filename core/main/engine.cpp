@@ -165,7 +165,7 @@ bool Engine::run() {
 
 	// Debug stuff
 	if (LaunchSettings::get().dump_db.Get()) {
-		ClassDB::get().print_db();
+		ClassDB::get()->print_db();
 		return true;
 	}
 

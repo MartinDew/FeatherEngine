@@ -145,16 +145,12 @@ def generate_header(subfolder_name: str) -> str:
         f"{GENERATED_NOTICE}"
         f"#pragma once\n"
         f"\n"
-        f"#ifndef {guard}\n"
-        f"#define {guard}\n"
-        f"\n"
         f"namespace feather {{\n"
         f"\n"
-        f"static void {func_name}();\n"
+        f"extern void {func_name}();\n"
         f"\n"
         f"}} // namespace feather\n"
         f"\n"
-        f"#endif // {guard}\n"
     )
 
 
@@ -182,7 +178,7 @@ def generate_cpp(subfolder_name: str, entries: list[ClassEntry], core_path: Path
     lines.append("")
     lines.append("namespace feather {")
     lines.append("")
-    lines.append(f"static void {func_name}() {{")
+    lines.append(f"void {func_name}() {{")
 
     if entries:
         for e in entries:

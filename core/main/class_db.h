@@ -3,6 +3,7 @@
 #include <framework/callable.h>
 #include <framework/class_info.h>
 #include <framework/reflection_utils.h>
+#include <framework/singleton_helpers.h>
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
 
@@ -16,7 +17,9 @@ namespace feather {
 
 class ClassDB {
 	friend Variant;
-	static std::unique_ptr<ClassDB> _instance;
+	friend struct Main;
+	FDECLARE_SINGLETON(ClassDB);
+
 	ClassDB();
 
 	std::map<StaticString, ClassInfo> _class_infos;
@@ -33,8 +36,6 @@ class ClassDB {
 	static ClassInfo* _get_class_info_internal(std::string_view name);
 
 public:
-	static ClassDB& get();
-
 	void print_db();
 
 	template <is_reflected_class_type T>

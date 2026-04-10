@@ -10,6 +10,9 @@ namespace feather {
 std::unique_ptr<ResourceLoader> ResourceLoader::_instance = nullptr;
 
 ResourceLoader::ResourceLoader() {
+	fassert(!_instance, "Resource loader already initialized");
+	_instance.reset(this);
+
 	auto children = ClassDB::get_children_names(ResourceFormatLoader::get_class_static());
 	for (const auto& child : children) {
 		std::shared_ptr<ResourceFormatLoader> loader = ClassDB::create_object<ResourceFormatLoader>(child);

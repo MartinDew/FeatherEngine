@@ -26,3 +26,9 @@ public:                                                                         
 	}                                                                                                                  \
                                                                                                                        \
 private:
+
+#define FSINGLETON_INSTANCE(_name) std::unique_ptr<_name, > _name::_instance = nullptr;
+
+#define DSINGLETON_CONSTRUCT_INSTANCE()                                                                                \
+	fassert(!instance, "Singleton is already initialized");                                                            \
+	_instance.reset(this);

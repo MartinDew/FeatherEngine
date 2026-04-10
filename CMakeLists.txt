@@ -101,7 +101,7 @@ add_dependencies(Standalone GenerateEmbeddedResources)
 add_custom_target(GenerateRegisterTypes
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_register_types.py --core-path ./core
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating embedded resource headers with #embed directives"
+        COMMENT "Generating type registration functions"
         VERBATIM
 )
 

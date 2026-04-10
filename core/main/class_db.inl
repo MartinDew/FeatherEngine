@@ -34,7 +34,7 @@ void ClassDB::register_class() {
 	else {
 		static_assert(std::is_default_constructible<T>(), "Trying to register class that is not default constructible");
 		static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
-		ClassDB& instance = get();
+		ClassDB& instance = *get();
 
 		ClassInfo& info = instance._class_infos[T::get_class_static()];
 		info.name = T::get_class_static();
@@ -56,7 +56,7 @@ void ClassDB::register_class() {
 template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
-	ClassDB& instance = get();
+	ClassDB& instance = *get();
 
 	ClassInfo& info = instance._class_infos[T::get_class_static()];
 	info.name = T::get_class_static();
@@ -83,7 +83,7 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 
 template <class T, class U>
 inline constexpr void ClassDB::bind_property(U T::* member, std::string_view name, VariantType variant_type) {
-	if (!get()._current_info) {
+	if (!get()->_current_info) {
 		return;
 	}
 
@@ -104,13 +104,13 @@ inline constexpr void ClassDB::bind_property(U T::* member, std::string_view nam
 		typed_ptr->*member = val.as<U>().value();
 	};
 
-	get()._current_info->properties.push_back(std::move(prop));
+	get()->_current_info->properties.push_back(std::move(prop));
 }
 
 // Method binding
 template <class T, class TRet, class... TArgs>
 inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::string_view name) {
-	if (!get()._current_info) {
+	if (!get()->_current_info) {
 		return;
 	}
 
@@ -121,12 +121,12 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::str
 
 	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
 
-	get()._current_info->methods.push_back(std::move(method_info));
+	get()->_current_info->methods.push_back(std::move(method_info));
 }
 
 template <class T, class TRet, class... TArgs>
 inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, std::string_view name) {
-	if (!get()._current_info) {
+	if (!get()->_current_info) {
 		return;
 	}
 
@@ -137,7 +137,7 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, st
 
 	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
 
-	get()._current_info->methods.push_back(std::move(method_info));
+	get()->_current_info->methods.push_back(std::move(method_info));
 }
 
 } //namespace feather
