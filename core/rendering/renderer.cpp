@@ -9,14 +9,15 @@
 
 namespace feather {
 
-void Renderer::_bind_members() { ClassDB::bind_method(&Type::_render_scene, "_render_scene"); }
+void Renderer::_bind_members() {
+	ClassDB::bind_method(&Type::_render_scene, "_render_scene");
+}
 
-Renderer::Renderer() : _window(&Engine::get().get_main_window()) {}
+Renderer::Renderer() : _window(&Engine::get().get_main_window()) {
+}
 
-SDL_Window* Renderer::_extract_internal_window(Window& window) { return window._internal_window; }
-
-INPLACE_REGISTER_BEGIN(Renderer);
-ClassDB::register_abstract_class<Renderer>();
-INPLACE_REGISTER_END(Renderer);
+SDL_Window* Renderer::_extract_internal_window(Window& window) {
+	return window._internal_window;
+}
 
 } //namespace feather

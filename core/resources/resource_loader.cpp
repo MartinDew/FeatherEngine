@@ -9,14 +9,6 @@ namespace feather {
 
 std::unique_ptr<ResourceLoader> ResourceLoader::_instance = nullptr;
 
-ResourceLoader* ResourceLoader::get() {
-	if (!_instance) {
-		_instance = std::make_unique<ResourceLoader>();
-	}
-
-	return _instance.get();
-}
-
 ResourceLoader::ResourceLoader() {
 	auto children = ClassDB::get_children_names(ResourceFormatLoader::get_class_static());
 	for (const auto& child : children) {
@@ -81,9 +73,5 @@ void ResourceLoader::remove_resource_format_loader(std::shared_ptr<ResourceForma
 		loaders.erase(it);
 	}
 }
-
-INPLACE_REGISTER_BEGIN(ResourceStorage);
-ClassDB::register_singleton_class<ResourceLoader>();
-INPLACE_REGISTER_END(ResourceStorage);
 
 } // namespace feather

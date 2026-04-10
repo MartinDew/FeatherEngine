@@ -18,13 +18,6 @@ ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
 	_project_path = LaunchSettings::get().project_path.Get();
 }
 
-ProjectSettings* ProjectSettings::get() {
-	if (!_instance)
-		_instance = std::make_unique<ProjectSettings>();
-
-	return _instance.get();
-}
-
 Path ProjectSettings::get_project_path() {
 	return _project_path;
 }
@@ -76,9 +69,5 @@ void ProjectSettings::_bind_members() {
 void ProjectSettings::set_project_path(Path path) {
 	_project_path = path;
 }
-
-INPLACE_REGISTER_BEGIN(ProjectSettings)
-ClassDB::register_singleton_class<ProjectSettings>();
-INPLACE_REGISTER_END(ProjectSettings);
 
 } //namespace feather

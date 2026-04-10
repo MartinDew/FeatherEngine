@@ -70,8 +70,4 @@ std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 	return complex_mesh;
 }
 
-INPLACE_REGISTER_BEGIN(MeshFormatLoader);
-ClassDB::register_class<MeshFormatLoader>();
-INPLACE_REGISTER_END(MeshFormatLoader);
-
 } // namespace feather

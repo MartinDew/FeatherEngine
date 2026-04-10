@@ -12,9 +12,11 @@
 
 namespace feather {
 
-Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {}
+Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {
+}
 
-void Mesh::_bind_members() {}
+void Mesh::_bind_members() {
+}
 
 void Mesh::set_vertices(const CowVector<Vertex>& vertices) {
 	if (_mesh_data) {
@@ -88,8 +90,9 @@ static constexpr float DY = 1;
 static constexpr float DZ = 1;
 
 static constexpr Vector3 Point[8] = { Vector3(-DX / 2, DY / 2, -DZ / 2), Vector3(DX / 2, DY / 2, -DZ / 2),
-	Vector3(DX / 2, -DY / 2, -DZ / 2), Vector3(-DX / 2, -DY / 2, -DZ / 2), Vector3(-DX / 2, DY / 2, DZ / 2),
-	Vector3(-DX / 2, -DY / 2, DZ / 2), Vector3(DX / 2, -DY / 2, DZ / 2), Vector3(DX / 2, DY / 2, DZ / 2) };
+									  Vector3(DX / 2, -DY / 2, -DZ / 2), Vector3(-DX / 2, -DY / 2, -DZ / 2),
+									  Vector3(-DX / 2, DY / 2, DZ / 2),	 Vector3(-DX / 2, -DY / 2, DZ / 2),
+									  Vector3(DX / 2, -DY / 2, DZ / 2),	 Vector3(DX / 2, DY / 2, DZ / 2) };
 
 // Normals
 static constexpr Vector3 N0(0.0f, 0.0f, -1.0f); // front
@@ -132,14 +135,14 @@ static constexpr std::array<Vertex, 24> cube_vertices {
 
 constexpr std::array<uint32_t, 36> cube_indices {
 	// Front face
-	0, 1, 2, // front
-	0, 2, 3, // front
+	0,	1,	2, // front
+	0,	2,	3, // front
 
-	5, 6, 7, // back
-	5, 7, 4, // back
+	5,	6,	7, // back
+	5,	7,	4, // back
 
-	8, 9, 10, // down
-	8, 10, 11, // down
+	8,	9,	10, // down
+	8,	10, 11, // down
 
 	13, 14, 15, // up
 	13, 15, 12, // up
@@ -150,16 +153,12 @@ constexpr std::array<uint32_t, 36> cube_indices {
 	20, 22, 23 // right
 };
 
-static std::shared_ptr<MeshData> box_mesh =
-		std::make_shared<MeshData>(std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
-				std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() });
+static std::shared_ptr<MeshData> box_mesh = std::make_shared<MeshData>(
+		std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
+		std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() }
+);
 
-BoxMesh::BoxMesh() : Super(box_mesh) {}
-
-INPLACE_REGISTER_BEGIN(Mesh);
-ClassDB::register_abstract_class<Mesh>();
-ClassDB::register_class<ComplexMesh>();
-ClassDB::register_class<BoxMesh>();
-INPLACE_REGISTER_END(Mesh);
+BoxMesh::BoxMesh() : Super(box_mesh) {
+}
 
 } // namespace feather

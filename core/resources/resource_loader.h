@@ -12,12 +12,7 @@
 namespace feather {
 
 class ResourceLoader : public Reflected {
-	FCLASS(ResourceLoader, Reflected);
-
-	friend std::unique_ptr<ResourceLoader> std::make_unique<ResourceLoader>();
-	static std::unique_ptr<ResourceLoader> _instance;
-
-	ResourceLoader();
+	FSINGLETON(ResourceLoader, Reflected);
 
 	std::atomic<size_t> m_counter { 1 };
 
@@ -29,7 +24,7 @@ protected:
 	static void _bind_members();
 
 public:
-	static ResourceLoader* get();
+	ResourceLoader();
 
 	static RID generate_rid();
 

@@ -14,6 +14,7 @@
 *.vcxproj
 *.sln
 *.gen.h
+*.gen.cpp
 *DotSettings.user
 .vs/
 compile_commands.json

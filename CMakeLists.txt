@@ -33,8 +33,21 @@ set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS "core/*.h" "core/*.hpp")
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "core/*.cpp")
 
+set(REGISTER_TYPE_FILES
+        "core/framework/register_framework_types.gen.cpp"
+        "core/framework/register_framework_types.gen.h"
+        "core/main/register_main_types.gen.cpp"
+        "core/main/register_main_types.gen.h"
+        "core/math/register_math_types.gen.cpp"
+        "core/math/register_math_types.gen.h"
+        "core/rendering/register_rendering_types.gen.cpp"
+        "core/rendering/register_rendering_types.gen.h"
+        "core/resources/register_resources_types.gen.cpp"
+        "core/resources/register_resources_types.gen.h"
+)
+
 # Editor target
-add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${REGISTER_TYPE_FILES})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 # set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
@@ -53,7 +66,7 @@ target_compile_options(Editor PRIVATE
 )
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${REGISTER_TYPE_FILES})
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
@@ -84,6 +97,17 @@ add_custom_target(GenerateEmbeddedResources
 # Make both targets depend on resource generation
 add_dependencies(Editor GenerateEmbeddedResources)
 add_dependencies(Standalone GenerateEmbeddedResources)
+
+add_custom_target(GenerateRegisterTypes
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_register_types.py --core-path ./core
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating embedded resource headers with #embed directives"
+        VERBATIM
+)
+
+# Make both targets depend on resource generation
+add_dependencies(Editor GenerateRegisterTypes)
+add_dependencies(Standalone GenerateRegisterTypes)
 
 add_subdirectory(thirdparty)
 
