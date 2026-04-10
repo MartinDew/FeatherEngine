@@ -85,7 +85,6 @@ if(WIN32)
         message(STATUS "LLVM Toolchain: Using Clang (MinGW mode) on Windows")
     else()
         if (LLVM_GNU_STYLE_WINDOWS)
-            # Native Windows: Use clang-cl (MSVC-compatible)
             find_llvm_tool(CLANG_COMPILER "clang")
             find_llvm_tool(CLANGXX_COMPILER "clang++")
 

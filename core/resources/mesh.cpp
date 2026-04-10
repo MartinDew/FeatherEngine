@@ -4,6 +4,7 @@
 #include "framework/variant_array.h"
 #include "math/math_defs.h"
 #include "rendering/mesh_data.h"
+#include <core/framework/variant.h>
 #include <core/main/class_db.h>
 #include <framework/reflection_macros.h>
 #include <set>
@@ -11,26 +12,73 @@
 
 namespace feather {
 
-Mesh::Mesh(const std::shared_ptr<MeshData>& triangle_mesh) : _triangle_mesh(triangle_mesh) {}
+Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {}
 
 void Mesh::_bind_members() {}
 
-void RawMesh::_bind_members() {
-	ClassDB::bind_method(&RawMesh::add_indices, "add_indices");
-	ClassDB::bind_method(&RawMesh::add_vertices, "add_vertices");
-	ClassDB::bind_method(&RawMesh::get_indices, "get_indices");
-	ClassDB::bind_method(&RawMesh::get_vertices, "get_vertices");
+void Mesh::set_vertices(const CowVector<Vertex>& vertices) {
+	if (_mesh_data) {
+		_mesh_data->set_vertices(vertices);
+	}
 }
 
-void RawMesh::add_vertices(const VariantArray vertices) {}
-void RawMesh::add_indices(const VariantArray indices) {}
-
-VariantArray RawMesh::get_vertices() const {
-	return { _triangle_mesh->get_vertices().begin(), _triangle_mesh->get_vertices().end() };
+void Mesh::set_indices(const CowVector<Index>& indices) {
+	if (_mesh_data) {
+		_mesh_data->set_indices(indices);
+	}
 }
 
-VariantArray RawMesh::get_indices() const {
-	return { _triangle_mesh->get_indices().begin(), _triangle_mesh->get_indices().end() };
+void ComplexMesh::_bind_members() {
+	ClassDB::bind_method(&ComplexMesh::add_indices, "add_indices");
+	ClassDB::bind_method(&ComplexMesh::add_vertices, "add_vertices");
+	ClassDB::bind_method(&ComplexMesh::get_indices, "get_indices");
+	ClassDB::bind_method(&ComplexMesh::get_vertices, "get_vertices");
+}
+
+void ComplexMesh::add_vertices(const VariantArray vertices) {
+	CowVector<Vertex> raw_vertices;
+	if (_mesh_data) {
+		raw_vertices = _mesh_data->get_vertices();
+	}
+	raw_vertices.reserve(raw_vertices.size() + vertices.size());
+	for (const auto& v : vertices) {
+		if (v.is_type(VariantType::VERTEX)) {
+			raw_vertices.push_back(v.as<Vertex>().value());
+		}
+	}
+
+	_mesh_data->set_vertices(raw_vertices);
+}
+
+void ComplexMesh::add_indices(const VariantArray indices) {
+	CowVector<uint32_t> raw_indices;
+	if (_mesh_data) {
+		raw_indices = _mesh_data->get_indices();
+	}
+	raw_indices.reserve(raw_indices.size() + indices.size());
+	for (const auto& v : indices) {
+		if (v.is_type(VariantType::INT)) {
+			raw_indices.push_back(v.as<int>().value());
+		}
+	}
+
+	_mesh_data->set_indices(raw_indices);
+}
+
+void ComplexMesh::set_mesh_data(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+	_mesh_data = std::make_shared<MeshData>(vertices, indices);
+}
+
+VariantArray ComplexMesh::get_vertices() const {
+	if (!_mesh_data)
+		return VariantArray();
+	return { _mesh_data->get_vertices().begin(), _mesh_data->get_vertices().end() };
+}
+
+VariantArray ComplexMesh::get_indices() const {
+	if (!_mesh_data)
+		return VariantArray();
+	return { _mesh_data->get_indices().begin(), _mesh_data->get_indices().end() };
 }
 
 //// Box Mesh ////
@@ -110,7 +158,7 @@ BoxMesh::BoxMesh() : Super(box_mesh) {}
 
 INPLACE_REGISTER_BEGIN(Mesh);
 ClassDB::register_abstract_class<Mesh>();
-ClassDB::register_class<RawMesh>();
+ClassDB::register_class<ComplexMesh>();
 ClassDB::register_class<BoxMesh>();
 INPLACE_REGISTER_END(Mesh);
 

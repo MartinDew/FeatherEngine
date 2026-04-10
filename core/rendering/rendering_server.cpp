@@ -1,9 +1,10 @@
 #include "rendering_server.h"
-#include "main/engine.h"
-#include "main/notification.h"
 #include "renderer.h"
+#include <main/engine.h>
+#include <main/notification.h>
 
 #include <framework/assert.h>
+#include <framework/variant.h>
 #include <main/class_db.h>
 #include <main/launch_settings.h>
 #include <framework/static_string.hpp>
@@ -41,11 +42,11 @@ void RenderingServer::_render_function() {
 		// Lockless read of RenderCapture
 		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
 		_render_scene_lock.lock();
-		const RenderScene capture = _capture_buffers[read_idx];
+		const RenderScene render_scene = _capture_buffers[read_idx];
 		_render_scene_lock.unlock();
 
-		_renderer->_render_scene(capture);
-		_last_rendered_frame.store(capture.get_frame_index(), std::memory_order_relaxed);
+		_renderer->_render_scene(render_scene);
+		_last_rendered_frame.store(render_scene.get_frame_index(), std::memory_order_relaxed);
 	}
 }
 

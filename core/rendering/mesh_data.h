@@ -1,5 +1,6 @@
 #pragma once
 
+#include "framework/cow_vector.h"
 #include <math/math_defs.h>
 #include <array>
 #include <vector>
@@ -13,12 +14,15 @@ public:
 	MeshData() = default;
 	MeshData(std::vector<Vertex> vertices, std::vector<Index> indices);
 
-	const std::vector<Vertex>& get_vertices() const;
-	const std::vector<Index>& get_indices() const;
+	const CowVector<Vertex>& get_vertices() const;
+	const CowVector<Index>& get_indices() const;
+
+	void set_vertices(const CowVector<Vertex>& vertices);
+	void set_indices(const CowVector<Index>& indices);
 
 protected:
-	std::vector<Vertex> _vertices {};
-	std::vector<Index> _indices {};
+	CowVector<Vertex> _vertices {};
+	CowVector<Index> _indices {};
 };
 
 } //namespace feather

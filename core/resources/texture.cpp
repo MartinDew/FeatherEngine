@@ -8,18 +8,12 @@
 namespace feather {
 
 void Texture::_bind_members() {
-	ClassDB::bind_property(&Texture::_file_path, "file_path", VariantType::STRING);
 	ClassDB::bind_property(&Texture::_width, "width", VariantType::INT);
 	ClassDB::bind_property(&Texture::_height, "height", VariantType::INT);
 }
 
-void Texture::set_file_path(const std::string_view path) {
-	_file_path = path;
-	_is_loaded = false;
-}
-
 bool Texture::load_from_file() {
-	if (_file_path.empty()) {
+	if (get_path().empty()) {
 		return false;
 	}
 
@@ -27,13 +21,14 @@ bool Texture::load_from_file() {
 	return false;
 }
 
-void Texture::set_data(const std::vector<uint8_t>& data, uint32_t width, uint32_t height, TextureFormat format) {
+void Texture::set_data(const std::string& path, const std::vector<uint8_t>& data, uint32_t width, uint32_t height,
+		TextureFormat format) {
 	_pixel_data = data;
 	_width = width;
 	_height = height;
 	_format = format;
 	_is_loaded = true;
-	_file_path.clear();
+	set_path(path);
 }
 
 uint32_t Texture::get_bytes_per_pixel(TextureFormat format) {

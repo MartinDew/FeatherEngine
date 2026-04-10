@@ -1,10 +1,13 @@
 #pragma once
 
+#include "assert.h"
 #include "container_utils.h"
+#include "path.h"
 #include "variant_array.h"
 
 #include "reflected.h"
 #include "rendering/mesh_data.h"
+#include "resources/rid.h"
 #include <math/math_defs.h>
 
 #include <expected>
@@ -25,13 +28,20 @@ enum class VariantType : uint8_t {
 	VERTEX,
 	COLOR,
 	// Misc
+	RID,
 	STRING,
 	ARRAY,
+	PATH,
 	// Objects
 	OBJECT,
 	// Invalid
 	INVALID
 };
+
+#define VARIANT_TYPE_OPTION(class_name, variant_name)                                                                  \
+	else if constexpr (std::is_same_v<T, class_name>) {                                                                \
+		return VariantType::variant_name;                                                                              \
+	}
 
 // Helper to get VariantType enum from C++ type
 template <class T>
@@ -63,7 +73,11 @@ consteval VariantType get_variant_type() {
 	else if constexpr (std::is_same_v<T, VariantArray> || std::is_array_v<T> || is_contiguous_container<T>) {
 		return VariantType::ARRAY;
 	}
-	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
+	VARIANT_TYPE_OPTION(RID, RID)
+	VARIANT_TYPE_OPTION(Path, PATH)
+	// object
+	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>> ||
+			std::is_base_of_v<Reflected, T>) {
 		return VariantType::OBJECT;
 	}
 	// Void case
@@ -83,14 +97,16 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 class ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate, bool, size_t, real_t, Vector2, Vector3, Vertex, Color,
-			std::string, VariantArray, Reflected*>;
+	using InternalVariant = std::variant<std::monostate, bool, int, real_t, Vector2, Vector3, Vertex, Color,
+			std::string, Path, VariantArray, RID, Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
 	ClassInfo* _object_info = nullptr;
 
 	void set_class_info(StaticString class_name);
+
+	Variant _internal_call(std::string_view method_name, std::span<Variant> args) const;
 
 public:
 	// Default constructor - NIL
@@ -103,7 +119,6 @@ public:
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
-		requires(!std::is_reference_v<T>)
 	Variant(T value) {
 		constexpr VariantType type = get_variant_type<T>();
 		_type = type;
@@ -112,7 +127,7 @@ public:
 			_data = std::move(value);
 		}
 		else if constexpr (type == VariantType::INT) {
-			_data = static_cast<size_t>(value);
+			_data = static_cast<int>(value);
 		}
 		else if constexpr (type == VariantType::FLOAT) {
 			_data = static_cast<real_t>(value);
@@ -131,11 +146,20 @@ public:
 			}
 		}
 		else if constexpr (type == VariantType::OBJECT) {
-			_data = static_cast<Reflected*>(value);
-			set_class_info(value->get_class_name());
+			if constexpr (std::is_pointer_v<T>) {
+				_data = static_cast<Reflected*>(value);
+				set_class_info(value->get_class_name());
+			}
+			else {
+				_data = static_cast<Reflected*>(&value);
+				set_class_info(value.get_class_name());
+			}
 		}
 		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
+		}
+		else if constexpr (type == VariantType::INVALID) {
+			static_assert(false, "Variant type is unrecognized");
 		}
 		// default case if assignment is 1:1
 		else {
@@ -167,13 +191,16 @@ public:
 				return std::get<bool>(_data);
 			}
 			else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-				return static_cast<T>(std::get<size_t>(_data));
+				return static_cast<T>(std::get<int>(_data));
 			}
 			else if constexpr (std::is_floating_point_v<T>) {
 				return static_cast<T>(std::get<real_t>(_data));
 			}
 			else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
 				return static_cast<T>(std::get<Reflected*>(_data));
+			}
+			else if constexpr (!std::is_pointer_v<T> && is_reflected_class_type<std::remove_reference_t<T>>) {
+				return *static_cast<T*>(std::get<Reflected*>(_data));
 			}
 			else {
 				// default case
@@ -202,7 +229,15 @@ public:
 	void set(std::string_view key, const Variant& value);
 	// Object method call
 	Variant call(std::string_view method_name);
-	Variant call(std::string_view method_name, auto&&... args);
+	template <class... TArgs>
+	Variant call(std::string_view method_name, TArgs&&... args) const;
 };
+
+template <class... TArgs>
+Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
+	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	Variant params[] = { as<Reflected*>().value(), args... };
+	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1));
+}
 
 } // namespace feather

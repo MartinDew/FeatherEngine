@@ -8,6 +8,7 @@
 
 #include "rendering/rendering_server.h"
 #include "resources/mesh.h"
+#include "resources/resource_loader.h"
 
 namespace feather {
 
@@ -46,14 +47,20 @@ struct SimulationTest {
 		auto material = std::make_shared<PBRMaterial>();
 		entities.emplace_back(
 				Transform { Vector3 { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
-				std::make_shared<BoxMesh>(), material);
+				std::make_shared<BoxMesh>(),
+				material
+		);
 		entities.emplace_back(
 				Transform { Vector3 { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
-				std::make_shared<BoxMesh>(), material);
+				std::make_shared<BoxMesh>(),
+				material
+		);
 
 		entities.emplace_back(
 				Transform { Vector3 { 2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one },
-				std::make_shared<BoxMesh>(), material);
+				std::make_shared<BoxMesh>(),
+				material
+		);
 
 		// entities.emplace_back(
 		// 		Transform { Vector3 { 0, 1, 0 }, Quaternion {}, { 1, 1, 2 } }, std::make_shared<BoxMesh>(), material);
@@ -66,15 +73,37 @@ struct SimulationTest {
 		camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
 
 		// setup a floor
-		entities.emplace_back(Transform { Vector3 { 0, -2, 0 }, Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
-									  Vector3 { 200, 0.1f, 200 } },
-				std::make_shared<BoxMesh>(), nullptr);
+		entities.emplace_back(
+				Transform { Vector3 { 0, -2, 0 },
+							Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
+							Vector3 { 200, 0.1f, 200 } },
+				std::make_shared<BoxMesh>(),
+				nullptr
+		);
+
+		ResourceLoader* loader = ResourceLoader::get();
+
+		Path sponza("res://sponza/Sponza.gltf");
+		std::shared_ptr mesh = ResourceLoader::get()->load<Mesh>(sponza);
+		fassert(mesh != nullptr);
+		entities.emplace_back(
+				Transform { Vector3 { 0, -2, -10 },
+							Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
+							Vector3 { 1, 1, 1 } },
+				mesh,
+				nullptr
+		);
 	}
 
 	void update(double dt) {
 		// Rotate each entity
 		entities[0].transform.rotation = entities[0].transform.rotation *
 				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(dt), 0 });
+
+		entities[1].transform.rotation = entities[1].transform.rotation *
+				Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, -static_cast<real_t>(dt), 0 });
+
+		entities[0].transform.position.z -= 0.5f * dt;
 	}
 
 	RenderScene generate_render_capture() const {
@@ -89,12 +118,14 @@ struct SimulationTest {
 
 		// Add all entities to the render capture
 		for (const auto& entity : entities) {
-			capture.add_entity(RenderScene::EntityRender { .transform = entity.transform,
-					.triangle_mesh = entity.mesh->get_triangle_mesh(),
-					.material = entity.material,
-					.entity_id = 0, // You could add an ID field to Entity if needed
-					.cast_shadows = true,
-					.receive_shadows = true });
+			capture.add_entity(
+					RenderScene::EntityRender { .transform = entity.transform,
+												.triangle_mesh = entity.mesh->get_mesh_data(),
+												.material = entity.material,
+												.entity_id = 0, // You could add an ID field to Entity if needed
+												.cast_shadows = true,
+												.receive_shadows = true }
+			);
 		}
 
 		auto dir = Vector3 { -0.5f, -1.0f, -1.f };
@@ -102,20 +133,24 @@ struct SimulationTest {
 		dir.normalize();
 
 		// Basic directional light
-		capture.add_light(RenderScene::Light { .type = RenderScene::Light::Type::Directional,
-				.position = Vector3::zero,
-				.direction = dir,
-				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
-				.intensity = 10.0f,
-				.cast_shadows = true });
+		capture.add_light(
+				RenderScene::Light { .type = RenderScene::Light::Type::Directional,
+									 .position = Vector3::zero,
+									 .direction = dir,
+									 .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
+									 .intensity = 10.0f,
+									 .cast_shadows = true }
+		);
 
 		// Basic point light
-		capture.add_light(RenderScene::Light { .type = RenderScene::Light::Type::Point,
-				.position = Vector3 { 1, -0.5f, 0 },
-				.direction = dir,
-				.color = Color(1.0f, 1.0f, 1.0f, 1.0f),
-				.intensity = 10.0f,
-				.cast_shadows = true });
+		capture.add_light(
+				RenderScene::Light { .type = RenderScene::Light::Type::Point,
+									 .position = Vector3 { 1, -0.5f, 0 },
+									 .direction = dir,
+									 .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
+									 .intensity = 10.0f,
+									 .cast_shadows = true }
+		);
 
 		return capture;
 	}
@@ -165,7 +200,9 @@ bool Engine::run() {
 	return true;
 }
 
-double Engine::get_current_delta_time() const { return _current_dt; }
+double Engine::get_current_delta_time() const {
+	return _current_dt;
+}
 
 bool Engine::is_editor() {
 	if constexpr (!EDITOR_BUILD)

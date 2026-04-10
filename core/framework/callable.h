@@ -1,8 +1,7 @@
 #pragma once
 
-#include "variant.h"
-
 #include "assert.h"
+#include "variant.h"
 
 #include <cstdint>
 #include <functional>
@@ -14,17 +13,18 @@ namespace feather {
 
 class Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
-
-	// A function will likely not have more thant 255 params
 	uint8_t _param_amount;
 
 public:
+	Callable();
 	template <class TRet, class... TArgs>
-		requires(VariantCompatible<TRet>) && ((VariantCompatible<TArgs>) && ...)
+		requires(VariantCompatible<std::decay_t<TRet>>) && (VariantCompatible<std::decay_t<TArgs>> && ...)
 	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
 				size_t i = 0;
-				std::tuple<TArgs...> converted_args = { params[i++].as<TArgs>().value()... };
+				std::tuple<std::decay_t<TArgs>...> converted_args = {
+					params[i++].as<std::decay_t<TArgs>>().value()...
+				};
 				if constexpr (std::is_void_v<TRet>) {
 					std::apply(func, converted_args);
 					return Variant();
@@ -41,17 +41,14 @@ public:
 	Callable& operator=(const Callable&) = default;
 	Callable& operator=(Callable&&) = default;
 
-	Variant call(std::span<Variant> params) {
-		if (params.size() != _param_amount) {
-			fassert(false, "Callable called with incorrect number of parameters");
-		}
-		return _internal_func(params);
-	}
+	Variant call(std::span<Variant> params);
 
 	Variant call(auto&&... args) {
 		Variant params[] = { args... };
 		return call(std::span<Variant>(params, sizeof...(args)));
 	}
+
+	bool is_valid() const;
 };
 
-} //namespace feather
+} // namespace feather

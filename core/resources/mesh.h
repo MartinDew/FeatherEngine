@@ -7,6 +7,7 @@
 #include <core/rendering/mesh_data.h>
 
 #include <memory>
+#include <vector>
 
 namespace feather {
 
@@ -14,36 +15,42 @@ class Mesh : public Resource {
 	FCLASS(Mesh, Resource);
 
 protected:
-	std::shared_ptr<MeshData> _triangle_mesh;
+	std::shared_ptr<MeshData> _mesh_data;
 
 	Mesh() = default;
-	explicit Mesh(const std::shared_ptr<MeshData>& triangle_mesh);
+	explicit Mesh(const std::shared_ptr<MeshData>& mesh_data);
 
 	static void _bind_members();
 
+protected:
+	void set_vertices(const CowVector<Vertex>& vertices);
+	void set_indices(const CowVector<Index>& indices);
+
 public:
-	const std::shared_ptr<MeshData>& get_triangle_mesh() { return _triangle_mesh; };
+	const std::shared_ptr<MeshData>& get_mesh_data() { return _mesh_data; };
 };
 
 // Mesh using raw vertices and indices data
-class RawMesh : public Mesh {
-	FCLASS(RawMesh, Mesh);
+class ComplexMesh : public Mesh {
+	FCLASS(ComplexMesh, Mesh);
 
 protected:
 	static void _bind_members();
 
 public:
-	RawMesh() = default;
+	ComplexMesh() = default;
 
 	void add_vertices(const VariantArray vertices);
 	void add_indices(const VariantArray indices);
 
 	VariantArray get_vertices() const;
 	VariantArray get_indices() const;
+
+	void set_mesh_data(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 };
 
 class BoxMesh : public Mesh {
-	FCLASS(RawMesh, Mesh);
+	FCLASS(ComplexMesh, Mesh);
 
 public:
 	BoxMesh();

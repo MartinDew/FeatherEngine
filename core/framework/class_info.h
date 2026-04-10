@@ -17,8 +17,6 @@ struct ClassInfo {
 		StaticString name;
 		// variant type to convert to
 		VariantType type;
-		size_t member_offset;
-		size_t member_size;
 
 		// Function pointers for get/set
 		std::function<Variant(void*)> getter; // Takes object pointer, returns Variant
