@@ -30,10 +30,44 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
-file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS "core/*.h" "core/*.hpp")
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "core/*.cpp")
+set(FEATHER_CORE_SOURCES
+        "${CMAKE_SOURCE_DIR}/core/framework/callable.cpp"
+        "${CMAKE_SOURCE_DIR}/core/framework/reflected.cpp"
+        "${CMAKE_SOURCE_DIR}/core/framework/register_framework_types.gen.cpp"
+        "${CMAKE_SOURCE_DIR}/core/framework/variant.cpp"
+        "${CMAKE_SOURCE_DIR}/core/framework/variant_array.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/class_db.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/engine.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/engine_settings.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/feather_main.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/launch_settings.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/project_settings.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/register_main_types.gen.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/window.cpp"
+        "${CMAKE_SOURCE_DIR}/core/math/math_defs.cpp"
+        "${CMAKE_SOURCE_DIR}/core/math/projection.cpp"
+        "${CMAKE_SOURCE_DIR}/core/math/register_math_types.gen.cpp"
+        "${CMAKE_SOURCE_DIR}/core/math/transform.cpp"
+        "${CMAKE_SOURCE_DIR}/core/rendering/mesh_data.cpp"
+        "${CMAKE_SOURCE_DIR}/core/rendering/register_rendering_types.gen.cpp"
+        "${CMAKE_SOURCE_DIR}/core/rendering/renderer.cpp"
+        "${CMAKE_SOURCE_DIR}/core/rendering/rendering_server.cpp"
+        "${CMAKE_SOURCE_DIR}/core/rendering/render_scene.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/material.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/material_format_loader.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/mesh.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/mesh_format_loader.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/register_resources_types.gen.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/resource.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/resource_format_loader.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/resource_loader.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/rid.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/shader.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/texture.cpp"
+        "${CMAKE_SOURCE_DIR}/core/resources/texture_format_loader.cpp"
+)
 
-set(REGISTER_TYPE_FILES
+set(GENERATED_FILES
         "core/framework/register_framework_types.gen.cpp"
         "core/framework/register_framework_types.gen.h"
         "core/main/register_main_types.gen.cpp"
@@ -47,7 +81,7 @@ set(REGISTER_TYPE_FILES
 )
 
 # Editor target
-add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${REGISTER_TYPE_FILES})
+add_executable(Editor ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 # set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
@@ -66,7 +100,7 @@ target_compile_options(Editor PRIVATE
 )
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${REGISTER_TYPE_FILES})
+add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${GENERATED_FILES})
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)

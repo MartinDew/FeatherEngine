@@ -83,16 +83,16 @@ struct SimulationTest {
 
 		ResourceLoader* loader = ResourceLoader::get();
 
-		Path sponza("res://sponza/Sponza.gltf");
-		std::shared_ptr mesh = ResourceLoader::get()->load<Mesh>(sponza);
-		fassert(mesh != nullptr);
-		entities.emplace_back(
-				Transform { Vector3 { 0, -2, -10 },
-							Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
-							Vector3 { 1, 1, 1 } },
-				mesh,
-				nullptr
-		);
+		// Path sponza("res://sponza/Sponza.gltf");
+		// std::shared_ptr mesh = ResourceLoader::get()->load<Mesh>(sponza);
+		// fassert(mesh != nullptr);
+		// entities.emplace_back(
+		// 		Transform { Vector3 { 0, -2, -10 },
+		// 					Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
+		// 					Vector3 { 1, 1, 1 } },
+		// 		mesh,
+		// 		nullptr
+		// );
 	}
 
 	void update(double dt) {
