@@ -99,7 +99,7 @@ add_dependencies(Editor GenerateEmbeddedResources)
 add_dependencies(Standalone GenerateEmbeddedResources)
 
 add_custom_target(GenerateRegisterTypes
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_register_types.py --core-path ./core
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Generating type registration functions"
         VERBATIM

@@ -78,7 +78,7 @@ def make_relative_include(header: Path, core_path: Path) -> str:
 def generate_header(subfolder_name: str) -> str:
     func_name = f"register_{subfolder_name}_types"
     return (f"{GENERATED_NOTICE}#pragma once\n\nnamespace feather {{\n\n"
-            f"extern void {func_name}();\n\n}} // namespace feather\n")
+            f"void {func_name}();\n\n}} // namespace feather\n")
 
 def generate_cpp(subfolder_name: str, entries: list[ClassEntry], core_path: Path) -> str:
     func_name = f"register_{subfolder_name}_types"
