@@ -36,6 +36,7 @@ set(FEATHER_CORE_SOURCES
         "${CMAKE_SOURCE_DIR}/core/framework/register_framework_types.gen.cpp"
         "${CMAKE_SOURCE_DIR}/core/framework/variant.cpp"
         "${CMAKE_SOURCE_DIR}/core/framework/variant_array.cpp"
+
         "${CMAKE_SOURCE_DIR}/core/main/class_db.cpp"
         "${CMAKE_SOURCE_DIR}/core/main/engine.cpp"
         "${CMAKE_SOURCE_DIR}/core/main/engine_settings.cpp"
@@ -44,15 +45,20 @@ set(FEATHER_CORE_SOURCES
         "${CMAKE_SOURCE_DIR}/core/main/project_settings.cpp"
         "${CMAKE_SOURCE_DIR}/core/main/register_main_types.gen.cpp"
         "${CMAKE_SOURCE_DIR}/core/main/window.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/simulation.cpp"
+        "${CMAKE_SOURCE_DIR}/core/main/world_sim.cpp"
+
         "${CMAKE_SOURCE_DIR}/core/math/math_defs.cpp"
         "${CMAKE_SOURCE_DIR}/core/math/projection.cpp"
         "${CMAKE_SOURCE_DIR}/core/math/register_math_types.gen.cpp"
         "${CMAKE_SOURCE_DIR}/core/math/transform.cpp"
+
         "${CMAKE_SOURCE_DIR}/core/rendering/mesh_data.cpp"
         "${CMAKE_SOURCE_DIR}/core/rendering/register_rendering_types.gen.cpp"
         "${CMAKE_SOURCE_DIR}/core/rendering/renderer.cpp"
         "${CMAKE_SOURCE_DIR}/core/rendering/rendering_server.cpp"
         "${CMAKE_SOURCE_DIR}/core/rendering/render_scene.cpp"
+
         "${CMAKE_SOURCE_DIR}/core/resources/material.cpp"
         "${CMAKE_SOURCE_DIR}/core/resources/material_format_loader.cpp"
         "${CMAKE_SOURCE_DIR}/core/resources/mesh.cpp"
