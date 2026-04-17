@@ -24,9 +24,14 @@ public:
 	void fixed_update(double delta) override;
 	void update() override;
 
+	[[nodiscard]]
 	Entity create_scene() const;
 
+	[[nodiscard]]
 	Entity get_root_scene() const;
+
+	[[nodiscard]]
+	Entity add_entity(const Entity& scene) const;
 };
 
 } //namespace feather

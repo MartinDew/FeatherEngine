@@ -27,4 +27,8 @@ Entity WorldSim::create_scene() const {
 	return _world.entity().is_a(prefab_new_scene);
 }
 
+Entity WorldSim::add_entity(const Entity& scene) const {
+	return _world.entity().add(scene);
+}
+
 } //namespace feather
