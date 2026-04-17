@@ -6,6 +6,9 @@ namespace feather {
 
 static Entity prefab_new_scene;
 
+void WorldSim::_bind_members() {
+}
+
 WorldSim::WorldSim() {
 	prefab_new_scene = _world.prefab("new_scene").add<Scene>();
 	_scenes.push_back(create_scene());

@@ -16,6 +16,9 @@ class WorldSim final : public Simulation {
 
 	std::vector<Entity> _scenes;
 
+protected:
+	static void _bind_members();
+
 public:
 	WorldSim();
 	~WorldSim() override;
