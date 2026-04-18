@@ -17,6 +17,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Required for tools
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
 if (${APPLE})
     add_compile_options("-fexperimental-library")
 endif()
@@ -31,63 +34,60 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
 set(FEATHER_CORE_SOURCES
-        "${CMAKE_SOURCE_DIR}/core/framework/callable.cpp"
-        "${CMAKE_SOURCE_DIR}/core/framework/reflected.cpp"
-        "${CMAKE_SOURCE_DIR}/core/framework/register_framework_types.gen.cpp"
-        "${CMAKE_SOURCE_DIR}/core/framework/variant.cpp"
-        "${CMAKE_SOURCE_DIR}/core/framework/variant_array.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/callable.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/reflected.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/variant.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/variant_array.cpp"
 
-        "${CMAKE_SOURCE_DIR}/core/main/class_db.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/engine.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/engine_settings.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/feather_main.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/launch_settings.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/project_settings.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/register_main_types.gen.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/window.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/simulation.cpp"
-        "${CMAKE_SOURCE_DIR}/core/main/world_sim.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/class_db.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/engine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/engine_settings.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/feather_main.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/launch_settings.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/project_settings.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/window.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/simulation.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/world_sim.cpp"
 
-        "${CMAKE_SOURCE_DIR}/core/math/math_defs.cpp"
-        "${CMAKE_SOURCE_DIR}/core/math/projection.cpp"
-        "${CMAKE_SOURCE_DIR}/core/math/register_math_types.gen.cpp"
-        "${CMAKE_SOURCE_DIR}/core/math/transform.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/math_defs.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/projection.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/transform.cpp"
 
-        "${CMAKE_SOURCE_DIR}/core/rendering/mesh_data.cpp"
-        "${CMAKE_SOURCE_DIR}/core/rendering/register_rendering_types.gen.cpp"
-        "${CMAKE_SOURCE_DIR}/core/rendering/renderer.cpp"
-        "${CMAKE_SOURCE_DIR}/core/rendering/rendering_server.cpp"
-        "${CMAKE_SOURCE_DIR}/core/rendering/render_scene.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/mesh_data.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/renderer.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/rendering_server.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/render_scene.cpp"
 
-        "${CMAKE_SOURCE_DIR}/core/resources/material.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/material_format_loader.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/mesh.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/mesh_format_loader.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/register_resources_types.gen.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/resource.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/resource_format_loader.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/resource_loader.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/rid.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/shader.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/texture.cpp"
-        "${CMAKE_SOURCE_DIR}/core/resources/texture_format_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/material.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/material_format_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/mesh.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/mesh_format_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/resource.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/resource_format_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/resource_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/rid.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/shader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture_format_loader.cpp"
 )
 
 set(GENERATED_FILES
-        "core/framework/register_framework_types.gen.cpp"
-        "core/framework/register_framework_types.gen.h"
-        "core/main/register_main_types.gen.cpp"
-        "core/main/register_main_types.gen.h"
-        "core/math/register_math_types.gen.cpp"
-        "core/math/register_math_types.gen.h"
-        "core/rendering/register_rendering_types.gen.cpp"
-        "core/rendering/register_rendering_types.gen.h"
-        "core/resources/register_resources_types.gen.cpp"
-        "core/resources/register_resources_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/register_framework_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/register_framework_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/register_main_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/register_main_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/register_math_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/register_math_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/register_rendering_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/register_rendering_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.h"
 )
 
 # Editor target
-add_executable(Editor ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
+add_executable(Editor
+        ${FEATHER_CORE_SOURCES}
+        ${GENERATED_FILES})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 # set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
@@ -106,7 +106,7 @@ target_compile_options(Editor PRIVATE
 )
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${GENERATED_FILES})
+add_executable(Standalone ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
@@ -125,7 +125,6 @@ target_compile_options(Standalone PRIVATE
 )
 
 # Generate embedded resource headers using #embed
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_custom_target(GenerateEmbeddedResources
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
@@ -138,14 +137,15 @@ add_custom_target(GenerateEmbeddedResources
 add_dependencies(Editor GenerateEmbeddedResources)
 add_dependencies(Standalone GenerateEmbeddedResources)
 
+# Bind generation of type registration functions to a custom target
 add_custom_target(GenerateRegisterTypes
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Generating type registration functions"
+        BYPRODUCTS ${GENERATED_FILES}
         VERBATIM
 )
 
-# Make both targets depend on resource generation
 add_dependencies(Editor GenerateRegisterTypes)
 add_dependencies(Standalone GenerateRegisterTypes)
 
