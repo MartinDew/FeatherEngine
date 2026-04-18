@@ -3,6 +3,7 @@
 #include "launch_settings.h"
 #include "rendering/rendering_server.h"
 #include "window.h"
+#include "world_sim.h"
 
 #include <chrono>
 
@@ -17,6 +18,8 @@ class Engine {
 
 	RenderingServer _rendering_server;
 	Window _main_window;
+	WorldSim _world_sim;
+
 	// the time accumulator
 	TimePoint start_time = Clock::now();
 	double _current_dt = 0.0;

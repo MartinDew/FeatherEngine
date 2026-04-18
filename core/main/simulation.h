@@ -16,8 +16,9 @@ protected:
 
 public:
 	virtual void init() {};
+	virtual void pre_update(double delta) {};
 	virtual void fixed_update(double delta) {};
-	virtual void update() {};
+	virtual void update(double delta) {};
 
 	~Simulation() override = default;
 };

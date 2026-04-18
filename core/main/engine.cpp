@@ -43,6 +43,8 @@ bool Engine::run() {
 		return true;
 	}
 
+	_world_sim.init();
+
 	// update
 	double accumulator = 0.0;
 	while (keep_running) {
@@ -57,11 +59,11 @@ bool Engine::run() {
 		_current_dt = simulation_time;
 		while (accumulator >= simulation_time) {
 			accumulator -= simulation_time;
-			// _physics_update here
+			_world_sim.fixed_update(simulation_time);
 		}
 
 		_current_dt = frame_time;
-		// Update here
+		_world_sim.update(frame_time);
 
 		// Tell the renderer to render here
 		// _rendering_server.set_render_capture(sim.generate_render_capture());
