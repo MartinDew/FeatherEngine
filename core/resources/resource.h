@@ -7,7 +7,7 @@
 namespace feather {
 
 class Resource : public Reflected {
-	FABSTRACT(Resource, Reflected);
+	FCLASS(Resource, Reflected);
 	friend class ResourceLoader;
 
 	RID _rid;
@@ -15,6 +15,8 @@ class Resource : public Reflected {
 	Path _cached_path;
 
 protected:
+	Resource() = default;
+
 	static void _bind_members();
 
 public:

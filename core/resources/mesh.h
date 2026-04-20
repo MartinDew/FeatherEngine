@@ -12,7 +12,7 @@
 namespace feather {
 
 class Mesh : public Resource {
-	FABSTRACT(Mesh, Resource);
+	FCLASS(Mesh, Resource);
 
 protected:
 	std::shared_ptr<MeshData> _mesh_data;

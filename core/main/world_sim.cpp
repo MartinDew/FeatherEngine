@@ -20,8 +20,7 @@ WorldSim::WorldSim() {
 	_fixed_update_pipeline = _world.pipeline().with(flecs::System).with(flecs::DependsOn, _fixed_update_phase).build();
 }
 
-WorldSim::~WorldSim() {
-}
+WorldSim::~WorldSim() = default;
 
 void WorldSim::init() {
 	// Should run init pipeline

@@ -13,8 +13,8 @@ from pathlib import Path
 TOP_SUBFOLDERS = ["framework", "main", "math", "rendering", "resources"]
 MACRO_TO_METHOD = {
     "FCLASS":     "register_class",
-    "FABSTRACT":  "register_abstract_class",
-    "FSINGLETON": "register_singleton_class",
+    "FCLASS_ABSTRACT":  "register_abstract_class",
+    "FCLASS_SINGLETON": "register_singleton_class",
 }
 _MACRO_RE = re.compile(
     r'\b(FCLASS|FABSTRACT|FSINGLETON)\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)',

@@ -11,7 +11,7 @@
 namespace feather {
 
 class WorldSim final : public Simulation {
-	FSINGLETON(WorldSim, Simulation);
+	FCLASS_SINGLETON(WorldSim, Simulation);
 
 	flecs::world _world;
 
@@ -35,7 +35,6 @@ public:
 	void update(double delta) override;
 
 	flecs::entity get_fixed_update_phase() const { return _fixed_update_phase; }
-
 
 	[[nodiscard]]
 	Entity create_scene() const;

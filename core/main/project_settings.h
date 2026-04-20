@@ -7,7 +7,7 @@
 namespace feather {
 
 class ProjectSettings final : public Reflected {
-	FSINGLETON(ProjectSettings, Reflected);
+	FCLASS_SINGLETON(ProjectSettings, Reflected);
 
 	friend class Engine;
 

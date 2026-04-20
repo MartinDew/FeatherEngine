@@ -26,15 +26,7 @@ concept has_bind_method_v = requires(T t) {
 template <is_reflected_class_type T>
 void ClassDB::register_class() {
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
-	// Compile-time category string
-	constexpr std::string_view category = std::is_abstract_v<T> ? "abstract"
-			: is_singleton_v<T>									? "singleton"
-																: "implementation";
-
-	// Fires once at registration — effectively static since T is unique
-	std::println("Registering class '{}' as {} object", T::get_class_static(), category);
-
-	if constexpr (std::is_abstract_v<T>) {
+	if constexpr (std::is_abstract_v<T> || !std::is_default_constructible_v<T>) {
 		ClassDB::register_abstract_class<T>();
 	}
 	else if constexpr (is_singleton_v<T>) {
@@ -43,6 +35,7 @@ void ClassDB::register_class() {
 	else {
 		static_assert(std::is_default_constructible<T>(), "Trying to register class that is not default constructible");
 		static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+		std::println("Registering class '{}' as {} object", T::get_class_static(), "implementation");
 		ClassDB& instance = *get();
 
 		ClassInfo& info = instance._class_infos[T::get_class_static()];
@@ -63,6 +56,8 @@ void ClassDB::register_class() {
 }
 
 template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
+	std::println("Registering class '{}' as {} object", T::get_class_static(), "abstract");
+	
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = *get();
@@ -84,6 +79,8 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 }
 
 template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
+	std::println("Registering class '{}' as {} object", T::get_class_static(), "singleton");
+
 	// Todo implement singleton specific logic
 	register_abstract_class<T>();
 }

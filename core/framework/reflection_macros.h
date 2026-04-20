@@ -48,9 +48,9 @@ public:                                                                         
 private:
 
 // Reflection declarator that will help the generator understand this class is abstract
-#define FABSTRACT FCLASS
+#define FCLASS_ABSTRACT FCLASS
 
 // Reflection declarator that will help the generator consider this class has a singleton
-#define FSINGLETON(_name, _parent)                                                                                     \
+#define FCLASS_SINGLETON(_name, _parent)                                                                               \
 	FCLASS(_name, _parent);                                                                                            \
 	FDECLARE_SINGLETON(_name);

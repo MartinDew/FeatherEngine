@@ -12,7 +12,7 @@
 namespace feather {
 
 class ResourceLoader : public Reflected {
-	FSINGLETON(ResourceLoader, Reflected);
+	FCLASS_SINGLETON(ResourceLoader, Reflected);
 
 	std::atomic<size_t> m_counter { 1 };
 
