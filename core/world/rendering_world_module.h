@@ -16,9 +16,10 @@ class RenderingWorldModule : public WorldModule {
 	FCLASS(RenderingWorldModule, WorldModule);
 
 protected:
-	static void _bind_methods();
+	static void _bind_members();
 
 public:
+	RenderingWorldModule() = default;
 	RenderingWorldModule(World* world);
 };
 

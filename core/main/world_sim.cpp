@@ -12,8 +12,8 @@ void WorldSim::_bind_members() {
 
 WorldSim::WorldSim() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	_scenes.push_back(create_scene());
 	_prefabs["new_scene"_ss] = _world.prefab("new_scene").add<Scene>();
+	_scenes.push_back(create_scene());
 
 	_fixed_update_phase = _world.entity("FixedUpdatePhase").add(flecs::Phase);
 

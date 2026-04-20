@@ -20,6 +20,8 @@ protected:
 
 	virtual std::shared_ptr<Resource> load(const Path& path) = 0;
 
+	ResourceFormatLoader() = default;
+
 public:
 	virtual bool recognize_extension(const std::string& extension) const = 0;
 };
