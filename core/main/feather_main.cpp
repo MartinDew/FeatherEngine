@@ -8,6 +8,7 @@
 #include <math/register_math_types.gen.h>
 #include <rendering/register_rendering_types.gen.h>
 #include <resources/register_resources_types.gen.h>
+#include <world/register_world_types.gen.h>
 
 #include <modules/modules.gen.h>
 
@@ -38,6 +39,7 @@ void Main::setup_db() {
 	register_math_types();
 	register_resources_types();
 	register_rendering_types();
+	register_world_types();
 	register_main_types();
 
 	// then register module types

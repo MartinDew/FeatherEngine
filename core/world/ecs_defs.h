@@ -5,4 +5,5 @@
 
 namespace feather {
 using Entity = flecs::entity;
+using World = flecs::world;
 } //namespace feather

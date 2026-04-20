@@ -109,6 +109,9 @@ def main():
     if not core_path.is_dir():
         print(f"[ERROR] core path not found: {core_path}", file=sys.stderr); sys.exit(1)
 
+    # glob the subdirs
+    TOP_SUBFOLDERS = [entry.name for entry in core_path.iterdir() if entry.is_dir()]
+
     for subfolder_name in TOP_SUBFOLDERS:
         subfolder = core_path / subfolder_name
         if not subfolder.is_dir(): continue

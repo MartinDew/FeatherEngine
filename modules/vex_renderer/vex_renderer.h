@@ -68,9 +68,9 @@ class VexRenderer : public Renderer {
 	void _upload_lights_buffer(const RenderScene& capture, vex::CommandContext& ctx);
 	MeshBuffers& _get_or_create_mesh_buffers(const std::shared_ptr<MeshData>& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
-	vex::BindlessHandle _get_texture_handle(
-			const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
-	Matrix _compute_light_view_proj(const RenderScene::Light& light, const RenderScene& capture) const;
+	vex::BindlessHandle
+	_get_texture_handle(const Texture* texture, vex::CommandContext& ctx, vex::BindlessHandle default_handle);
+	Matrix _compute_light_view_proj(const Light& light, const RenderScene& capture) const;
 
 	// Utility methods
 	static Vector3 _compute_scene_center(const RenderScene& capture);

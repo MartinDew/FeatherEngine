@@ -69,6 +69,8 @@ set(FEATHER_CORE_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/shader.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture_format_loader.cpp"
+
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/rendering_world_module.cpp"
 )
 
 set(GENERATED_FILES
@@ -82,6 +84,8 @@ set(GENERATED_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/register_rendering_types.gen.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/register_world_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/register_world_types.gen.h"
 )
 
 # Editor target

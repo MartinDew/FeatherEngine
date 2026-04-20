@@ -11,6 +11,8 @@ namespace feather {
 class MeshData;
 class Material;
 
+struct Light;
+
 class RenderScene : public Reflected {
 	FCLASS(RenderScene, Reflected)
 public:
@@ -23,61 +25,39 @@ public:
 		bool receive_shadows = true;
 	};
 
-	// Todo will probably move
-	struct Light {
-		enum class Type : uint8_t {
-			Directional,
-			Point,
-			Spot
-		};
-
-		Type type = Type::Directional;
-		Vector3 position = Vector3::zero;
-		Vector3 direction = Vector3::forward;
-		Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-		float intensity = 1.0f;
-		float range = 100.0f; // For point/spot lights
-		float spot_angle = 45.0f; // For spot lights (in degrees)
-		bool cast_shadows = true;
-	};
-
 	RenderScene(size_t frame_index = 0);
 
 	// With COW vectors, copies are cheap - they just increment ref count
-	RenderScene(const RenderScene&) = default;
-	RenderScene& operator=(const RenderScene&) = default;
-	RenderScene(RenderScene&&) noexcept = default;
-	RenderScene& operator=(RenderScene&&) noexcept = default;
+	RenderScene(const RenderScene&);
+	RenderScene& operator=(const RenderScene&);
+	RenderScene(RenderScene&&) noexcept;
+	RenderScene& operator=(RenderScene&&) noexcept;
 
 	// Camera
-	const Transform& get_camera_transform() const noexcept { return _camera_transform; }
-	void set_camera_transform(const Transform& transform) { _camera_transform = transform; }
-	const Projection& get_camera_projection() const noexcept { return _camera_projection; }
-	void set_camera_projection(const Projection& projection) { _camera_projection = projection; }
+	const Transform& get_camera_transform() const noexcept;
+	void set_camera_transform(const Transform& transform);
+	const Projection& get_camera_projection() const noexcept;
+	void set_camera_projection(const Projection& projection);
 
 	// Entity management
-	void add_entity(const EntityRender& entity) { _entities.push_back(entity); }
-	void reserve_entities(size_t count) { _entities.reserve(count); }
+	void add_entity(const EntityRender& entity);
+	void reserve_entities(size_t count);
 
-	const CowVector<EntityRender>& get_entities() const noexcept { return _entities; }
-	size_t get_entity_count() const noexcept { return _entities.size(); }
+	const CowVector<EntityRender>& get_entities() const noexcept;
+	size_t get_entity_count() const noexcept;
 
 	// Light management
-	void add_light(const Light& light) { _lights.push_back(light); }
-	void reserve_lights(size_t count) { _lights.reserve(count); }
+	void add_light(const Light& light);
+	void reserve_lights(size_t count);
 
-	const CowVector<Light>& get_lights() const noexcept { return _lights; }
-	size_t get_light_count() const noexcept { return _lights.size(); }
+	const CowVector<Light>& get_lights() const noexcept;
+	size_t get_light_count() const noexcept;
 
 	// Clear for reuse (triggers copy-on-write if shared)
-	void clear() {
-		_entities.clear();
-		_lights.clear();
-		_frame_index++;
-	}
+	void clear();
 
 	// Frame tracking
-	uint64_t get_frame_index() const noexcept { return _frame_index; }
+	uint64_t get_frame_index() const noexcept;
 
 	// Todo will probably move
 	// Environment/Scene settings
@@ -90,11 +70,11 @@ public:
 		// Could add skybox, IBL probes, etc.
 	};
 
-	const EnvironmentSettings& get_environment() const noexcept { return _environment; }
-	void set_environment(const EnvironmentSettings& env) { _environment = env; }
+	const EnvironmentSettings& get_environment() const noexcept;
+	void set_environment(const EnvironmentSettings& env);
 
 protected:
-	static void _bind_methods() {};
+	static void _bind_methods();
 
 private:
 	Transform _camera_transform;
