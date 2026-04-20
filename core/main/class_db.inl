@@ -57,7 +57,7 @@ void ClassDB::register_class() {
 
 template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	std::println("Registering class '{}' as {} object", T::get_class_static(), "abstract");
-	
+
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
 	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = *get();
@@ -140,6 +140,20 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, st
 	std::function<TRet(T*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
 		return (object_cast<T>(instance)->*method)(args...);
 	};
+
+	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
+
+	get()->_current_info->methods.push_back(std::move(method_info));
+}
+
+template <class TRet, class... TArgs>
+inline constexpr void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_view name) {
+	if (!get()->_current_info) {
+		return;
+	}
+
+	// No instance parameter needed for static functions
+	std::function<TRet(TArgs...)> func = [method](TArgs... args) -> TRet { return method(args...); };
 
 	ClassInfo::Method method_info { .name = StaticString(name), .callable = Callable { func } };
 

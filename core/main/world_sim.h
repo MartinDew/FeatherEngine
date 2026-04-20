@@ -13,10 +13,10 @@ namespace feather {
 class WorldSim final : public Simulation {
 	FCLASS_SINGLETON(WorldSim, Simulation);
 
-	flecs::world _world;
+	World _world;
 
-	flecs::entity _fixed_update_phase;
-	flecs::entity _fixed_update_pipeline;
+	Entity _fixed_update_phase;
+	Entity _fixed_update_pipeline;
 
 	std::vector<Entity> _scenes;
 
@@ -24,6 +24,11 @@ class WorldSim final : public Simulation {
 
 protected:
 	static void _bind_members();
+
+	template <class T>
+	void _import_feature() {
+		_world.import <T>();
+	}
 
 public:
 	WorldSim();
@@ -34,13 +39,16 @@ public:
 	void fixed_update(double delta) override;
 	void update(double delta) override;
 
-	flecs::entity get_fixed_update_phase() const { return _fixed_update_phase; }
+	[[nodiscard]] Entity get_fixed_update_phase() const { return _fixed_update_phase; }
 
 	[[nodiscard]]
 	Entity create_scene() const;
 
 	[[nodiscard]]
 	Entity add_entity(const Entity& scene) const;
+
+	// get low level world impl
+	World* get_world() { return &_world; }
 };
 
 } //namespace feather

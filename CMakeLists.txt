@@ -70,6 +70,7 @@ set(FEATHER_CORE_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/texture_format_loader.cpp"
 
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/ecs_feature.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/world/rendering_world_module.cpp"
 )
 

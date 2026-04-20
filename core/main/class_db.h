@@ -38,6 +38,8 @@ class ClassDB {
 public:
 	void print_db();
 
+	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
+
 	template <is_reflected_class_type T>
 	static void register_class();
 
@@ -57,6 +59,9 @@ public:
 	template <class T, class TRet, class... TArgs>
 	static constexpr void bind_method(TRet (T::*method)(TArgs...) const, std::string_view name);
 
+	template <class TRet, class... TArgs>
+	static constexpr void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_view name);
+
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);
 
@@ -71,6 +76,8 @@ public:
 	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
+
+	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
 
 } //namespace feather

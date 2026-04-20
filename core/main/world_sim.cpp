@@ -18,6 +18,11 @@ WorldSim::WorldSim() {
 	_fixed_update_phase = _world.entity("FixedUpdatePhase").add(flecs::Phase);
 
 	_fixed_update_pipeline = _world.pipeline().with(flecs::System).with(flecs::DependsOn, _fixed_update_phase).build();
+
+	auto children = ClassDB::get_children_names("EcsFeature");
+	for (auto& child : children) {
+		ClassDB::get_static_method(child, "_import_module").call(this);
+	}
 }
 
 WorldSim::~WorldSim() = default;

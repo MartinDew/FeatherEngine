@@ -5,11 +5,16 @@
 
 namespace feather {
 
-class WorldModule : public Reflected {
-	FCLASS(WorldModule, Reflected);
+class WorldSim;
+
+class EcsFeature : public Reflected {
+	FCLASS(EcsFeature, Reflected);
 
 protected:
 	static void _bind_methods() {};
+	EcsFeature() = default;
+
+	static WorldSim* _get_world_sim();
 };
 
 } //namespace feather

@@ -63,6 +63,18 @@ std::string ClassDB::get_children_names_string(StaticString object_name, bool ex
 	return children_str;
 }
 
+bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
+	StaticString _current_name = ""_ss;
+	ClassInfo* ci = _get_class_info_internal(object_name);
+	while (ci->parent != ""_ss) {
+		if (ci->parent == parent_name) {
+			return true;
+		}
+		ci = _get_class_info_internal(ci->parent);
+	}
+	return false;
+}
+
 void ClassDB::print_db() {
 #ifdef BETA
 	std::println("Printing database");
@@ -76,6 +88,18 @@ void ClassDB::print_db() {
 		std::println("Children : {}", get_children_names_string(name, false));
 	}
 #endif
+}
+
+Callable ClassDB::get_static_method(const StaticString& class_name, std::string_view func_name) {
+	auto ci = _get_class_info_internal(class_name);
+	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
+		return m.name == func_name;
+	});
+
+	if (it != ci->methods.end()) {
+		return it->callable;
+	}
+	return {};
 }
 
 } //namespace feather
