@@ -1,9 +1,9 @@
 #pragma once
 
-#include "launch_settings.h"
-#include "rendering/rendering_server.h"
 #include "window.h"
 #include "world_sim.h"
+
+#include <rendering/rendering_server.h>
 
 #include <chrono>
 
