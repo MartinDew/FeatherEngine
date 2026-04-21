@@ -12,8 +12,8 @@ struct MaterialInstance {
 	RID MaterialId; // todo: multiple materials
 };
 
-class RenderingWorldModule : public EcsFeature {
-	FCLASS(RenderingWorldModule, EcsFeature);
+class RenderingWorldFeature : public EcsFeature {
+	FCLASS(RenderingWorldFeature, EcsFeature);
 
 protected:
 	static void _bind_members();
@@ -21,8 +21,8 @@ protected:
 	static void _load_module(WorldSim* sim);
 
 public:
-	RenderingWorldModule() = default;
-	RenderingWorldModule(World world);
+	RenderingWorldFeature() = default;
+	RenderingWorldFeature(World world);
 };
 
 } //namespace feather

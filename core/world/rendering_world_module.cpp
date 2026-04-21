@@ -5,15 +5,15 @@
 
 namespace feather {
 
-void RenderingWorldModule::_bind_members() {
+void RenderingWorldFeature::_bind_members() {
 	ClassDB::bind_static_method(&Type::_load_module, "_import_module");
 }
 
-void RenderingWorldModule::_load_module(WorldSim* sim) {
+void RenderingWorldFeature::_load_module(WorldSim* sim) {
 	sim->get_world()->import <Type>();
 }
 
-RenderingWorldModule::RenderingWorldModule(World world) {
+RenderingWorldFeature::RenderingWorldFeature(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
 
