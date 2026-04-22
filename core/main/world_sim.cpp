@@ -1,6 +1,7 @@
 #include "world_sim.h"
 
 #include <world/components/scene.h>
+#include <world/register_core_features.h>
 #include <framework/static_string.hpp>
 
 namespace feather {
@@ -12,6 +13,9 @@ void WorldSim::_bind_members() {
 
 WorldSim::WorldSim() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
+
+	register_core_ecs_features(_world);
+
 	_prefabs["new_scene"_ss] = _world.prefab("new_scene").add<Scene>();
 	_scenes.push_back(create_scene());
 

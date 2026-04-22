@@ -4,12 +4,15 @@
 
 namespace feather {
 
+class Mesh;
+class Material;
+
 struct MeshInstance {
-	RID MeshId;
+	std::shared_ptr<Mesh> mesh;
 };
 
 struct MaterialInstance {
-	RID MaterialId; // todo: multiple materials
+	std::shared_ptr<Material> material; // todo: multiple materials
 };
 
 class RenderingWorldFeature : public EcsFeature {

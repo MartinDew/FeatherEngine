@@ -74,7 +74,7 @@ public:
 	void set_environment(const EnvironmentSettings& env);
 
 protected:
-	static void _bind_methods();
+	static void _bind_members();
 
 private:
 	Transform _camera_transform;

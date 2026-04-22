@@ -11,7 +11,7 @@ class EcsFeature : public Reflected {
 	FCLASS(EcsFeature, Reflected);
 
 protected:
-	static void _bind_methods() {};
+	static void _bind_members() {};
 	EcsFeature() = default;
 
 	static WorldSim* _get_world_sim();
