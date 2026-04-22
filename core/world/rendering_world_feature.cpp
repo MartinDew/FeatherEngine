@@ -23,11 +23,12 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.component<MeshInstance>("MeshInstance");
 	world.component<MaterialInstance>("MaterialInstance");
 	world.component<Light>("Light");
-	world.system("Create Render Scene").kind(flecs::PreStore).run([](const flecs::iter& it) {
+	world.system("Create Render Scene").kind(flecs::PreStore).write<RenderScene>().run([](const flecs::iter& it) {
 		it.world().set<RenderScene>({});
 	});
 
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
+			.read<RenderScene>()
 			.kind(flecs::PreStore)
 			.multi_threaded(false)
 			.each([](Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
@@ -35,8 +36,9 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 				renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 			});
 
-	world.system("Load Render Scene").kind(flecs::OnLoad).run([](const flecs::iter& it) {
-		RenderingServer::get()->set_render_capture(it.world().get<RenderScene>());
+	world.system("Load Render Scene").read<RenderScene>().kind(flecs::OnStore).run([](const flecs::iter& it) {
+		const RenderScene& rs = it.world().get<RenderScene>();
+		RenderingServer::get()->set_render_capture(rs);
 	});
 }
 

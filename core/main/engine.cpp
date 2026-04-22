@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "launch_settings.h"
+#include "world/rendering_world_feature.h"
 
 #include <framework/assert.h>
 
@@ -44,6 +45,24 @@ bool Engine::run() {
 	}
 
 	_world_sim.init();
+
+	// test script
+	{
+		auto w = *_world_sim.get_world();
+		Transform t1 { { 0, 0, -5 }, {}, {} };
+		Transform t2 { { -5, 0, -5 }, {}, {} };
+		Transform t3 { { 5, 0, -5 }, {}, {} };
+
+		w.entity("Box1").emplace<Transform>(t1).emplace<MeshInstance>(std::make_shared<BoxMesh>());
+		w.entity("Box2").emplace<Transform>(t2).emplace<MeshInstance>(std::make_shared<BoxMesh>());
+		w.entity("Box3").emplace<Transform>(t3).emplace<MeshInstance>(std::make_shared<BoxMesh>());
+
+		w.system<const MeshInstance, Transform>("Spin")
+				.kind(flecs::OnUpdate)
+				.each([](flecs::iter& it, size_t, const MeshInstance& mi, Transform& t) {
+					t.rotate(0, 1 * it.delta_time());
+				});
+	}
 
 	// update
 	double accumulator = 0.0;
