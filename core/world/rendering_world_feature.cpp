@@ -23,17 +23,38 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.component<MeshInstance>("MeshInstance");
 	world.component<MaterialInstance>("MaterialInstance");
 	world.component<Light>("Light");
-	world.system("Create Render Scene").kind(flecs::PreStore).write<RenderScene>().run([](const flecs::iter& it) {
-		it.world().set<RenderScene>({});
-	});
+	auto render_scene_sys = world.system("Create Render Scene")
+									.kind(flecs::PreStore)
+									.write<RenderScene>()
+									.run([](const flecs::iter& it) {
+										static size_t frame_num = 0;
+
+										RenderScene scene { frame_num++ };
+										auto camera_projection =
+												Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+
+										scene.set_camera_transform({});
+										scene.set_camera_projection(camera_projection);
+
+										it.world().add<RenderScene>();
+										it.world().set(scene);
+									});
 
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
-			.read<RenderScene>()
 			.kind(flecs::PreStore)
+			.read<RenderScene>()
 			.multi_threaded(false)
 			.each([](Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
 				RenderScene& renderScene = e.world().get_mut<RenderScene>();
 				renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
+			});
+
+	world.system<const Light>("Fill lights")
+			.kind(flecs::PreStore)
+			.read<RenderScene>()
+			.each([](Entity e, const Light& light) {
+				RenderScene& renderScene = e.world().get_mut<RenderScene>();
+				renderScene.add_light(light);
 			});
 
 	world.system("Load Render Scene").read<RenderScene>().kind(flecs::OnStore).run([](const flecs::iter& it) {

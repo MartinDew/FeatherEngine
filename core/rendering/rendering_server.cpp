@@ -30,7 +30,8 @@ void RenderingServer::_render_function() {
 			_render_cv.wait(lock, [this] {
 				int read_idx = 1 - _write_index.load(std::memory_order_acquire);
 				uint64_t current_frame = _capture_buffers[read_idx].get_frame_index();
-				return current_frame != _last_rendered_frame.load(std::memory_order_relaxed);
+				uint64_t last_frame = _last_rendered_frame.load(std::memory_order_relaxed);
+				return current_frame != last_frame;
 			});
 		}
 
@@ -59,8 +60,9 @@ RenderingServer::RenderingServer() {
 void RenderingServer::init() {
 	_renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get());
 
-	Engine::get().get_main_window().register_notification(
-			Notification::WINDOW_RESIZED, [this] { _needs_resize = true; });
+	Engine::get().get_main_window().register_notification(Notification::WINDOW_RESIZED, [this] {
+		_needs_resize = true;
+	});
 
 	if (!LaunchSettings::get().force_single_thread.Get())
 		_run();
