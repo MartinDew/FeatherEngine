@@ -16,8 +16,9 @@ WorldSim::WorldSim() {
 
 	register_core_ecs_features(_world);
 
-	_prefabs["new_scene"_ss] = _world.prefab("new_scene").add<Scene>();
+	_prefabs["new_scene"_ss] = _world.prefab("new_scene").emplace<Scene>("new_scene"_ss);
 	_scenes.push_back(create_scene());
+	_current_scene = _scenes[0];
 
 	_fixed_update_phase = _world.entity("FixedUpdatePhase").add(flecs::Phase);
 
@@ -53,6 +54,10 @@ Entity WorldSim::create_scene() const {
 
 Entity WorldSim::add_entity(const Entity& scene) const {
 	return _world.entity().add(scene);
+}
+
+void WorldSim::add_to_scene(Entity entity) const {
+	entity.child_of(_current_scene);
 }
 
 } //namespace feather

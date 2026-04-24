@@ -74,6 +74,9 @@ set(FEATHER_CORE_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/core/world/rendering_world_feature.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/world/math_feature.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/core/world/register_core_features.cpp"
+        core/world/core_world_feature.cpp
+        core/world/core_world_feature.h
+        core/world/components/scene.cpp
 )
 
 set(GENERATED_FILES

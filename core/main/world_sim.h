@@ -14,6 +14,7 @@ class WorldSim final : public Simulation {
 	FCLASS_SINGLETON(WorldSim, Simulation);
 
 	World _world;
+	Entity _current_scene;
 
 	Entity _fixed_update_phase;
 	Entity _fixed_update_pipeline;
@@ -25,7 +26,7 @@ class WorldSim final : public Simulation {
 protected:
 	static void _bind_members();
 
-	template <class T>
+	template <std::derived_from<class EcsFeature> T>
 	void _import_feature() {
 		_world.import <T>();
 	}
@@ -39,6 +40,8 @@ public:
 	void fixed_update(double delta) override;
 	void update(double delta) override;
 
+	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
+
 	[[nodiscard]] Entity get_fixed_update_phase() const { return _fixed_update_phase; }
 
 	[[nodiscard]]
@@ -48,7 +51,9 @@ public:
 	Entity add_entity(const Entity& scene) const;
 
 	// get low level world impl
-	World* get_world() { return &_world; }
+	[[nodiscard]] World* get_world() { return &_world; }
+
+	void add_to_scene(Entity entity) const;
 };
 
 } //namespace feather
