@@ -73,13 +73,7 @@ bool Engine::run() {
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
 				.add<Move>();
-
-		/*
-		* Transform { Vector3 { 0, -2, 0 },
-							Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
-							Vector3 { 200, 0.1f, 200 } },
-				std::make_shared<BoxMesh>(),
-		 */
+		
 		w.entity("Floor")
 				.emplace<Transform>(
 						Vector3 { 0, -2, 0 },
