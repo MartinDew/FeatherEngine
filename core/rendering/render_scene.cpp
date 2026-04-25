@@ -70,11 +70,20 @@ void RenderScene::reserve_lights(size_t count) {
 }
 
 const CowVector<Light>& RenderScene::get_lights() const noexcept {
-	return _lights;
+	static CowVector<Light> default_light {
+		{ .type = Light::Type::Directional,
+		  .position = Vector3::zero,
+		  .direction = Vector3 { -0.5f, -1.0f, -1.f },
+		  .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
+		  .intensity = 10.0f,
+		  .cast_shadows = true },
+	};
+
+	return _lights.empty() ? default_light : _lights;
 }
 
 size_t RenderScene::get_light_count() const noexcept {
-	return _lights.size();
+	return std::max<size_t>(_lights.size(), 1);
 }
 
 void RenderScene::clear() {
