@@ -12,12 +12,6 @@
 
 namespace feather {
 
-namespace {
-
-constexpr double simulation_time = 1.0 / 60.0;
-
-} //namespace
-
 Engine* Engine::_instance = nullptr;
 
 Engine::Engine() {
@@ -73,7 +67,7 @@ bool Engine::run() {
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
 				.add<Move>();
-		
+
 		w.entity("Floor")
 				.emplace<Transform>(
 						Vector3 { 0, -2, 0 },

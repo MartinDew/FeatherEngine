@@ -16,9 +16,6 @@ class WorldSim final : public Simulation {
 	World _world;
 	Entity _current_scene;
 
-	Entity _fixed_update_phase;
-	Entity _fixed_update_pipeline;
-
 	std::vector<Entity> _scenes;
 
 	std::map<StaticString, Entity> _prefabs;
@@ -32,17 +29,14 @@ protected:
 	}
 
 public:
+	const EcsTimer fixed_tick;
+
 	WorldSim();
 	~WorldSim() override;
 
-	void init() override;
-	void pre_update(double delta) override;
-	void fixed_update(double delta) override;
 	void update(double delta) override;
 
 	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
-
-	[[nodiscard]] Entity get_fixed_update_phase() const { return _fixed_update_phase; }
 
 	[[nodiscard]]
 	Entity create_scene() const;
@@ -54,6 +48,11 @@ public:
 	[[nodiscard]] World* get_world() { return &_world; }
 
 	void add_to_scene(Entity entity) const;
+
+	template <class... T>
+	Ecs::system_builder<T...>& execute_fixed(Ecs::system_builder<T...>& system) {
+		return system.tick_source(fixed_tick);
+	}
 };
 
 } //namespace feather

@@ -38,6 +38,8 @@ public:
 	Window& get_main_window() { return _main_window; }
 
 	double get_current_delta_time() const;
+
+	static constexpr double simulation_time = 1.0 / 60.0;
 };
 
 } //namespace feather
