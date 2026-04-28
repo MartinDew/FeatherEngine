@@ -4,7 +4,7 @@ endif ()
 
 FetchContent_Declare(Vex
         GIT_REPOSITORY https://github.com/Narvin-Chana/Vex.git
-        GIT_TAG main
+        GIT_TAG ebc4dfc0ea1b88c9ced1ca5cdcafa5907fd9d6d0
         EXCLUDE_FROM_ALL)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
