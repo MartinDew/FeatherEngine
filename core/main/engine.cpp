@@ -52,23 +52,23 @@ bool Engine::run() {
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		struct Move {};
-		w.entity("Box1")
-				.emplace<Transform>(t1)
-				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
-				.emplace<MaterialInstance>(material)
-				.add<Move>();
-		w.entity("Box2")
-				.emplace<Transform>(t2)
-				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
-				.emplace<MaterialInstance>(material)
-				.add<Move>();
-		w.entity("Box3")
-				.emplace<Transform>(t3)
-				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
-				.emplace<MaterialInstance>(material)
-				.add<Move>();
+		auto _ = _world_sim.add_entity("Box1")
+						 .emplace<Transform>(t1)
+						 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
+						 .emplace<MaterialInstance>(material)
+						 .add<Move>();
+		_ = _world_sim.add_entity("Box2")
+					.emplace<Transform>(t2)
+					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
+					.emplace<MaterialInstance>(material)
+					.add<Move>();
+		_ = w.entity("Box3")
+					.emplace<Transform>(t3)
+					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
+					.emplace<MaterialInstance>(material)
+					.add<Move>();
 
-		w.entity("Floor")
+		_world_sim.add_entity("Floor")
 				.emplace<Transform>(
 						Vector3 { 0, -2, 0 },
 						Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),

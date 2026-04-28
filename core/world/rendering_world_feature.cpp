@@ -1,5 +1,6 @@
 #include "rendering_world_feature.h"
 
+#include "components/scene.h"
 #include <main/world_sim.h>
 #include <rendering/rendering_server.h>
 #include <resources/mesh.h>
@@ -43,6 +44,7 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 			.kind(flecs::PreStore)
 			.read<RenderScene>()
 			.multi_threaded(false)
+			.with<InScene>()
 			.each([](Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
 				RenderScene& renderScene = e.world().get_mut<RenderScene>();
 				renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
@@ -51,6 +53,7 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.system<const Light>("Fill lights")
 			.kind(flecs::PreStore)
 			.read<RenderScene>()
+			.with<InScene>()
 			.each([](Entity e, const Light& light) {
 				RenderScene& renderScene = e.world().get_mut<RenderScene>();
 				renderScene.add_light(light);

@@ -9,7 +9,7 @@ void CoreWorldFeature::_bind_members() {
 }
 
 CoreWorldFeature::CoreWorldFeature(World world) {
-	world.component<Scene>();
+	world.component<Scene>("Scene");
 	world.component<InScene>("InScene");
 
 	world.observer<const Scene>()
