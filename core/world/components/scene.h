@@ -18,5 +18,6 @@ struct Scene {
 	bool operator==(const Scene& other) const;
 };
 
-struct InScene {};
+struct ActiveScene {};
+
 } //namespace feather

@@ -9,6 +9,8 @@ class CoreWorldFeature : public EcsFeature {
 
 protected:
 	static void _bind_members();
+
+public:
 	CoreWorldFeature() = default;
 	CoreWorldFeature(World world);
 };

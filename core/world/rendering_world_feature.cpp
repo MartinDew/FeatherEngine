@@ -30,6 +30,11 @@ inline void _create_render_scene(const flecs::iter& it) {
 	it.world().set(scene);
 }
 
+inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
+	RenderScene& renderScene = e.world().get_mut<RenderScene>();
+	renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
+}
+
 RenderingWorldFeature::RenderingWorldFeature(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
@@ -37,23 +42,27 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.component<MeshInstance>("MeshInstance");
 	world.component<MaterialInstance>("MaterialInstance");
 	world.component<Light>("Light");
-	auto render_scene_sys =
-			world.system("Create Render Scene").kind(flecs::PreStore).write<RenderScene>().run(&_create_render_scene);
+	auto render_scene_sys = world.system("Create Render Scene").kind(flecs::PreStore).run(&_create_render_scene);
 
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
+			.with<ActiveScene>()
+			.up()
+			.optional()
+			.cascade()
 			.kind(flecs::PreStore)
-			.read<RenderScene>()
 			.multi_threaded(false)
-			.with<InScene>()
-			.each([](Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
-				RenderScene& renderScene = e.world().get_mut<RenderScene>();
-				renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
-			});
+
+			// .cascade()
+			// .read<RenderScene>()
+			.each(_update_meshes);
 
 	world.system<const Light>("Fill lights")
 			.kind(flecs::PreStore)
-			.read<RenderScene>()
-			.with<InScene>()
+			.with<ActiveScene>()
+			.optional()
+			.up()
+			// .cascade()
+			// .read<RenderScene>()
 			.each([](Entity e, const Light& light) {
 				RenderScene& renderScene = e.world().get_mut<RenderScene>();
 				renderScene.add_light(light);

@@ -15,6 +15,9 @@ void WorldSim::_bind_members() {
 
 WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_time) } {
 	FSINGLETON_CONSTRUCT_INSTANCE()
+#if BETA
+	_world.set<Ecs::Rest>({});
+#endif
 
 	register_core_ecs_features(_world);
 	_scene_prefab = _world.prefab("Scene");
@@ -31,6 +34,8 @@ WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_t
 WorldSim::~WorldSim() = default;
 
 void WorldSim::update(double delta) {
+	// Ecs::query<Transform, MeshInstance, MaterialInstance> q
+
 	bool result = _world.progress(/*delta*/);
 }
 
@@ -51,13 +56,6 @@ void WorldSim::add_to_scene(Entity entity) const {
 	entity.child_of(_current_scene);
 }
 
-void WorldSim::_tag_descendants_in_scene(Entity parent) const {
-	parent.children([&](flecs::entity child) {
-		child.add<InScene>();
-		_tag_descendants_in_scene(child);
-	});
-}
-
 bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
 	flecs::entity current = e;
 	while (current.is_valid()) {
@@ -71,26 +69,12 @@ bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
 void WorldSim::set_active_scene(Entity scene) {
 	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
 
-	_world.remove_all<InScene>(); // no const here — remove_all needs mutable
+	// Clear old active scene marker
+	if (_current_scene.is_valid())
+		_current_scene.remove<ActiveScene>();
 
-	scene.add<InScene>();
-	_tag_descendants_in_scene(scene);
-
+	scene.add<ActiveScene>();
 	_current_scene = scene;
-
-	if (_scene_observer) {
-		_scene_observer.destruct();
-	}
-
-	// Instead of observer, use a system that propagates InScene downward.
-	// Any entity whose PARENT has InScene but itself doesn't -> add it.
-	_scene_observer =
-			_world.observer<>().with(flecs::ChildOf, flecs::Wildcard).event(flecs::OnAdd).each([this](flecs::entity e) {
-				flecs::entity p = e.parent();
-				if (p.is_valid() && p.has<InScene>()) {
-					e.add<InScene>();
-				}
-			});
 }
 
 } //namespace feather

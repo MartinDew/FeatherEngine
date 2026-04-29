@@ -1,8 +1,9 @@
 #pragma once
 
 #include "simulation.h"
-#include <framework/reflection_macros.h>
 
+#include <framework/reflection_macros.h>
+#include <world/components/scene.h>
 #include <world/ecs_defs.h>
 
 #include <flecs.h>
@@ -16,13 +17,16 @@ class WorldSim final : public Simulation {
 	World _world;
 	Entity _scene_prefab;
 	Entity _current_scene;
-	Ecs::observer _scene_observer;
 
 	std::vector<Entity> _scenes;
 
 	// In world_sim.h, private section:
-	void _tag_descendants_in_scene(Entity parent) const;
 	bool _is_in_scene(flecs::entity e, Entity scene) const;
+
+	template <class... TComps, class TFunc>
+	void _iterate_tree(flecs::entity e, TFunc func) {
+		// Todo
+	}
 
 protected:
 	static void _bind_members();
@@ -61,6 +65,18 @@ public:
 	}
 
 	void set_active_scene(Entity scene);
+
+	// Build a query scoped to the active scene
+	template <class... TComps>
+	auto scene_query() {
+		static auto q = _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
+		return q;
+	}
+
+	template <class... TComps>
+	auto scene_system() {
+		Entity node =
+	};
 };
 
 } //namespace feather

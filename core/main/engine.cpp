@@ -52,6 +52,8 @@ bool Engine::run() {
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		struct Move {};
+		auto s = _world_sim.create_scene("Ni");
+		_world_sim.set_active_scene(s);
 		auto _ = _world_sim.add_entity("Box1")
 						 .emplace<Transform>(t1)
 						 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
@@ -62,11 +64,11 @@ bool Engine::run() {
 					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					.emplace<MaterialInstance>(material)
 					.add<Move>();
-		_ = w.entity("Box3")
-					.emplace<Transform>(t3)
-					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
-					.emplace<MaterialInstance>(material)
-					.add<Move>();
+		_world_sim.add_to_scene(w.entity("Box3")
+										.emplace<Transform>(t3)
+										.emplace<MeshInstance>(std::make_shared<BoxMesh>())
+										.emplace<MaterialInstance>(material)
+										.add<Move>());
 
 		_world_sim.add_entity("Floor")
 				.emplace<Transform>(
