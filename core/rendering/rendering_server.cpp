@@ -31,7 +31,7 @@ void RenderingServer::_render_function() {
 				int read_idx = 1 - _write_index.load(std::memory_order_acquire);
 				uint64_t current_frame = _capture_buffers[read_idx].get_frame_index();
 				uint64_t last_frame = _last_rendered_frame.load(std::memory_order_relaxed);
-				return current_frame != last_frame;
+				return current_frame != last_frame || _render_thread.get_stop_token().stop_requested();
 			});
 		}
 
@@ -55,6 +55,10 @@ RenderingServer::RenderingServer() {
 	fassert(!_instance);
 
 	_instance = this;
+}
+RenderingServer::~RenderingServer() {
+	_render_thread.request_stop();
+	_render_cv.notify_all();
 }
 
 void RenderingServer::init() {

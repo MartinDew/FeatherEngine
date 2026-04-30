@@ -39,6 +39,7 @@ class RenderingServer {
 
 public:
 	RenderingServer();
+	~RenderingServer();
 
 	static RenderingServer* get();
 
