@@ -1,4 +1,5 @@
 ﻿#pragma once;
+#include <world/ecs_defs.h>
 #include <framework/static_string.hpp>
 
 #include <cstdint>
@@ -18,6 +19,9 @@ struct Scene {
 	bool operator==(const Scene& other) const;
 };
 
+// Relationship Tag
 struct ActiveScene {};
+
+struct InScene {};
 
 } //namespace feather

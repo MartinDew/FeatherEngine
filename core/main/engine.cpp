@@ -97,6 +97,17 @@ bool Engine::run() {
 										 Vector3 { 0, static_cast<real_t>(it.delta_time()), 0 }
 							);
 				});
+
+		auto q = w.query_builder<Transform, MeshInstance, MaterialInstance*>("Test")
+						 .with<ActiveScene>()
+						 .optional()
+						 .parent()
+						 .cascade()
+						 .build();
+
+		q.each([](Entity e, Transform& t, MeshInstance mi, MaterialInstance* mat) {
+			std::cout << e.name() << std::endl;
+		});
 	}
 
 	// update

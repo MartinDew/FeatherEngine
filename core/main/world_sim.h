@@ -75,7 +75,7 @@ public:
 
 	template <class... TComps>
 	auto scene_system() {
-		Entity node =
+		
 	};
 };
 
