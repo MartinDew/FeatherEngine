@@ -12,6 +12,8 @@ namespace feather {
 using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
+struct Main;
+
 class Engine {
 	friend Main;
 	static Engine* _instance;
