@@ -44,12 +44,12 @@ Entity WorldSim::create_scene(std::string name) const {
 	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
 }
 
-Entity WorldSim::add_entity(std::string name) const {
-	return add_entity(std::move(_current_scene), name);
+Entity WorldSim::create_entity(std::string name) const {
+	return _world.entity(name.c_str());
 }
 
-Entity WorldSim::add_entity(const Entity& scene, std::string name) const {
-	return _world.entity(name.c_str()).child_of(scene);
+Entity WorldSim::create_entity(const Entity& parent_entity, std::string name) const {
+	return _world.entity(name.c_str()).child_of(parent_entity);
 }
 
 void WorldSim::add_to_scene(Entity entity) const {
@@ -70,8 +70,7 @@ void WorldSim::set_active_scene(Entity scene) {
 	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
 
 	// Clear old active scene marker
-	if (_current_scene.is_valid())
-		_current_scene.remove<ActiveScene>();
+	_world.remove_all<ActiveScene>();
 
 	scene.add<ActiveScene>();
 	_current_scene = scene;

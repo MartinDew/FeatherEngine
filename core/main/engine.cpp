@@ -55,17 +55,20 @@ bool Engine::run() {
 		struct Move {};
 		auto s = _world_sim.create_scene("Ni");
 		_world_sim.set_active_scene(s);
-		auto _ = _world_sim.add_entity("Box1")
+
+		auto _ = _world_sim.create_entity(s, "Box1")
 						 .emplace<Transform>(t1)
 						 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 						 .emplace<MaterialInstance>(material)
 						 .add<Move>();
-		_ = _world_sim.add_entity("Box2")
+
+		_ = _world_sim.create_entity(s, "Box2")
 					.emplace<Transform>(t2)
 					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					.emplace<MaterialInstance>(material)
 					.add<Move>();
-		w.entity("Box3")
+
+		w.entity(s, "Box3")
 				.emplace<Transform>(t3)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
@@ -73,7 +76,7 @@ bool Engine::run() {
 
 		w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
-		_world_sim.add_entity("Floor")
+		_world_sim.create_entity(s, "Floor")
 				.emplace<Transform>(
 						Vector3 { 0, -2, 0 },
 						Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
@@ -88,7 +91,7 @@ bool Engine::run() {
 				  .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
 				  .intensity = 10.0f,
 				  .cast_shadows = true };
-		w.entity("Directional").emplace<Light>(std::move(l));
+		w.entity(s, "Directional").emplace<Light>(std::move(l));
 
 		w.system<const MeshInstance, Transform>("Spin")
 				.with<Move>()
