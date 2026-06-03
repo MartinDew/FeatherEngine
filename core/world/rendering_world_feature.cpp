@@ -47,22 +47,14 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>()
 			.up()
-			.optional()
-			.cascade()
 			.kind(flecs::PreStore)
 			.multi_threaded(false)
-
-			// .cascade()
-			// .read<RenderScene>()
 			.each(_update_meshes);
 
 	world.system<const Light>("Fill lights")
 			.kind(flecs::PreStore)
 			.with<ActiveScene>()
-			.optional()
 			.up()
-			// .cascade()
-			// .read<RenderScene>()
 			.each([](Entity e, const Light& light) {
 				RenderScene& renderScene = e.world().get_mut<RenderScene>();
 				renderScene.add_light(light);

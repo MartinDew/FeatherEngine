@@ -41,7 +41,7 @@ void WorldSim::update(double delta) {
 
 Entity WorldSim::create_scene(std::string name) const {
 	Scene s { { name } };
-	return _world.prefab(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
+	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
 }
 
 Entity WorldSim::add_entity(std::string name) const {

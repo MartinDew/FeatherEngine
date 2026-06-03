@@ -47,6 +47,7 @@ bool Engine::run() {
 		Transform t1 { { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
 		Transform t2 { { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
 		Transform t3 { { 2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
+		Transform t4 { { 0, 2, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
 
 		auto material = std::make_shared<PBRMaterial>();
 		material->set_base_color_factor({ .7f, .7f, .0f });
@@ -64,11 +65,13 @@ bool Engine::run() {
 					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					.emplace<MaterialInstance>(material)
 					.add<Move>();
-		_world_sim.add_to_scene(w.entity("Box3")
-										.emplace<Transform>(t3)
-										.emplace<MeshInstance>(std::make_shared<BoxMesh>())
-										.emplace<MaterialInstance>(material)
-										.add<Move>());
+		w.entity("Box3")
+				.emplace<Transform>(t3)
+				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
+				.emplace<MaterialInstance>(material)
+				.add<Move>();
+
+		w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
 		_world_sim.add_entity("Floor")
 				.emplace<Transform>(
