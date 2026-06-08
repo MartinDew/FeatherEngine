@@ -143,6 +143,31 @@ if(WIN32)
             set(CMAKE_CXX_FLAGS_INIT "/EHsc /GR" CACHE STRING "C++ flags")
 
             message(STATUS "LLVM Toolchain: Using clang-cl on Windows")
+
+            # Find the Windows SDK version that's actually selected
+            get_filename_component(WINDOWS_SDK_ROOT
+                    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]"
+                    ABSOLUTE CACHE
+            )
+
+            if(WINDOWS_SDK_ROOT)
+                # Enumerate installed SDK versions and pick the latest
+                file(GLOB SDK_VERSIONS LIST_DIRECTORIES true "${WINDOWS_SDK_ROOT}/Include/*")
+                list(SORT SDK_VERSIONS ORDER DESCENDING)
+                list(GET SDK_VERSIONS 0 LATEST_SDK_INCLUDE)
+
+                set(RC_UM_INCLUDE "${LATEST_SDK_INCLUDE}/um")
+                set(RC_SHARED_INCLUDE "${LATEST_SDK_INCLUDE}/shared")
+
+                if(EXISTS "${RC_UM_INCLUDE}/winres.h")
+                    set(CMAKE_RC_FLAGS "/I \"${RC_UM_INCLUDE}\" /I \"${RC_SHARED_INCLUDE}\"" CACHE STRING "RC compiler flags" FORCE)
+                    message(STATUS "LLVM Toolchain: RC include path set to ${RC_UM_INCLUDE}")
+                else()
+                    message(WARNING "LLVM Toolchain: winres.h not found at ${RC_UM_INCLUDE}, RC compilation may fail")
+                endif()
+            else()
+                message(WARNING "LLVM Toolchain: Windows SDK root not found in registry, RC compilation may fail")
+            endif()
         endif()
     endif()
     

@@ -1,6 +1,8 @@
-﻿#include "project_settings.h"
+#include "project_settings.h"
 
 #include "launch_settings.h"
+#include <filesystem>
+#include <iostream>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <shlobj_core.h>
@@ -14,11 +16,34 @@ namespace feather {
 
 FSINGLETON_INSTANCE(ProjectSettings);
 
-ProjectSettings::ProjectSettings()
-		: _project_path(FileSystem::current_path()) { FSINGLETON_CONSTRUCT_INSTANCE() }
+ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
+	FSINGLETON_CONSTRUCT_INSTANCE()
+}
 
-		Path ProjectSettings::get_project_path() {
+void ProjectSettings::init() {
+	_project_path = LaunchSettings::get().project_path.Get();
+
+	// Ensure the project path exists
+	if (!std::filesystem::exists(_project_path)) {
+		std::cerr << "Project path does not exist: " << _project_path.string() << std::endl;
+		return;
+	}
+
+	// Search for .fproj file
+	for (const auto& entry : std::filesystem::directory_iterator(_project_path)) {
+		if (entry.is_regular_file() && entry.path().extension() == ".fproj") {
+			_project_name = entry.path().stem().string();
+			break;
+		}
+	}
+}
+
+Path ProjectSettings::get_project_path() {
 	return _project_path;
+}
+
+std::string ProjectSettings::get_project_name() const {
+	return _project_name;
 }
 
 static void replace_all(std::string& path, const std::string& token, const std::string& replacement) {

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <framework/path.h>
 #include <framework/reflected.h>
@@ -12,6 +12,7 @@ class ProjectSettings final : public Reflected {
 	friend class Engine;
 
 	Path _project_path;
+	std::string _project_name;
 
 protected:
 	static void _bind_members();
@@ -20,8 +21,10 @@ protected:
 
 public:
 	ProjectSettings();
+	void init();
 
 	Path get_project_path();
+	std::string get_project_name() const;
 	Path localize_path(const Path& path);
 };
 
