@@ -1,6 +1,6 @@
 #include "shared_library.h"
 
-#include "build/release-fbuild/_deps/sdl3-src/include/SDL3/SDL_loadso.h"
+#include <SDL3/SDL_loadso.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
