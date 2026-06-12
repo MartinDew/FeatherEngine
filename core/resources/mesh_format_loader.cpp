@@ -1,7 +1,6 @@
 ﻿#include "mesh_format_loader.h"
 
 #include "mesh.h"
-#include "resource_loader.h"
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -12,7 +11,6 @@ namespace feather {
 
 void MeshFormatLoader::_bind_members() {
 	ClassDB::bind_method(&Type::recognize_extension, "recognize_extension");
-	ResourceLoader::get()->add_resource_format_loader(std::make_shared<Type>());
 }
 
 MeshFormatLoader::MeshFormatLoader() : _importer { std::make_unique<Assimp::Importer>() } {
@@ -24,7 +22,13 @@ bool MeshFormatLoader::recognize_extension(const std::string& extension) const {
 
 MeshFormatLoader::~MeshFormatLoader() = default;
 
-std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
+std::shared_ptr<Resource> MeshFormatLoader::instantiate(const Path& path) {
+	auto mesh = std::make_shared<ComplexMesh>();
+	mesh->set_path(path.string());
+	return mesh;
+}
+
+void MeshFormatLoader::load(std::shared_ptr<Resource> resource, const Path& path) {
 	const aiScene* scene = _importer->ReadFile(
 			path.string(),
 			aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
@@ -32,7 +36,7 @@ std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cerr << "Assimp error: " << _importer->GetErrorString() << std::endl;
-		return nullptr;
+		return;
 	}
 
 	std::vector<Vertex> vertices;
@@ -65,10 +69,7 @@ std::shared_ptr<Resource> MeshFormatLoader::load(const Path& path) {
 		}
 	}
 
-	std::shared_ptr<ComplexMesh> complex_mesh = std::make_shared<ComplexMesh>();
-	complex_mesh->set_mesh_data(vertices, indices);
-
-	return complex_mesh;
+	std::static_pointer_cast<ComplexMesh>(resource)->set_mesh_data(vertices, indices);
 }
 
 } // namespace feather

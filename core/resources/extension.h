@@ -24,6 +24,8 @@ public:
 
 	Extension(const std::string_view& name, const std::string_view& entry_point);
 
+	bool is_loaded() override { return _library_handle != nullptr; }
+
 	const std::string& get_name() const { return _extension_name; }
 	const std::string& get_entry_point() const { return _entry_point; }
 };

@@ -18,7 +18,14 @@ class ResourceFormatLoader : public Reflected {
 protected:
 	static void _bind_members();
 
-	virtual std::shared_ptr<Resource> load(const Path& path) = 0;
+	// Create a resource instance with path set but data not loaded
+	virtual std::shared_ptr<Resource> instantiate(const Path& path) = 0;
+
+	// Fill data into an existing resource instance (called after instantiate, or for reload)
+	virtual void load(std::shared_ptr<Resource> resource, const Path& path) = 0;
+
+	// If true, index_project calls load() immediately after instantiate
+	virtual bool requires_immediate_load() const { return false; }
 
 	ResourceFormatLoader() = default;
 

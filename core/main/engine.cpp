@@ -4,6 +4,7 @@
 #include "world/rendering_world_feature.h"
 
 #include <framework/assert.h>
+#include <resources/resource_loader.h>
 
 #include <chrono>
 
@@ -31,13 +32,14 @@ bool Engine::run() {
 
 	bool keep_running = true;
 
-	// initialization
-
 	// Debug stuff
 	if (LaunchSettings::get().dump_db.Get()) {
 		ClassDB::get()->print_db();
 		return true;
 	}
+
+	// initialization
+	ResourceLoader::get()->index_project();
 
 	_world_sim.init();
 

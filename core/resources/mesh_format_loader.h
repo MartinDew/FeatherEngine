@@ -18,7 +18,8 @@ class MeshFormatLoader : public ResourceFormatLoader {
 protected:
 	static void _bind_members();
 
-	std::shared_ptr<Resource> load(const Path& path) override;
+	std::shared_ptr<Resource> instantiate(const Path& path) override;
+	void load(std::shared_ptr<Resource> resource, const Path& path) override;
 
 public:
 	MeshFormatLoader();

@@ -63,6 +63,24 @@ std::string ClassDB::get_children_names_string(StaticString object_name, bool ex
 	return children_str;
 }
 
+Delegate<std::string_view>::id_t ClassDB::on_subclass_registered(
+		std::string_view base_class_name,
+		const Delegate<std::string_view>::DelegateFuncType& callback
+) {
+	return get()->_subclass_delegates[StaticString(base_class_name)].subscribe(callback);
+}
+
+void ClassDB::_fire_subclass_delegates(std::string_view class_name) {
+	ClassInfo* ci = _get_class_info_internal(class_name);
+	while (ci && ci->parent != ""_ss) {
+		auto it = get()->_subclass_delegates.find(ci->parent);
+		if (it != get()->_subclass_delegates.end()) {
+			it->second.execute(class_name);
+		}
+		ci = _get_class_info_internal(ci->parent);
+	}
+}
+
 bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
 	StaticString _current_name = ""_ss;
 	ClassInfo* ci = _get_class_info_internal(object_name);

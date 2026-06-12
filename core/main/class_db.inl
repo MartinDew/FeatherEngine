@@ -52,6 +52,7 @@ void ClassDB::register_class() {
 		T::_bind_members();
 
 		instance._current_info = nullptr;
+		_fire_subclass_delegates(T::get_class_static());
 	}
 }
 
@@ -76,6 +77,7 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	T::_bind_members();
 
 	instance._current_info = nullptr;
+	_fire_subclass_delegates(T::get_class_static());
 }
 
 template <is_reflected_class_type T> void ClassDB::register_singleton_class() {

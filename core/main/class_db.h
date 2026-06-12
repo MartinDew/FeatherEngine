@@ -7,6 +7,8 @@
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
 
+#include <framework/delegate.h>
+
 #include <cstddef>
 #include <functional>
 #include <map>
@@ -23,8 +25,11 @@ class ClassDB {
 	ClassDB();
 
 	std::map<StaticString, ClassInfo> _class_infos;
+	std::map<StaticString, Delegate<const std::string_view>> _subclass_delegates;
 
 	ClassInfo* _current_info = nullptr;
+
+	static void _fire_subclass_delegates(std::string_view class_name);
 
 	template <typename T, typename U>
 	static constexpr size_t offset_of(U T::* member) {
@@ -72,6 +77,11 @@ public:
 		std::unique_ptr<T> ptr { object_cast<T>(object) };
 		return ptr;
 	}
+
+	static Delegate<std::string_view>::id_t on_subclass_registered(
+			std::string_view base_class_name,
+			const Delegate<std::string_view>::DelegateFuncType& callback
+	);
 
 	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
 
