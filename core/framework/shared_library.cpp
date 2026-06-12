@@ -1,5 +1,6 @@
 #include "shared_library.h"
 
+#include "callable.h"
 #include <SDL3/SDL_loadso.h>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -34,11 +35,18 @@ void SharedLibrary::unload() {
 	_handle = nullptr;
 }
 
-void* SharedLibrary::get_symbol(const std::string& name) const {
-	if (!_handle)
-		return nullptr;
+Callable SharedLibrary::get_symbol(const std::string& name) const {
+	if (!_handle) {
+		return {};
+	}
 
-	return SDL_LoadFunction(_handle, name.c_str());
+	auto sym = SDL_LoadFunction(_handle, name.c_str());
+	if (!sym) {
+		return {};
+	}
+
+	void (*sym_cpp)() = reinterpret_cast<void (*)()>(sym);
+	return Callable(sym_cpp);
 }
 
 bool SharedLibrary::is_loaded() const {

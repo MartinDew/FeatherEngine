@@ -1,5 +1,7 @@
 #pragma once
 
+#include "callable.h"
+
 #include <memory>
 #include <string>
 
@@ -17,8 +19,8 @@ public:
 	bool load(const std::string& path);
 	void unload();
 
-	void* get_symbol(const std::string& name) const;
-	bool is_loaded() const;
+	[[nodiscard]] Callable get_symbol(const std::string& name) const;
+	[[nodiscard]] bool is_loaded() const;
 };
 
 } // namespace feather

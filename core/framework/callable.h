@@ -36,6 +36,10 @@ public:
 			} }
 			, _param_amount { sizeof...(TArgs) } {}
 
+	template <class TRet, class... TArgs>
+		requires(VariantCompatible<std::decay_t<TRet>>) && (VariantCompatible<std::decay_t<TArgs>> && ...)
+	Callable(TRet (*func_ptr)(TArgs...)) : Callable(std::function<TRet(TArgs...)>(func_ptr)) {}
+
 	Callable(Callable&&) = default;
 	Callable(const Callable&) = default;
 	Callable& operator=(const Callable&) = default;
@@ -44,8 +48,12 @@ public:
 	Variant call(std::span<Variant> params);
 
 	Variant call(auto&&... args) {
-		Variant params[] = { args... };
-		return call(std::span<Variant>(params, sizeof...(args)));
+		if constexpr (sizeof...(args) == 0) {
+			return call(std::span<Variant>());
+		} else {
+			Variant params[] = { args... };
+			return call(std::span<Variant>(params, sizeof...(args)));
+		}
 	}
 
 	bool is_valid() const;

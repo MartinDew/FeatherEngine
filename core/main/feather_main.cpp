@@ -1,4 +1,4 @@
-﻿#include "engine.h"
+#include "engine.h"
 #include "launch_settings.h"
 #include "project_settings.h"
 #include "resources/resource_loader.h"
@@ -43,13 +43,16 @@ Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(arg
 		bool loaded = false;
 		for (const auto& c : configs) {
 #if defined(_WIN32) || defined(_WIN64)
+			std::string prefix = "";
 			std::string ext = ".dll";
 #elif defined(__APPLE__)
+			std::string prefix = "lib";
 			std::string ext = ".dylib";
 #else
+			std::string prefix = "lib";
 			std::string ext = ".so";
 #endif
-			auto path = _project_settings.get_project_path() / "bin" / c / (proj_name + ext);
+			auto path = _project_settings.get_project_path() / "bin" / c / (prefix + proj_name + ext);
 			if (std::filesystem::exists(path)) {
 				if (_project_lib.load(path.string())) {
 					std::cout << "Loaded project DLL: " << path.string() << std::endl;
@@ -60,10 +63,9 @@ Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(arg
 		}
 
 		if (loaded) {
-			using RegisterFunc = void (*)();
-			RegisterFunc reg_func = (RegisterFunc)_project_lib.get_symbol("register_project_types");
-			if (reg_func) {
-				reg_func();
+			Callable reg_func = _project_lib.get_symbol("register_project_types");
+			if (reg_func.is_valid()) {
+				reg_func.call();
 				std::cout << "Project types registered successfully." << std::endl;
 			}
 			else {
