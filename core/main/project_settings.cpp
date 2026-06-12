@@ -20,13 +20,13 @@ ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 }
 
-void ProjectSettings::init() {
+bool ProjectSettings::init() {
 	_project_path = LaunchSettings::get().project_path.Get();
 
 	// Ensure the project path exists
 	if (!std::filesystem::exists(_project_path)) {
 		std::cerr << "Project path does not exist: " << _project_path.string() << std::endl;
-		return;
+		return false;
 	}
 
 	// Search for .fproj file
@@ -36,6 +36,13 @@ void ProjectSettings::init() {
 			break;
 		}
 	}
+
+	if (_project_name.empty()) {
+		std::cerr << "No .fproj file found in project directory: " << _project_path.string() << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
 Path ProjectSettings::get_project_path() {

@@ -21,7 +21,7 @@ protected:
 
 public:
 	ProjectSettings();
-	void init();
+	bool init();
 
 	Path get_project_path();
 	std::string get_project_name() const;

@@ -26,7 +26,9 @@ struct Main {
 };
 
 Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(argc), std::move(argv)) {
-	_project_settings.init();
+	if (!_project_settings.init())
+		return;
+
 	setup_db();
 
 	Engine engine;
