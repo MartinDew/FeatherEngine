@@ -10,13 +10,13 @@
 inline void fassert(bool condition, std::string message, std::source_location loc = std::source_location::current()) {
 	if (!condition) {
 		std::print(std::cout, "Assertion failed ({}:{}) : {}", loc.file_name(), loc.line(), message);
-		exit(std::hash<std::string>()(message));
+		std::terminate();
 	}
 }
 
 inline void fassert(bool condition, std::source_location loc = std::source_location::current()) {
 	if (!condition) {
 		std::print(std::cout, "Assertion failed ({}:{})", loc.file_name(), loc.line());
-		exit(-1);
+		std::terminate();
 	}
 }
