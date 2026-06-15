@@ -17,22 +17,15 @@ void RenderingWorldFeature::_load_module(WorldSim* sim) {
 	sim->get_world()->import <Type>();
 }
 
-inline void _create_render_scene(const flecs::iter& it) {
-	static size_t frame_num = 0;
-
-	RenderScene scene { frame_num++ };
-	auto camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
-
-	scene.set_camera_transform({});
-	scene.set_camera_projection(camera_projection);
-
-	it.world().add<RenderScene>();
-	it.world().set(scene);
+inline void _begin_render_scene(const flecs::iter& it) {
+	auto* rs = RenderingServer::get();
+	rs->begin_scene_frame();
+	rs->set_camera_projection(Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f));
+	rs->set_camera_transform({});
 }
 
 inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
-	RenderScene& renderScene = e.world().get_mut<RenderScene>();
-	renderScene.add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
+	RenderingServer::get()->add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 }
 
 RenderingWorldFeature::RenderingWorldFeature(World world) {
@@ -42,8 +35,8 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.component<MeshInstance>("MeshInstance");
 	world.component<MaterialInstance>("MaterialInstance");
 	world.component<Light>("Light");
-	auto render_scene_sys =
-			world.system("Create Render Scene").write<RenderScene>().kind(flecs::PreStore).run(&_create_render_scene);
+
+	world.system("Begin Render Scene").kind(flecs::PreStore).run(&_begin_render_scene);
 
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>()
@@ -57,13 +50,11 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 			.with<ActiveScene>()
 			.up()
 			.each([](Entity e, const Light& light) {
-				RenderScene& renderScene = e.world().get_mut<RenderScene>();
-				renderScene.add_light(light);
+				RenderingServer::get()->add_light(light);
 			});
 
-	world.system("Load Render Scene").read<RenderScene>().kind(flecs::OnStore).run([](const flecs::iter& it) {
-		const RenderScene& rs = it.world().get<RenderScene>();
-		RenderingServer::get()->set_render_capture(rs);
+	world.system("Commit Render Scene").kind(flecs::OnStore).run([](const flecs::iter&) {
+		RenderingServer::get()->commit_scene_frame();
 	});
 }
 

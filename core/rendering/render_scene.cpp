@@ -5,9 +5,7 @@
 
 namespace feather {
 
-RenderScene::RenderScene(size_t frame_index) : _frame_index(frame_index) {
-}
-
+RenderScene::RenderScene() = default;
 RenderScene::RenderScene(const RenderScene&) = default;
 
 RenderScene& RenderScene::operator=(const RenderScene&) = default;
@@ -44,10 +42,6 @@ const CowVector<RenderScene::EntityRender>& RenderScene::get_entities() const no
 
 size_t RenderScene::get_entity_count() const noexcept {
 	return _entities.size();
-}
-
-uint64_t RenderScene::get_frame_index() const noexcept {
-	return _frame_index;
 }
 
 const RenderScene::EnvironmentSettings& RenderScene::get_environment() const noexcept {
@@ -89,7 +83,6 @@ size_t RenderScene::get_light_count() const noexcept {
 void RenderScene::clear() {
 	_entities.clear();
 	_lights.clear();
-	_frame_index++;
 }
 
 } //namespace feather

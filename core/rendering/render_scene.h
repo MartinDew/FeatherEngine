@@ -25,7 +25,7 @@ public:
 		bool receive_shadows = true;
 	};
 
-	RenderScene(size_t frame_index = 0);
+	RenderScene();
 
 	// With COW vectors, copies are cheap - they just increment ref count
 	RenderScene(const RenderScene&);
@@ -56,9 +56,6 @@ public:
 	// Clear for reuse (triggers copy-on-write if shared)
 	void clear();
 
-	// Frame tracking
-	uint64_t get_frame_index() const noexcept;
-
 	// Todo will probably move
 	// Environment/Scene settings
 	struct EnvironmentSettings {
@@ -82,7 +79,6 @@ private:
 	CowVector<EntityRender> _entities;
 	CowVector<Light> _lights;
 	EnvironmentSettings _environment;
-	size_t _frame_index = 0;
 };
 
 } //namespace feather
