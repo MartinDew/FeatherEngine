@@ -42,7 +42,8 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.component<MeshInstance>("MeshInstance");
 	world.component<MaterialInstance>("MaterialInstance");
 	world.component<Light>("Light");
-	auto render_scene_sys = world.system("Create Render Scene").kind(flecs::PreStore).run(&_create_render_scene);
+	auto render_scene_sys =
+			world.system("Create Render Scene").write<RenderScene>().kind(flecs::PreStore).run(&_create_render_scene);
 
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>()
