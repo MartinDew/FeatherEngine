@@ -64,7 +64,6 @@ bool Engine::run() {
 		_world_sim.update(frame_time);
 
 		// Tell the renderer to render here
-		// _rendering_server.set_render_capture(sim.generate_render_capture());
 		_rendering_server.update(frame_time);
 	}
 
