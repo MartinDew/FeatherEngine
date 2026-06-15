@@ -104,6 +104,7 @@ add_executable(Editor
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
 set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Editor PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
@@ -124,6 +125,7 @@ target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
 set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Standalone PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
         $<$<CONFIG:Debug>:BETA>
@@ -182,8 +184,8 @@ if (MSVC)
     )
 
     # NOMINMAX and LEAN_AND_MEAN to reduce Windows headers bloat
-    target_compile_definitions(Editor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
-    target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(Editor PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(Standalone PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
 
     # embed raw_resources folder
     #    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")

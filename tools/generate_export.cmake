@@ -7,9 +7,13 @@ get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(_isMultiConfig)
     set(_editor_location "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/${PROJECT_NAME}.editor$<TARGET_FILE_SUFFIX:Editor>")
     set(_standalone_location "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/${PROJECT_NAME}.standalone$<TARGET_FILE_SUFFIX:Standalone>")
+    set(_editor_implib "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/$<CONFIG>/${PROJECT_NAME}.editor.lib")
+    set(_standalone_implib "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/$<CONFIG>/${PROJECT_NAME}.standalone.lib")
 else()
     set(_editor_location "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}.editor$<TARGET_FILE_SUFFIX:Editor>")
     set(_standalone_location "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}.standalone$<TARGET_FILE_SUFFIX:Standalone>")
+    set(_editor_implib "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${PROJECT_NAME}.editor.lib")
+    set(_standalone_implib "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${PROJECT_NAME}.standalone.lib")
 endif()
 
 # Generate FeatherTargets.cmake with imported executable targets
@@ -30,7 +34,7 @@ endif()
 add_executable(Feather::Editor IMPORTED)
 set_property(TARGET Feather::Editor PROPERTY ENABLE_EXPORTS 1)
 set_target_properties(Feather::Editor PROPERTIES
-    INTERFACE_COMPILE_DEFINITIONS \"EDITOR_BUILD=1$<SEMICOLON>$<$<CONFIG:Debug>:BETA>$<SEMICOLON>$<$<CONFIG:Development>:BETA>\"
+    INTERFACE_COMPILE_DEFINITIONS \"EDITOR_BUILD=1\"
     IMPORTED_LOCATION \"${_editor_location}\"
 )
 set_property(TARGET Feather::Editor PROPERTY
@@ -41,7 +45,7 @@ set_property(TARGET Feather::Editor PROPERTY
 add_executable(Feather::Standalone IMPORTED)
 set_property(TARGET Feather::Standalone PROPERTY ENABLE_EXPORTS 1)
 set_target_properties(Feather::Standalone PROPERTIES
-    INTERFACE_COMPILE_DEFINITIONS \"EDITOR_BUILD=0$<SEMICOLON>$<$<CONFIG:Debug>:BETA>$<SEMICOLON>$<$<CONFIG:Development>:BETA>\"
+    INTERFACE_COMPILE_DEFINITIONS \"EDITOR_BUILD=0\"
     IMPORTED_LOCATION \"${_standalone_location}\"
 )
 set_property(TARGET Feather::Standalone PROPERTY
@@ -57,6 +61,20 @@ set_property(TARGET Feather::Standalone APPEND PROPERTY IMPORTED_CONFIGURATIONS 
 set_target_properties(Feather::Standalone PROPERTIES
     IMPORTED_LOCATION_$<UPPER_CASE:$<CONFIG>> \"${_standalone_location}\"
 )
+
+# On Windows, executables with ENABLE_EXPORTS generate an import library (.lib).
+# IMPORTED_IMPLIB must be set or CMake policy CMP0111 raises an error when
+# a downstream DLL tries to link against these targets.
+if(WIN32)
+    set_target_properties(Feather::Editor PROPERTIES
+        IMPORTED_IMPLIB \"${_editor_implib}\"
+        IMPORTED_IMPLIB_$<UPPER_CASE:$<CONFIG>> \"${_editor_implib}\"
+    )
+    set_target_properties(Feather::Standalone PROPERTIES
+        IMPORTED_IMPLIB \"${_standalone_implib}\"
+        IMPORTED_IMPLIB_$<UPPER_CASE:$<CONFIG>> \"${_standalone_implib}\"
+    )
+endif()
 ")
 
 # Create FeatherTargets.cmake that includes the config-specific file
@@ -104,6 +122,46 @@ endforeach()
 # Provide version info
 set(Feather_VERSION \"${PROJECT_VERSION}\")
 set(Feather_FOUND TRUE)
+
+# Propagate config-conditional defines using generator expressions evaluated in
+# the consuming project's config context (not the engine's build config).
+foreach(_feather_t IN ITEMS Feather::Editor Feather::Standalone)
+    if(TARGET \${_feather_t})
+        set_property(TARGET \${_feather_t} APPEND PROPERTY
+            INTERFACE_COMPILE_DEFINITIONS
+                \"$<$<CONFIG:Debug>:BETA>\"
+                \"$<$<CONFIG:Development>:BETA>\"
+        )
+    endif()
+endforeach()
+
+# On Windows, IMPORTED_IMPLIB must be set on executable targets with ENABLE_EXPORTS
+# so downstream DLLs can link (CMake policy CMP0111).
+# For multi-config engine builds, FeatherTargets-<Config>.cmake sets IMPORTED_IMPLIB
+# via file(GENERATE).  This block provides a fallback for single-config builds where
+# the .lib sits directly in the archive output dir with no config sub-directory.
+if(WIN32)
+    foreach(_feather_t IN ITEMS Feather::Editor Feather::Standalone)
+        if(TARGET \${_feather_t})
+            set_property(TARGET \${_feather_t} APPEND PROPERTY
+                INTERFACE_COMPILE_DEFINITIONS NOMINMAX WIN32_LEAN_AND_MEAN)
+        endif()
+    endforeach()
+    foreach(_feather_t IN ITEMS Feather::Editor Feather::Standalone)
+        if(TARGET \${_feather_t})
+            get_target_property(_feather_ii \${_feather_t} IMPORTED_IMPLIB)
+            if(NOT _feather_ii)
+                if(\${_feather_t} STREQUAL \"Feather::Editor\")
+                    set_target_properties(\${_feather_t} PROPERTIES
+                        IMPORTED_IMPLIB \"${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${PROJECT_NAME}.editor.lib\")
+                else()
+                    set_target_properties(\${_feather_t} PROPERTIES
+                        IMPORTED_IMPLIB \"${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}/${PROJECT_NAME}.standalone.lib\")
+                endif()
+            endif()
+        endif()
+    endforeach()
+endif()
 ")
 
 # Generate version file for find_package version checking
@@ -114,14 +172,9 @@ write_basic_package_version_file(
         COMPATIBILITY SameMajorVersion
 )
 
-# Register the package in CMake's user package registry
-# This allows find_package(Feather) to work without specifying paths
-# Registry location: ~/.cmake/packages/Feather (Linux/macOS) or Windows registry
-file(WRITE "${CMAKE_BINARY_DIR}/FeatherPackageRegistry.cmake"
-        "${CMAKE_BINARY_DIR}"
-)
-# Create the registry entry
-set(_registry_dir "$ENV{HOME}/.cmake/packages/Feather")
-file(MAKE_DIRECTORY "${_registry_dir}")
-string(MD5 _hash "${CMAKE_BINARY_DIR}")
-file(WRITE "${_registry_dir}/${_hash}" "${CMAKE_BINARY_DIR}")
+# Register the package in CMake's user package registry.
+# CMAKE_EXPORT_PACKAGE_REGISTRY must be ON — it defaults to OFF since CMake 3.15.
+# On Linux/macOS: writes ~/.cmake/packages/Feather/<hash>
+# On Windows:     writes HKCU\SOFTWARE\Kitware\CMake\Packages\Feather
+set(CMAKE_EXPORT_PACKAGE_REGISTRY ON)
+export(PACKAGE Feather)
