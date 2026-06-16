@@ -82,9 +82,8 @@ void ClassDB::_fire_subclass_delegates(std::string_view class_name) {
 }
 
 bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
-	StaticString _current_name = ""_ss;
 	ClassInfo* ci = _get_class_info_internal(object_name);
-	while (ci->parent != ""_ss) {
+	while (ci && ci->parent != ""_ss) {
 		if (ci->parent == parent_name) {
 			return true;
 		}
@@ -110,6 +109,7 @@ void ClassDB::print_db() {
 
 Callable ClassDB::get_static_method(const StaticString& class_name, std::string_view func_name) {
 	auto ci = _get_class_info_internal(class_name);
+	if (!ci) return {};
 	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
 		return m.name == func_name;
 	});

@@ -35,7 +35,7 @@ class RenderingServer {
 	void _run();
 	void _render_function();
 
-	bool _needs_resize = false;
+	std::atomic<bool> _needs_resize{false};
 
 public:
 	RenderingServer();

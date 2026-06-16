@@ -213,8 +213,9 @@ public:
 		else if constexpr (!std::is_pointer_v<T> && is_reflected_class_type<std::remove_reference_t<T>>) {
 			return *static_cast<T*>(std::get<Reflected*>(_data));
 		}
-
-		return std::get<T>(_data);
+		else
+			return std::get<T>(_data);
+		std::unreachable();
 	}
 
 	// Equality operators

@@ -61,8 +61,8 @@ std::string Variant::to_string() const {
 	}
 	case VariantType::COLOR: {
 		auto& c = std::get<Color>(_data);
-		return "rgba(" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + ", " +
-				std::to_string(c.a) + ")";
+		return "rgba(" + std::to_string(c.r()) + ", " + std::to_string(c.g()) + ", " + std::to_string(c.b()) + ", " +
+				std::to_string(c.a()) + ")";
 	}
 	case VariantType::VERTEX:
 		return "[Vertex]"; // expand if Vertex gains a meaningful string form

@@ -22,20 +22,23 @@ void RenderingServer::_run() {
 
 void RenderingServer::_render_function() {
 	while (true) {
+		bool stop_requested;
 		{
 			std::unique_lock lock(_wait_mutex);
 			_wait_cv.wait(lock, [this] {
 				return _dirty.load(std::memory_order_acquire) || _render_thread.get_stop_token().stop_requested();
 			});
+			_dirty.store(false, std::memory_order_release);
+			stop_requested = _render_thread.get_stop_token().stop_requested();
 		}
 
-		if (_render_thread.get_stop_token().stop_requested()) {
+		if (stop_requested) {
 			break;
 		}
 
-		if (_needs_resize) {
+		if (_needs_resize.load(std::memory_order_relaxed)) {
 			_renderer->_on_resize();
-			_needs_resize = false;
+			_needs_resize.store(false, std::memory_order_relaxed);
 		}
 
 		RenderScene scene;
@@ -43,7 +46,6 @@ void RenderingServer::_render_function() {
 			std::lock_guard lock(_write_lock);
 			int read_idx = 1 - _write_idx.load(std::memory_order_relaxed);
 			scene = _buffers[read_idx]; // O(1) COW copy
-			_dirty.store(false, std::memory_order_relaxed);
 		}
 
 		_renderer->_render_scene(scene);
