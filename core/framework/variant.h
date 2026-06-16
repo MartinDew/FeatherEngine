@@ -77,7 +77,7 @@ consteval VariantType get_variant_type() {
 	VARIANT_TYPE_OPTION(Path, PATH)
 	// object
 	else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>> ||
-			std::is_base_of_v<Reflected, T>) {
+					   std::is_base_of_v<Reflected, T>) {
 		return VariantType::OBJECT;
 	}
 	// Void case
@@ -97,8 +97,20 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 class ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate, bool, int, real_t, Vector2, Vector3, Vertex, Color,
-			std::string, Path, VariantArray, RID, Reflected*>;
+	using InternalVariant = std::variant<
+			std::monostate,
+			bool,
+			int,
+			real_t,
+			Vector2,
+			Vector3,
+			Vertex,
+			Color,
+			std::string,
+			Path,
+			VariantArray,
+			RID,
+			Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;
@@ -186,30 +198,23 @@ public:
 		if (get_variant_type<T>() != _type)
 			return std::unexpected("Variant type does not match requested type");
 
-		try {
-			if constexpr (std::is_same_v<T, bool>) {
-				return std::get<bool>(_data);
-			}
-			else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-				return static_cast<T>(std::get<int>(_data));
-			}
-			else if constexpr (std::is_floating_point_v<T>) {
-				return static_cast<T>(std::get<real_t>(_data));
-			}
-			else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
-				return static_cast<T>(std::get<Reflected*>(_data));
-			}
-			else if constexpr (!std::is_pointer_v<T> && is_reflected_class_type<std::remove_reference_t<T>>) {
-				return *static_cast<T*>(std::get<Reflected*>(_data));
-			}
-			else {
-				// default case
-				std::get<T>(_data);
-			}
-		} catch (const std::bad_variant_access&) {
-			return std::unexpected("Bad variant access in Variant get");
+		if constexpr (std::is_same_v<T, bool>) {
+			return std::get<bool>(_data);
 		}
-		std::unreachable();
+		else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+			return static_cast<T>(std::get<int>(_data));
+		}
+		else if constexpr (std::is_floating_point_v<T>) {
+			return static_cast<T>(std::get<real_t>(_data));
+		}
+		else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
+			return static_cast<T>(std::get<Reflected*>(_data));
+		}
+		else if constexpr (!std::is_pointer_v<T> && is_reflected_class_type<std::remove_reference_t<T>>) {
+			return *static_cast<T*>(std::get<Reflected*>(_data));
+		}
+
+		return std::get<T>(_data);
 	}
 
 	// Equality operators
