@@ -7,8 +7,7 @@ void TextureFormatLoader::_bind_members() {
 }
 
 bool TextureFormatLoader::recognize_extension(const std::string& extension) const {
-	return extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".tga" ||
-			extension == ".bmp";
+	return extension == "png" || extension == "jpg" || extension == "jpeg" || extension == "tga" || extension == "bmp";
 }
 
 std::shared_ptr<Resource> TextureFormatLoader::instantiate(const Path& path) {
