@@ -66,7 +66,7 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 }
 
 void VexRenderer::_bind_members() {
-	ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z", VariantType::BOOL);
+	ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z");
 }
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";

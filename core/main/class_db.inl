@@ -90,15 +90,12 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 // Property binding
 
 template <class T, class U>
-inline constexpr void ClassDB::bind_property(U T::* member, std::string_view name, VariantType variant_type) {
+inline void ClassDB::bind_property(U T::* member, std::string_view name) {
 	if (!get()->_current_info) {
 		return;
 	}
 
-	ClassInfo::Property prop {
-		.name = StaticString(name),
-		.type = variant_type,
-	};
+	ClassInfo::Property prop { .name = StaticString(name), .type = get_variant_type<U>() };
 
 	// Getter : takes void*(will be cast to T*), returns Variant
 	prop.getter = [member](void* obj_ptr) -> Variant {
@@ -107,9 +104,10 @@ inline constexpr void ClassDB::bind_property(U T::* member, std::string_view nam
 	};
 
 	// Setter: takes void* and Variant, sets the member
-	prop.setter = [member](void* obj_ptr, Variant val) {
-		T* typed_ptr = static_cast<T*>(obj_ptr);
-		typed_ptr->*member = val.as<U>().value();
+	prop.setter = [member, name](void* obj_ptr, Variant val) {
+		auto result = val.as<U>();
+		fassert(result.has_value(), std::format("Property '{}': setter called with incompatible Variant type", name));
+		static_cast<T*>(obj_ptr)->*member = std::move(result.value());
 	};
 
 	get()->_current_info->properties.push_back(std::move(prop));
@@ -117,13 +115,13 @@ inline constexpr void ClassDB::bind_property(U T::* member, std::string_view nam
 
 // Method binding
 template <class T, class TRet, class... TArgs>
-inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::string_view name) {
+inline void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::string_view name) {
 	if (!get()->_current_info) {
 		return;
 	}
 
 	// Create a function that takes T* as first parameter, then the method args
-	std::function<TRet(T*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
+	std::function<TRet(Reflected*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
 		return (object_cast<T>(instance)->*method)(args...);
 	};
 
@@ -133,13 +131,13 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...), std::str
 }
 
 template <class T, class TRet, class... TArgs>
-inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, std::string_view name) {
+inline void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, std::string_view name) {
 	if (!get()->_current_info) {
 		return;
 	}
 
 	// Create a function that takes T* as first parameter, then the method args
-	std::function<TRet(T*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
+	std::function<TRet(Reflected*, TArgs...)> func = [method](Reflected* instance, TArgs... args) -> TRet {
 		return (object_cast<T>(instance)->*method)(args...);
 	};
 
@@ -149,7 +147,7 @@ inline constexpr void ClassDB::bind_method(TRet (T::*method)(TArgs...) const, st
 }
 
 template <class TRet, class... TArgs>
-inline constexpr void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_view name) {
+inline void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_view name) {
 	if (!get()->_current_info) {
 		return;
 	}

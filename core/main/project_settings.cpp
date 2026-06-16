@@ -94,7 +94,7 @@ Path ProjectSettings::localize_path(const Path& path) {
 }
 
 void ProjectSettings::_bind_members() {
-	ClassDB::bind_property(&ProjectSettings::_project_path, "project_path", VariantType::STRING);
+	ClassDB::bind_property(&ProjectSettings::_project_path, "project_path");
 }
 
 void ProjectSettings::set_project_path(Path path) {

@@ -56,16 +56,16 @@ public:
 
 	// Create a property with default accessors
 	template <class T, class U>
-	static constexpr void bind_property(U T::* member, std::string_view name, VariantType variant_type);
+	static void bind_property(U T::* member, std::string_view name);
 
 	template <class T, class TRet, class... TArgs>
-	static constexpr void bind_method(TRet (T::*method)(TArgs...), std::string_view name);
+	static void bind_method(TRet (T::*method)(TArgs...), std::string_view name);
 
 	template <class T, class TRet, class... TArgs>
-	static constexpr void bind_method(TRet (T::*method)(TArgs...) const, std::string_view name);
+	static void bind_method(TRet (T::*method)(TArgs...) const, std::string_view name);
 
 	template <class TRet, class... TArgs>
-	static constexpr void bind_static_method(TRet (*method)(TArgs...), std::string_view name);
+	static void bind_static_method(TRet (*method)(TArgs...), std::string_view name);
 
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);
