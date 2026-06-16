@@ -236,6 +236,23 @@ public:
 	Variant call(std::string_view method_name);
 	template <class... TArgs>
 	Variant call(std::string_view method_name, TArgs&&... args) const;
+
+	// implicit conversion
+	// In variant.h, inside the Variant class:
+
+	// Implicit conversion operators
+	explicit operator bool() const { return as<bool>().value(); }
+	operator int() const { return as<int>().value(); }
+	operator real_t() const { return as<real_t>().value(); }
+	operator Vector2() const { return as<Vector2>().value(); }
+	operator Vector3() const { return as<Vector3>().value(); }
+	operator Color() const { return as<Color>().value(); }
+	operator Vertex() const { return as<Vertex>().value(); }
+	operator std::string() const { return as<std::string>().value(); }
+	operator Path() const { return as<Path>().value(); }
+	operator RID() const { return as<RID>().value(); }
+	operator VariantArray() const { return as<VariantArray>().value(); }
+	operator Reflected*() const { return as<Reflected*>().value(); }
 };
 
 template <class... TArgs>
