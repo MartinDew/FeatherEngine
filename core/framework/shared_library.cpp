@@ -1,13 +1,7 @@
 #include "shared_library.h"
-
 #include "callable.h"
-#include <SDL3/SDL_loadso.h>
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
+#include <SDL3/SDL_loadso.h>
 
 namespace feather {
 
