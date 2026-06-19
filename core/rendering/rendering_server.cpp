@@ -7,6 +7,7 @@
 #include <framework/variant.h>
 #include <main/class_db.h>
 #include <main/launch_settings.h>
+#include <world/components/light.h>
 #include <framework/static_string.hpp>
 
 #include <string_view>
@@ -21,50 +22,56 @@ void RenderingServer::_run() {
 
 void RenderingServer::_render_function() {
 	while (true) {
-		if (_render_thread.get_stop_token().stop_requested()) {
+		bool stop_requested;
+		{
+			std::unique_lock lock(_wait_mutex);
+			_wait_cv.wait(lock, [this] {
+				return _dirty.load(std::memory_order_acquire) || _render_thread.get_stop_token().stop_requested();
+			});
+			_dirty.store(false, std::memory_order_release);
+			stop_requested = _render_thread.get_stop_token().stop_requested();
+		}
+
+		if (stop_requested) {
 			break;
 		}
 
-		{
-			std::unique_lock lock(_render_lock);
-			_render_cv.wait(lock, [this] {
-				int read_idx = 1 - _write_index.load(std::memory_order_acquire);
-				uint64_t current_frame = _capture_buffers[read_idx].get_frame_index();
-				return current_frame != _last_rendered_frame.load(std::memory_order_relaxed);
-			});
-		}
-
-		if (_needs_resize) {
+		if (_needs_resize.load(std::memory_order_relaxed)) {
 			_renderer->_on_resize();
-			_needs_resize = false;
+			_needs_resize.store(false, std::memory_order_relaxed);
 		}
 
-		// Lockless read of RenderCapture
-		int read_idx = 1 - _write_index.load(std::memory_order_acquire);
-		_render_scene_lock.lock();
-		const RenderScene render_scene = _capture_buffers[read_idx];
-		_render_scene_lock.unlock();
+		RenderScene scene;
+		{
+			std::lock_guard lock(_write_lock);
+			int read_idx = 1 - _write_idx.load(std::memory_order_relaxed);
+			scene = _buffers[read_idx]; // O(1) COW copy
+		}
 
-		_renderer->_render_scene(render_scene);
-		_last_rendered_frame.store(render_scene.get_frame_index(), std::memory_order_relaxed);
+		_renderer->_render_scene(scene);
 	}
 }
 
 RenderingServer::RenderingServer() {
 	fassert(!_instance);
-
 	_instance = this;
+}
+
+RenderingServer::~RenderingServer() {
+	_render_thread.request_stop();
+	_wait_cv.notify_all();
 }
 
 void RenderingServer::init() {
 	_renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get());
 
-	Engine::get().get_main_window().register_notification(
-			Notification::WINDOW_RESIZED, [this] { _needs_resize = true; });
+	Engine::get().get_main_window().register_notification(Notification::WINDOW_RESIZED, [&flag = _needs_resize] {
+		flag.store(true, std::memory_order_relaxed);
+	});
 
 	if (!LaunchSettings::get().force_single_thread.Get())
 		_run();
-};
+}
 
 void RenderingServer::update(double dt) const {
 	fassert(_renderer.get(), "no renderer set");
@@ -76,17 +83,51 @@ void RenderingServer::stop() {
 		_render_thread.join();
 }
 
-void RenderingServer::set_render_capture(const RenderScene& capture) {
-	std::unique_lock<spinlock> lock { _render_scene_lock };
-	// Lockless write: copy to write buffer, then swap
-	int write_idx = _write_index.load(std::memory_order_relaxed);
-	_capture_buffers[write_idx] = std::move(capture); // CowVector makes this cheap
-	_write_index.store(1 - write_idx, std::memory_order_release);
+void RenderingServer::begin_scene_frame() {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].clear();
+}
 
-	_render_cv.notify_all();
+void RenderingServer::set_camera_transform(const Transform& transform) {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].set_camera_transform(transform);
+}
+
+void RenderingServer::set_camera_projection(const Projection& projection) {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].set_camera_projection(projection);
+}
+
+void RenderingServer::set_environment(const RenderScene::EnvironmentSettings& env) {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].set_environment(env);
+}
+
+void RenderingServer::add_entity(const RenderScene::EntityRender& entity) {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].add_entity(entity);
+}
+
+void RenderingServer::add_light(const Light& light) {
+	std::lock_guard lock(_write_lock);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].add_light(light);
+}
+
+void RenderingServer::commit_scene_frame() {
+	{
+		std::lock_guard lock(_write_lock);
+		int old_write = _write_idx.load(std::memory_order_relaxed);
+		_write_idx.store(1 - old_write, std::memory_order_release);
+		_dirty.store(true, std::memory_order_release);
+	}
 
 	if (LaunchSettings::get().force_single_thread.Get()) {
-		_renderer->_render_scene(capture);
+		int read_idx = 1 - _write_idx.load(std::memory_order_acquire);
+		_renderer->_render_scene(_buffers[read_idx]);
+		_dirty.store(false, std::memory_order_relaxed);
+	}
+	else {
+		_wait_cv.notify_one();
 	}
 }
 

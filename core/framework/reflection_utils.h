@@ -4,6 +4,7 @@
 #include <type_traits>
 
 namespace feather {
+
 template <class T>
 concept is_reflected_class_type = requires { T::get_class_static(); };
 

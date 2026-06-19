@@ -1,0 +1,50 @@
+#include "shared_library.h"
+#include "callable.h"
+
+#include <SDL3/SDL_loadso.h>
+
+namespace feather {
+
+SharedLibrary::SharedLibrary() : _handle(nullptr) {
+}
+
+SharedLibrary::~SharedLibrary() {
+	unload();
+}
+
+bool SharedLibrary::load(const std::string& path) {
+	unload();
+
+	_handle = SDL_LoadObject(path.c_str());
+
+	return _handle != nullptr;
+}
+
+void SharedLibrary::unload() {
+	if (!_handle) {
+		return;
+	}
+
+	SDL_UnloadObject(_handle);
+	_handle = nullptr;
+}
+
+Callable SharedLibrary::get_symbol(const std::string& name) const {
+	if (!_handle) {
+		return {};
+	}
+
+	auto sym = SDL_LoadFunction(_handle, name.c_str());
+	if (!sym) {
+		return {};
+	}
+
+	void (*sym_cpp)() = reinterpret_cast<void (*)()>(sym);
+	return Callable(sym_cpp);
+}
+
+bool SharedLibrary::is_loaded() const {
+	return _handle != nullptr;
+}
+
+} // namespace feather

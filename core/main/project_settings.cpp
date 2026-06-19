@@ -1,6 +1,8 @@
-﻿#include "project_settings.h"
+#include "project_settings.h"
 
 #include "launch_settings.h"
+#include <filesystem>
+#include <iostream>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <shlobj_core.h>
@@ -12,21 +14,43 @@
 
 namespace feather {
 
-std::unique_ptr<ProjectSettings> ProjectSettings::_instance = nullptr;
+FSINGLETON_INSTANCE(ProjectSettings);
 
 ProjectSettings::ProjectSettings() : _project_path(FileSystem::current_path()) {
-	_project_path = LaunchSettings::get().project_path.Get();
+	FSINGLETON_CONSTRUCT_INSTANCE()
 }
 
-ProjectSettings* ProjectSettings::get() {
-	if (!_instance)
-		_instance = std::make_unique<ProjectSettings>();
+bool ProjectSettings::init() {
+	_project_path = LaunchSettings::get().project_path.Get();
 
-	return _instance.get();
+	// Ensure the project path exists
+	if (!std::filesystem::exists(_project_path)) {
+		std::cerr << "Project path does not exist: " << _project_path.string() << std::endl;
+		return false;
+	}
+
+	// Search for .fproj file
+	for (const auto& entry : std::filesystem::directory_iterator(_project_path)) {
+		if (entry.is_regular_file() && entry.path().extension() == ".fproj") {
+			_project_name = entry.path().stem().string();
+			break;
+		}
+	}
+
+	if (_project_name.empty()) {
+		std::cerr << "No .fproj file found in project directory: " << _project_path.string() << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
 Path ProjectSettings::get_project_path() {
 	return _project_path;
+}
+
+std::string ProjectSettings::get_project_name() const {
+	return _project_name;
 }
 
 static void replace_all(std::string& path, const std::string& token, const std::string& replacement) {
@@ -70,15 +94,11 @@ Path ProjectSettings::localize_path(const Path& path) {
 }
 
 void ProjectSettings::_bind_members() {
-	ClassDB::bind_property(&ProjectSettings::_project_path, "project_path", VariantType::STRING);
+	ClassDB::bind_property(&ProjectSettings::_project_path, "project_path");
 }
 
 void ProjectSettings::set_project_path(Path path) {
 	_project_path = path;
 }
-
-INPLACE_REGISTER_BEGIN(ProjectSettings)
-ClassDB::register_singleton_class<ProjectSettings>();
-INPLACE_REGISTER_END(ProjectSettings);
 
 } //namespace feather

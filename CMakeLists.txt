@@ -17,6 +17,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Required for tools
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
 if (${APPLE})
     add_compile_options("-fexperimental-library")
 endif()
@@ -30,14 +33,78 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
-file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS "core/*.h" "core/*.hpp")
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "core/*.cpp")
+set(FEATHER_CORE_SOURCES
+        "core/framework/callable.cpp"
+        "core/framework/reflected.cpp"
+        "core/framework/shared_library.cpp"
+        "core/framework/variant.cpp"
+        "core/framework/variant_array.cpp"
+
+        "core/main/class_db.cpp"
+        "core/main/engine.cpp"
+        "core/main/engine_settings.cpp"
+        "core/main/feather_main.cpp"
+        "core/main/launch_settings.cpp"
+        "core/main/project_settings.cpp"
+        "core/main/window.cpp"
+        "core/main/simulation.cpp"
+        "core/main/world_sim.cpp"
+
+        "core/math/math_defs.cpp"
+        "core/math/projection.cpp"
+        "core/math/transform.cpp"
+
+        "core/rendering/mesh_data.cpp"
+        "core/rendering/renderer.cpp"
+        "core/rendering/rendering_server.cpp"
+        "core/rendering/render_scene.cpp"
+
+        "core/resources/material.cpp"
+        "core/resources/material_format_loader.cpp"
+        "core/resources/mesh.cpp"
+        "core/resources/mesh_format_loader.cpp"
+        "core/resources/resource.cpp"
+        "core/resources/resource_format_loader.cpp"
+        "core/resources/resource_loader.cpp"
+        "core/resources/rid.cpp"
+        "core/resources/shader.cpp"
+        "core/resources/texture.cpp"
+        "core/resources/texture_format_loader.cpp"
+        "core/resources/extension.cpp"
+        "core/resources/extension_format_loader.cpp"
+
+        "core/world/ecs_feature.cpp"
+        "core/world/rendering_world_feature.cpp"
+        "core/world/math_feature.cpp"
+        "core/world/register_core_features.cpp"
+        "core/world/core_world_feature.cpp"
+        "core/world/core_world_feature.h"
+        "core/world/components/scene.cpp"
+)
+
+set(GENERATED_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/register_framework_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/framework/register_framework_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/register_main_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/main/register_main_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/register_math_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/math/register_math_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/register_rendering_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/rendering/register_rendering_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/resources/register_resources_types.gen.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/register_world_types.gen.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/core/world/register_world_types.gen.h"
+)
 
 # Editor target
-add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(Editor
+        ${FEATHER_CORE_SOURCES}
+        ${GENERATED_FILES})
 
 set_target_properties(Editor PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.editor)
-# set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Editor PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Editor PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Debug>:BETA>
         $<$<CONFIG:Development>:BETA>
@@ -53,11 +120,12 @@ target_compile_options(Editor PRIVATE
 )
 
 # Standalone target
-add_executable(Standalone ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+add_executable(Standalone ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
 target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
-# set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(Standalone PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 target_compile_definitions(Standalone PRIVATE EDITOR_BUILD=0
         $<$<CONFIG:Debug>:BETA>
@@ -72,7 +140,6 @@ target_compile_options(Standalone PRIVATE
 )
 
 # Generate embedded resource headers using #embed
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_custom_target(GenerateEmbeddedResources
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
@@ -84,6 +151,18 @@ add_custom_target(GenerateEmbeddedResources
 # Make both targets depend on resource generation
 add_dependencies(Editor GenerateEmbeddedResources)
 add_dependencies(Standalone GenerateEmbeddedResources)
+
+# Bind generation of type registration functions to a custom target
+add_custom_target(GenerateRegisterTypes
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating type registration functions"
+        BYPRODUCTS ${GENERATED_FILES}
+        VERBATIM
+)
+
+add_dependencies(Editor GenerateRegisterTypes)
+add_dependencies(Standalone GenerateRegisterTypes)
 
 add_subdirectory(thirdparty)
 
@@ -105,8 +184,8 @@ if (MSVC)
     )
 
     # NOMINMAX and LEAN_AND_MEAN to reduce Windows headers bloat
-    target_compile_definitions(Editor PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
-    target_compile_definitions(Standalone PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(Editor PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(Standalone PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
 
     # embed raw_resources folder
     #    target_compile_options(Editor PUBLIC "\/clang:--embed-dir=${CMAKE_SOURCE_DIR}/raw_resources")
@@ -166,3 +245,5 @@ add_dependencies(Standalone copy_shaders)
 # Print build configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
+
+include(tools/generate_export.cmake)

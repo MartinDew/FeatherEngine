@@ -3,8 +3,11 @@
 #include <framework/callable.h>
 #include <framework/class_info.h>
 #include <framework/reflection_utils.h>
+#include <framework/singleton_helpers.h>
 #include <framework/variant.h>
 #include <framework/static_string.hpp>
+
+#include <framework/delegate.h>
 
 #include <cstddef>
 #include <functional>
@@ -16,12 +19,17 @@ namespace feather {
 
 class ClassDB {
 	friend Variant;
-	static std::unique_ptr<ClassDB> _instance;
+	friend struct Main;
+	FDECLARE_SINGLETON(ClassDB);
+
 	ClassDB();
 
 	std::map<StaticString, ClassInfo> _class_infos;
+	std::map<StaticString, Delegate<const std::string_view>> _subclass_delegates;
 
 	ClassInfo* _current_info = nullptr;
+
+	static void _fire_subclass_delegates(std::string_view class_name);
 
 	template <typename T, typename U>
 	static constexpr size_t offset_of(U T::* member) {
@@ -33,9 +41,9 @@ class ClassDB {
 	static ClassInfo* _get_class_info_internal(std::string_view name);
 
 public:
-	static ClassDB& get();
-
 	void print_db();
+
+	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
 
 	template <is_reflected_class_type T>
 	static void register_class();
@@ -48,13 +56,16 @@ public:
 
 	// Create a property with default accessors
 	template <class T, class U>
-	static constexpr void bind_property(U T::* member, std::string_view name, VariantType variant_type);
+	static void bind_property(U T::* member, std::string_view name);
 
 	template <class T, class TRet, class... TArgs>
-	static constexpr void bind_method(TRet (T::*method)(TArgs...), std::string_view name);
+	static void bind_method(TRet (T::*method)(TArgs...), std::string_view name);
 
 	template <class T, class TRet, class... TArgs>
-	static constexpr void bind_method(TRet (T::*method)(TArgs...) const, std::string_view name);
+	static void bind_method(TRet (T::*method)(TArgs...) const, std::string_view name);
+
+	template <class TRet, class... TArgs>
+	static void bind_static_method(TRet (*method)(TArgs...), std::string_view name);
 
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);
@@ -67,9 +78,16 @@ public:
 		return ptr;
 	}
 
+	static Delegate<std::string_view>::id_t on_subclass_registered(
+			std::string_view base_class_name,
+			const Delegate<std::string_view>::DelegateFuncType& callback
+	);
+
 	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
+
+	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
 
 } //namespace feather
