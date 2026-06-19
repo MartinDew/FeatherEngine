@@ -25,7 +25,7 @@ public:
 
 	virtual bool is_loaded() { return false; };
 
-	Path get_path() { return _cached_path; };
+	Path get_path() const { return _cached_path; };
 	void set_path(Path path) { _cached_path = path; };
 };
 

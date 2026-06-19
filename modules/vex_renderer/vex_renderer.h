@@ -47,6 +47,7 @@ class VexRenderer : public Renderer {
 	};
 	std::unordered_map<std::shared_ptr<const MeshData>, MeshBuffers> _mesh_cache;
 	std::unordered_map<const Texture*, TextureGPUData> _texture_cache;
+	std::unordered_map<const Shader*, vex::DrawDesc> _shader_draw_desc_cache;
 
 	// Default textures
 	vex::Texture _default_white_texture;
@@ -72,6 +73,8 @@ class VexRenderer : public Renderer {
 	void _compile_engine_shaders();
 	void _build_draw_descs();
 	void _compile_shader(Shader& shader) override;
+	std::string _get_shader_virtual_path(const Shader& shader) const;
+	vex::DrawDesc& _get_or_build_shader_draw_desc(Shader& shader);
 
 	// Helper methods
 	void _render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx);
