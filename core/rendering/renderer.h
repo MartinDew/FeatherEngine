@@ -11,6 +11,7 @@ class SDL_Window;
 
 namespace feather {
 
+class Shader;
 class Window;
 
 class Renderer : public Reflected {
@@ -21,6 +22,7 @@ protected:
 	Renderer();
 
 	virtual void _on_resize() = 0;
+	virtual void _compile_shader(Shader& shader) {}
 
 	static SDL_Window* _extract_internal_window(Window& window);
 

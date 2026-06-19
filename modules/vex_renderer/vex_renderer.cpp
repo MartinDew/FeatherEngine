@@ -8,6 +8,7 @@
 #include <core/math/math_defs.h>
 #include <core/rendering/render_data.h>
 #include <core/resources/material.h>
+#include <core/resources/shader.h>
 #include <core/resources/texture.h>
 #include <core/world/components/light.h>
 
@@ -402,6 +403,36 @@ void VexRenderer::_build_draw_descs() {
 		.vertexInputLayout = pbrVertexLayout,
 		.depthStencilState = depthStencilState,
 	};
+}
+
+void VexRenderer::_compile_shader(Shader& shader) {
+	if (!shader.is_valid()) return;
+
+	std::string filepath;
+	if (shader.is_path_based()) {
+		filepath = std::string(shader.get_source());
+	} else {
+		auto resource_path = shader.get_path();
+		filepath = resource_path.empty()
+			? std::string("user://shaders/") + std::to_string(reinterpret_cast<uintptr_t>(&shader))
+			: std::string("user://shaders/") + resource_path.string();
+	}
+
+	auto compile = [&](std::string_view entry, ShaderType type) {
+		ShaderKey key {
+			.filepath    = filepath,
+			.entryPoint  = std::string(entry),
+			.type        = type,
+			.compiler    = ShaderCompilerBackend::Slang,
+		};
+		if (shader.is_source_based())
+			_shader_compiler.CompileShaderFromSourceCode(key, shader.get_source());
+		else
+			_shader_compiler.CompileShaderFromFilepath(key);
+	};
+
+	compile(shader.get_vertex_entry(), ShaderType::VertexShader);
+	compile(shader.get_pixel_entry(), ShaderType::PixelShader);
 }
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {

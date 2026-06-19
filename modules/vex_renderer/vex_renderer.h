@@ -71,6 +71,7 @@ class VexRenderer : public Renderer {
 	// Shader setup
 	void _compile_engine_shaders();
 	void _build_draw_descs();
+	void _compile_shader(Shader& shader) override;
 
 	// Helper methods
 	void _render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx);

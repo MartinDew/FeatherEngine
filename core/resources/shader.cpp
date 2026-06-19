@@ -7,12 +7,12 @@ namespace feather {
 void Shader::_bind_members() {
 }
 
-void Shader::set_shader_path(const std::string_view path) {
+void Shader::set_shader_path(std::string_view path) {
 	_shader_source_type = ShaderSourceType::PATH;
 	_shader_source = path;
 }
 
-void Shader::set_shader_code(const std::string_view code) {
+void Shader::set_shader_code(std::string_view code) {
 	_shader_source_type = ShaderSourceType::SOURCE;
 	_shader_source = code;
 }

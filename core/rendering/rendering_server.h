@@ -17,6 +17,7 @@
 namespace feather {
 
 class Renderer;
+class Shader;
 
 class RenderingServer {
 	static RenderingServer* _instance;
@@ -57,6 +58,8 @@ public:
 
 	template <class T> void use_renderer() { _renderer = std::make_unique<T>(); }
 	void use_renderer(std::string_view name);
+
+	void compile_shader(const std::shared_ptr<Shader>& shader);
 };
 
 } //namespace feather
