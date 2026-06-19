@@ -5,6 +5,7 @@
 #include <core/rendering/render_scene.h>
 #include <core/rendering/renderer.h>
 #include <array>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -21,6 +22,7 @@ class VexRenderer : public Renderer {
 	// Core rendering resources
 	vex::Texture depthTexture;
 	vex::Graphics graphics;
+	vex::ShaderCompiler _shader_compiler;
 
 	// Shadow maps
 	std::vector<vex::Texture> _shadow_maps;
@@ -59,7 +61,16 @@ class VexRenderer : public Renderer {
 	vex::DrawDesc _pbr_draw_desc;
 	vex::DrawDesc _shadow_draw_desc;
 
+	// Resolved shader filepaths (real path or "engine://shaders/..." virtual path)
+	std::string _depth_prepass_path;
+	std::string _pbr_forward_path;
+	std::string _shadow_depth_path;
+
 	bool _use_reverse_z;
+
+	// Shader setup
+	void _compile_engine_shaders();
+	void _build_draw_descs();
 
 	// Helper methods
 	void _render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx);
