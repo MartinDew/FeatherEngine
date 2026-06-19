@@ -418,6 +418,7 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& lights = capture.get_lights();
 	_light_to_shadow_map_index.clear();
+	_light_view_proj_cache.clear();
 
 	size_t shadow_map_index = 0;
 	for (size_t i = 0; i < lights.size(); ++i) {
@@ -450,8 +451,9 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 
 		_light_to_shadow_map_index[static_cast<uint32_t>(i)] = graphics.GetBindlessHandle(shadow_map_binding);
 
-		// Compute light view-projection matrix
+		// Compute light view-projection matrix and cache it for _upload_lights_buffer
 		const Matrix lightVP = _compute_light_view_proj(light, capture);
+		_light_view_proj_cache[static_cast<uint32_t>(i)] = lightVP;
 
 		// Set render target (depth-only)
 		ctx.ClearTexture(shadow_map);
@@ -628,7 +630,10 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 		gpuLight.color = Color(light.color.x, light.color.y, light.color.z, light.intensity);
 		gpuLight.range = light.range;
 		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
-		gpuLight.viewProj = _compute_light_view_proj(light, capture);
+		auto vp_it = _light_view_proj_cache.find(static_cast<uint32_t>(i));
+		gpuLight.viewProj = (vp_it != _light_view_proj_cache.end())
+				? vp_it->second
+				: _compute_light_view_proj(light, capture);
 
 		// Shadow map index
 		auto it = _light_to_shadow_map_index.find(static_cast<uint32_t>(i));

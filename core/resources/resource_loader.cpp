@@ -42,12 +42,13 @@ static std::string strip_extension(const Path& path) {
 }
 
 std::shared_ptr<Resource> ResourceLoader::load(const Path& path) {
+	auto extension = strip_extension(path);
+	auto localized = ProjectSettings::get()->localize_path(path);
+
 	auto it = get()->_path_cache.find(path.string());
 	if (it != get()->_path_cache.end()) {
 		auto res = it->second;
 		if (!res->is_loaded()) {
-			auto extension = strip_extension(path);
-			auto localized = ProjectSettings::get()->localize_path(path);
 			for (const auto& loader : get()->_format_loaders) {
 				if (loader->recognize_extension(extension)) {
 					loader->load(res, localized);
@@ -58,13 +59,10 @@ std::shared_ptr<Resource> ResourceLoader::load(const Path& path) {
 		return res;
 	}
 
-	auto extension = strip_extension(path);
 	if (extension.empty()) {
 		std::cerr << "ResourceLoader: Cannot load resource without extension: " << path << std::endl;
 		return nullptr;
 	}
-
-	auto localized = ProjectSettings::get()->localize_path(path);
 
 	for (const auto& loader : get()->_format_loaders) {
 		if (loader->recognize_extension(extension)) {

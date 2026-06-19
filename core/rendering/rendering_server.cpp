@@ -65,8 +65,8 @@ RenderingServer::~RenderingServer() {
 void RenderingServer::init() {
 	_renderer = ClassDB::create_object<Renderer>(LaunchSettings::get().renderer.Get());
 
-	Engine::get().get_main_window().register_notification(Notification::WINDOW_RESIZED, [this] {
-		_needs_resize = true;
+	Engine::get().get_main_window().register_notification(Notification::WINDOW_RESIZED, [&flag = _needs_resize] {
+		flag.store(true, std::memory_order_relaxed);
 	});
 
 	if (!LaunchSettings::get().force_single_thread.Get())

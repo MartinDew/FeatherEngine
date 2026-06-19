@@ -193,7 +193,7 @@ public:
 	bool is_nil() const { return _type == VariantType::NIL; }
 
 	// Type conversion with std::expected
-	template <class T>
+	template <VariantCompatible T>
 	std::expected<T, std::string> as() const {
 		if (get_variant_type<T>() != _type)
 			return std::unexpected("Variant type does not match requested type");
@@ -215,7 +215,6 @@ public:
 		}
 		else
 			return std::get<T>(_data);
-		std::unreachable();
 	}
 
 	// Equality operators

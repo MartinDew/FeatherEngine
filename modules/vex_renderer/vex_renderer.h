@@ -25,6 +25,7 @@ class VexRenderer : public Renderer {
 	// Shadow maps
 	std::vector<vex::Texture> _shadow_maps;
 	std::unordered_map<uint32_t, vex::BindlessHandle> _light_to_shadow_map_index;
+	std::unordered_map<uint32_t, Matrix> _light_view_proj_cache;
 
 	// GPU buffers
 	vex::Buffer _camera_uniform_buffer;

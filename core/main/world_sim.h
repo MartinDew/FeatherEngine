@@ -69,8 +69,7 @@ public:
 	// Build a query scoped to the active scene
 	template <class... TComps>
 	auto scene_query() {
-		static auto q = _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
-		return q;
+		return _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
 	}
 
 	template <class... TComps>
