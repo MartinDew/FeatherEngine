@@ -299,7 +299,7 @@ void VexRenderer::_compile_engine_shaders() {
 	};
 
 	auto compile = [&](const std::string& filepath, std::string_view entry_point,
-	                   vex::ShaderType type, const char* embedded_src) {
+	                   vex::ShaderType type, const unsigned char* embedded_src) {
 		vex::ShaderKey key {
 			.filepath = filepath,
 			.entryPoint = std::string(entry_point),
@@ -307,7 +307,7 @@ void VexRenderer::_compile_engine_shaders() {
 			.compiler = vex::ShaderCompilerBackend::Slang,
 		};
 		if (filepath.starts_with("engine://")) {
-			_shader_compiler.CompileShaderFromSourceCode(key, embedded_src);
+			_shader_compiler.CompileShaderFromSourceCode(key, reinterpret_cast<const char*>(embedded_src));
 		} else {
 			_shader_compiler.CompileShaderFromFilepath(key);
 		}
