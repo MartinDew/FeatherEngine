@@ -6,10 +6,10 @@ import Vex;
 // Bindless resource access (using Vex's bindless system)
 public Texture2D<float4> GetBindlessTexture2D(uint handle) { return GetBindlessResource<Texture2D<float4>>(handle); }
 
-// Samplers
-public SamplerState LinearSampler;
-public SamplerState PointSampler;
-public SamplerComparisonState ShadowMapSampler;
+// Samplers - Vex places static samplers in space1 (DX12) / set 1 (Vulkan)
+[vk::binding(0, 1)] public SamplerState LinearSampler : register(s0, space1);
+[vk::binding(1, 1)] public SamplerState PointSampler : register(s1, space1);
+[vk::binding(2, 1)] public SamplerComparisonState ShadowMapSampler : register(s2, space1);
 
 // Common constants
 public static const float PI = 3.14159265359;

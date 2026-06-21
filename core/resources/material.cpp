@@ -26,6 +26,9 @@ void PBRMaterial::_bind_members() {
 	ClassDB::bind_property(&PBRMaterial::_double_sided, "double_sided");
 }
 
+void ShaderMaterial::_bind_members() {
+}
+
 static std::shared_ptr<Shader> placeholder_mat_shader;
 
 PlaceholderMaterial::PlaceholderMaterial() {

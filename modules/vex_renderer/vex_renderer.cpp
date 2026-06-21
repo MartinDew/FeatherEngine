@@ -1,6 +1,5 @@
 #include "vex_renderer.h"
 
-#include "Vex/Shaders/ShaderKey.h"
 #include "Vex/Texture.h"
 #include "framework/bytes.h"
 #include <core/main/engine.h>
@@ -9,15 +8,19 @@
 #include <core/math/math_defs.h>
 #include <core/rendering/render_data.h>
 #include <core/resources/material.h>
+#include <core/resources/shader.h>
 #include <core/resources/texture.h>
 #include <core/world/components/light.h>
 
+#include <raw_resources/shaders/depth_prepass.slang.gen.h>
 #include <raw_resources/shaders/pbr_forward.slang.gen.h>
 #include <raw_resources/shaders/shadow_depth.slang.gen.h>
 
 #include <array>
 #include <cstdint>
+#include <filesystem>
 #include <span>
+#include <string>
 
 namespace feather {
 
@@ -192,122 +195,30 @@ VexRenderer::VexRenderer()
 	}
 
 	// Setup samplers
-	std::array samplers {
-		vex::TextureSampler::CreateSampler(vex::FilterMode::Linear, vex::AddressMode::Clamp),
-		vex::TextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
-		vex::TextureSampler {
-				.minFilter = FilterMode::Linear,
-				.magFilter = FilterMode::Linear,
-				.addressU = vex::AddressMode::Clamp,
-				.addressV = vex::AddressMode::Clamp,
-				.compareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
-		},
+	std::array<vex::StaticTextureSampler, 3> samplers {
+		vex::StaticTextureSampler::CreateSampler(vex::FilterMode::Linear, vex::AddressMode::Clamp),
+		vex::StaticTextureSampler::CreateSampler(vex::FilterMode::Point, vex::AddressMode::Clamp),
+		[&] {
+			vex::StaticTextureSampler s;
+			s.minFilter = FilterMode::Linear;
+			s.magFilter = FilterMode::Linear;
+			s.addressU  = vex::AddressMode::Clamp;
+			s.addressV  = vex::AddressMode::Clamp;
+			s.compareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less;
+			return s;
+		}(),
 	};
 
-	graphics.SetSamplers(samplers);
+	graphics.SetStaticSamplers(samplers);
 
-	// Load and compile shaders
-	vex::VertexInputLayout pbrVertexLayout {
-		.attributes = {
-			{
-				.semanticName = "POSITION",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RGB32_FLOAT,
-				.offset = 0,
-			},
-			{
-				.semanticName = "NORMAL",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RGB32_FLOAT,
-				.offset = sizeof(float) * 3,
-			},
-			{
-				.semanticName = "TEXCOORD",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RG32_FLOAT,
-				.offset = sizeof(float) * 6,
-			},
-		},
-		.bindings = {
-			{
-				.binding = 0,
-				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
-				.inputRate = vex::VertexInputLayout::InputRate::PerVertex,
-			},
-		},
-	};
 
-	vex::DepthStencilState depthStencilState { .depthTestEnabled = true,
-											   .depthWriteEnabled = true,
-											   .depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual
-																				: vex::CompareOp::Less,
-											   .minDepthBounds = _use_reverse_z ? 1.0f : 0.0f,
-											   .maxDepthBounds = _use_reverse_z ? 0.0f : 1.0f };
-
-	// Depth Pre-pass
-	_depth_pre_pass_desc = vex::DrawDesc {
-		.vertexShader = {
-			.path = shader_path / "depth_prepass.slang",
-			.entryPoint = "Vertex",
-			.type = vex::ShaderType::VertexShader,
-			.compiler = ShaderCompilerBackend::Slang, // Specified because of when we will support embedded shaders
-		},
-		.pixelShader = {
-			.path = shader_path / "depth_prepass.slang",
-			.entryPoint = "Pixel",
-			.type = vex::ShaderType::PixelShader,
-			.compiler = ShaderCompilerBackend::Slang, // Specified because of when we will support embedded shaders
-		},
-		.vertexInputLayout = pbrVertexLayout, // reuse the same layout, position is at offset 0
-		.rasterizerState = {},
-		.depthStencilState = depthStencilState,
-	};
-
-	// PBR forward rendering pipeline
-	_pbr_draw_desc = vex::DrawDesc {
-		.vertexShader = {
-			.path = shader_path / "pbr_forward.slang",
-			.entryPoint = "VSMain",
-			.type = vex::ShaderType::VertexShader,
-			.compiler = ShaderCompilerBackend::Slang,
-		},
-		.pixelShader = {
-			.path = shader_path / "pbr_forward.slang",
-			.entryPoint = "PSMain",
-			.type = vex::ShaderType::PixelShader,
-			.compiler = ShaderCompilerBackend::Slang,
-		},
-		.vertexInputLayout = pbrVertexLayout,
-		.rasterizerState = {
-			.cullMode = vex::CullMode::Back,
-			.depthBiasEnabled = true,
-			.depthBiasConstantFactor = -0.9f,
-			.depthBiasClamp = -1.0f,
-			// .depthBiasSlopeFactor = -1.5f,
-		},
-		.depthStencilState = depthStencilState,
-	};
-
-	// Shadow depth pipeline (vertex-only, no pixel shader for depth-only)
-	_shadow_draw_desc = vex::DrawDesc {
-		.vertexShader = {
-			.path = shader_path / "shadow_depth.slang",
-			.entryPoint = "VSMain",
-			.type = vex::ShaderType::VertexShader,
-			.compiler = ShaderCompilerBackend::Slang,
-		},
-		.pixelShader = {
-			.path = shader_path / "shadow_depth.slang",
-			.entryPoint = "PSMain",
-			.type = vex::ShaderType::PixelShader,
-			.compiler = ShaderCompilerBackend::Slang,
-		},
-		.vertexInputLayout = pbrVertexLayout,
-		.depthStencilState = depthStencilState,
-	};
+	// Initialize shader compiler with the shader directory on the include path
+	// (needed for Slang import resolution even when compiling from embedded source)
+	_shader_compiler = vex::ShaderCompiler(vex::ShaderCompilerSettings {
+		.shaderIncludeDirectories = { shader_path },
+	});
+	_compile_engine_shaders();
+	_build_draw_descs();
 
 	graphics.Submit(ctx);
 }
@@ -346,7 +257,9 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 }
 
 void VexRenderer::_on_resize() {
-	graphics.RecompileChangedShaders();
+	_shader_compiler.RecompileChangedShaders();
+	_shader_draw_desc_cache.clear();
+	_build_draw_descs();
 
 	auto width = _window->properties.width;
 	auto height = _window->properties.height;
@@ -372,6 +285,173 @@ void VexRenderer::_on_resize() {
 	);
 
 	graphics.OnWindowResized(width, height);
+}
+
+void VexRenderer::_compile_engine_shaders() {
+	// For each engine shader file, prefer the real file on disk (enables hot-reload and
+	// developer override), falling back to the embedded source when no file exists.
+	auto get_filepath = [&](const char* filename) -> std::string {
+		auto real_path = shader_path / filename;
+		if (std::filesystem::exists(real_path)) {
+			return real_path.string();
+		}
+		return std::string("engine://shaders/") + filename;
+	};
+
+	auto compile = [&](const std::string& filepath, std::string_view entry_point,
+	                   vex::ShaderType type, const unsigned char* embedded_src) {
+		vex::ShaderKey key {
+			.filepath = filepath,
+			.entryPoint = std::string(entry_point),
+			.type = type,
+			.compiler = vex::ShaderCompilerBackend::Slang,
+		};
+		if (filepath.starts_with("engine://")) {
+			_shader_compiler.CompileShaderFromSourceCode(key, reinterpret_cast<const char*>(embedded_src));
+		} else {
+			_shader_compiler.CompileShaderFromFilepath(key);
+		}
+	};
+
+	_depth_prepass_path = get_filepath("depth_prepass.slang");
+	compile(_depth_prepass_path, "Vertex", vex::ShaderType::VertexShader, shaders_depth_prepass_slang);
+	compile(_depth_prepass_path, "Pixel", vex::ShaderType::PixelShader, shaders_depth_prepass_slang);
+
+	_pbr_forward_path = get_filepath("pbr_forward.slang");
+	compile(_pbr_forward_path, "VSMain", vex::ShaderType::VertexShader, shaders_pbr_forward_slang);
+	compile(_pbr_forward_path, "PSMain", vex::ShaderType::PixelShader, shaders_pbr_forward_slang);
+
+	_shadow_depth_path = get_filepath("shadow_depth.slang");
+	compile(_shadow_depth_path, "VSMain", vex::ShaderType::VertexShader, shaders_shadow_depth_slang);
+	compile(_shadow_depth_path, "PSMain", vex::ShaderType::PixelShader, shaders_shadow_depth_slang);
+}
+
+void VexRenderer::_build_draw_descs() {
+	vex::VertexInputLayout pbrVertexLayout {
+		.attributes = {
+			{
+				.semanticName = "POSITION",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RGB32_FLOAT,
+				.offset = 0,
+			},
+			{
+				.semanticName = "NORMAL",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RGB32_FLOAT,
+				.offset = sizeof(float) * 3,
+			},
+			{
+				.semanticName = "TEXCOORD",
+				.semanticIndex = 0,
+				.binding = 0,
+				.format = vex::TextureFormat::RG32_FLOAT,
+				.offset = sizeof(float) * 6,
+			},
+		},
+		.bindings = {
+			{
+				.binding = 0,
+				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+				.inputRate = vex::VertexInputLayout::InputRate::PerVertex,
+			},
+		},
+	};
+
+	vex::DepthStencilState depthStencilState {
+		.depthTestEnabled = true,
+		.depthWriteEnabled = true,
+		.depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
+		.minDepthBounds = _use_reverse_z ? 1.0f : 0.0f,
+		.maxDepthBounds = _use_reverse_z ? 0.0f : 1.0f,
+	};
+
+	auto get_view = [&](const std::string& filepath, std::string_view entry_point, vex::ShaderType type) {
+		return _shader_compiler.GetShaderView({
+			.filepath = filepath,
+			.entryPoint = std::string(entry_point),
+			.type = type,
+			.compiler = vex::ShaderCompilerBackend::Slang,
+		});
+	};
+
+	_depth_pre_pass_desc = vex::DrawDesc {
+		.vertexShader = get_view(_depth_prepass_path, "Vertex", vex::ShaderType::VertexShader),
+		.pixelShader  = get_view(_depth_prepass_path, "Pixel",  vex::ShaderType::PixelShader),
+		.vertexInputLayout = pbrVertexLayout,
+		.rasterizerState = {},
+		.depthStencilState = depthStencilState,
+	};
+
+	_pbr_draw_desc = vex::DrawDesc {
+		.vertexShader = get_view(_pbr_forward_path, "VSMain", vex::ShaderType::VertexShader),
+		.pixelShader  = get_view(_pbr_forward_path, "PSMain", vex::ShaderType::PixelShader),
+		.vertexInputLayout = pbrVertexLayout,
+		.rasterizerState = {
+			.cullMode = vex::CullMode::Back,
+			.depthBiasEnabled = true,
+			.depthBiasConstantFactor = -0.9f,
+			.depthBiasClamp = -1.0f,
+		},
+		.depthStencilState = depthStencilState,
+	};
+
+	_shadow_draw_desc = vex::DrawDesc {
+		.vertexShader = get_view(_shadow_depth_path, "VSMain", vex::ShaderType::VertexShader),
+		.pixelShader  = get_view(_shadow_depth_path, "PSMain", vex::ShaderType::PixelShader),
+		.vertexInputLayout = pbrVertexLayout,
+		.depthStencilState = depthStencilState,
+	};
+}
+
+std::string VexRenderer::_get_shader_virtual_path(const Shader& shader) const {
+	if (shader.is_path_based()) return std::string(shader.get_source());
+	auto resource_path = shader.get_path();
+	return resource_path.empty()
+		? std::string("user://shaders/") + std::to_string(reinterpret_cast<uintptr_t>(&shader))
+		: std::string("user://shaders/") + resource_path.string();
+}
+
+void VexRenderer::_compile_shader(Shader& shader) {
+	if (!shader.is_valid()) return;
+
+	std::string filepath = _get_shader_virtual_path(shader);
+	auto compile = [&](std::string_view entry, ShaderType type) {
+		ShaderKey key {
+			.filepath    = filepath,
+			.entryPoint  = std::string(entry),
+			.type        = type,
+			.compiler    = ShaderCompilerBackend::Slang,
+		};
+		if (shader.is_source_based())
+			_shader_compiler.CompileShaderFromSourceCode(key, shader.get_source());
+		else
+			_shader_compiler.CompileShaderFromFilepath(key);
+	};
+
+	compile(shader.get_vertex_entry(), ShaderType::VertexShader);
+	compile(shader.get_pixel_entry(), ShaderType::PixelShader);
+}
+
+vex::DrawDesc& VexRenderer::_get_or_build_shader_draw_desc(Shader& shader) {
+	auto it = _shader_draw_desc_cache.find(&shader);
+	if (it != _shader_draw_desc_cache.end()) return it->second;
+
+	_compile_shader(shader);
+
+	std::string filepath = _get_shader_virtual_path(shader);
+	auto get_view = [&](std::string_view entry, ShaderType type) {
+		ShaderKey key { .filepath = filepath, .entryPoint = std::string(entry), .type = type, .compiler = ShaderCompilerBackend::Slang };
+		return _shader_compiler.GetShaderView(key);
+	};
+
+	vex::DrawDesc desc    = _pbr_draw_desc;
+	desc.vertexShader     = get_view(shader.get_vertex_entry(), ShaderType::VertexShader);
+	desc.pixelShader      = get_view(shader.get_pixel_entry(), ShaderType::PixelShader);
+
+	return _shader_draw_desc_cache.emplace(&shader, std::move(desc)).first->second;
 }
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {
@@ -513,6 +593,12 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 	for (const auto& entity : entities) {
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
 
+		vex::DrawDesc* draw_desc = &_pbr_draw_desc;
+		if (const auto* shaderMat = object_cast<const ShaderMaterial>(entity.material.get())) {
+			if (auto shader = shaderMat->get_shader(); shader && shader->is_valid())
+				draw_desc = &_get_or_build_shader_draw_desc(*shader);
+		}
+
 		const PBRMaterial* pbrMat = object_cast<const PBRMaterial>(entity.material.get());
 		if (!pbrMat) {
 			static PBRMaterial defaultMat;
@@ -585,7 +671,7 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		ConstantBinding constant_bindings { std::span(push_data) };
 		ctx.DrawIndexed(
-				_pbr_draw_desc,
+				*draw_desc,
 				{
 						.renderTargets = renderTargets,
 						.depthStencil = vex::TextureBinding(depthTexture),

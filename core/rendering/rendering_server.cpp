@@ -1,5 +1,6 @@
 #include "rendering_server.h"
 #include "renderer.h"
+#include <resources/shader.h>
 #include <main/engine.h>
 #include <main/notification.h>
 
@@ -134,6 +135,11 @@ void RenderingServer::commit_scene_frame() {
 void RenderingServer::use_renderer(std::string_view name) {
 	_renderer = ClassDB::create_object<Renderer>(name);
 	fassert(_renderer.get(), std::format("Failed to create renderer of type {}", name));
+}
+
+void RenderingServer::compile_shader(const std::shared_ptr<Shader>& shader) {
+	fassert(_renderer.get(), "no renderer set");
+	_renderer->_compile_shader(*shader);
 }
 
 RenderingServer* RenderingServer::get() {

@@ -18,6 +18,9 @@ protected:
 
 	// Todo : shader params
 	static void _bind_members();
+
+public:
+	std::shared_ptr<Shader> get_shader() const { return _shader; }
 };
 
 class PlaceholderMaterial : public Material {
@@ -29,8 +32,11 @@ public:
 class ShaderMaterial : public Material {
 	FCLASS(ShaderMaterial, Material);
 
+protected:
+	[[maybe_unused]] static void _bind_members();
+
 public:
-	void set_shader(Shader shader);
+	void set_shader(std::shared_ptr<Shader> shader) { _shader = std::move(shader); }
 };
 
 class PBRMaterial : public Material {
