@@ -50,7 +50,7 @@ def generate_header(source_file: Path, output_file: Path, base_path: Path) -> No
     # Generate header content
     header_content = f"""#pragma once
 
-static const char {var_name}[] = {{
+static const std::byte {var_name}[] = {{
 #embed "{rel_path}"
 \t, '\\0'
 }};
