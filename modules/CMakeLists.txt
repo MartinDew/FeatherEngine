@@ -57,19 +57,6 @@ function(feather_module module_name enabled_by_default)
                 $<$<CONFIG:Development>:BETA>
         )
 
-        # ===== Handle Dynamic Library Linking =====
-        #        if (NOT STATIC_CPP)  # If building shared libraries
-        #            if (MSVC)
-        #                # Windows: Allow unresolved symbols (will be resolved from .exe)
-        #                target_link_options(${module_name}_editor PRIVATE /FORCE:UNRESOLVED)
-        #                target_link_options(${module_name}_standalone PRIVATE /FORCE:UNRESOLVED)
-        #            else ()
-        #                # Linux/macOS: Allow undefined symbols in shared libraries
-        #                target_link_options(${module_name}_editor PRIVATE -Wl,--allow-shlib-undefined)
-        #                target_link_options(${module_name}_standalone PRIVATE -Wl,--allow-shlib-undefined)
-        #            endif ()
-        #        endif ()
-
         # Add to module lists
         list(APPEND EDITOR_MODULES ${module_name}_editor)
         list(APPEND STANDALONE_MODULES ${module_name}_standalone)

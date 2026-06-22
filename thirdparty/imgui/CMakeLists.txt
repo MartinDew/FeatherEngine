@@ -6,7 +6,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(imgui_sources)
 
-set(IMGUI_SRC_DIR ${imgui_sources_SOURCE_DIR})
+set(IMGUI_SRC_DIR ${imgui_sources_SOURCE_DIR} CACHE INTERNAL "Imgui Source Directory")
 set(IMGUI_SOURCES
         ${IMGUI_SRC_DIR}/imgui.cpp
         ${IMGUI_SRC_DIR}/imgui_demo.cpp
@@ -17,22 +17,24 @@ set(IMGUI_SOURCES
 
 set(IMGUI_BACKEND_SOURCES
         ${IMGUI_SRC_DIR}/backends/imgui_impl_sdl3.cpp
-        ${IMGUI_SRC_DIR}/backends/imgui_impl_vulkan.cpp
-        ${IMGUI_SRC_DIR}/backends/imgui_impl_dx12.cpp
         ${IMGUI_SRC_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 
-find_package(Vulkan REQUIRED)
-
-add_library(ImGui STATIC ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
+add_library(ImGui OBJECT ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
 target_include_directories(ImGui PUBLIC
         ${IMGUI_SRC_DIR}
         ${IMGUI_SRC_DIR}/backends
         ${IMGUI_SRC_DIR}/misc/cpp
 )
+
 target_link_libraries(ImGui PRIVATE
         SDL3::SDL3
-        Vulkan::Vulkan
 )
 
-RegisterThirdparty(PUBLIC ImGui)
+# This should be Editor/Dev only
+target_link_libraries(Editor PUBLIC ImGui)
+target_link_libraries(Standalone PUBLIC
+    # Only in debug and dev
+    $<$<CONFIG:Debug>:ImGui>
+    $<$<CONFIG:Development>:ImGui>
+)

@@ -22,9 +22,10 @@ endfunction()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MAP_IMPORTED_CONFIG_Development "RelWithDebInfo" CACHE STRING "" FORCE)
 
-# Setup so that development build matches RelWithDebInfo
+# Shadow CMAKE_BUILD_TYPE for this scope only so FetchContent deps build as RelWithDebInfo.
+# Does not touch the cache — parent scope retains "Development".
 if (CMAKE_BUILD_TYPE STREQUAL "Development")
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "")
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif ()
 
 set(THIRDPARTIES "" CACHE INTERNAL "The list of thirdparty libraries")
@@ -36,14 +37,4 @@ foreach (CM_FILE ${SUBDIR_CMAKELISTS})
     add_subdirectory(${SUBDIR_NAME})
 endforeach ()
 
-# set(THIRDPARTIES ${THIRDPARTIES} PARENT_SCOPE)
-# target_link_libraries(Editor PRIVATE ${THIRDPARTIES})
-# target_link_libraries(Standalone PRIVATE ${THIRDPARTIES})
 
-# target_link_libraries(Editor PUBLIC SimpleMath)
-# target_link_libraries(Standalone PUBLIC SimpleMath)
-
-
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(CMAKE_BUILD_TYPE "Development" CACHE STRING "")
-endif ()

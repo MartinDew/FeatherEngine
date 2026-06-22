@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <Vex.h>
+#include <SDL3/SDL_events.h>
 
 namespace feather {
 
@@ -94,15 +95,18 @@ class VexRenderer : public Renderer {
 	static Matrix _compute_normal_matrix(const Matrix& modelMatrix);
 
 	static vex::PlatformWindowHandle _create_vex_window(Window& window);
+	static bool SDLCALL _sdl_imgui_event_hook(void* userdata, SDL_Event* event);
 
 protected:
 	void _render_scene(RenderScene capture) override;
 	void _on_resize() override;
+	virtual void _draw_imgui() {}
 
 	static void _bind_members();
 
 public:
 	VexRenderer();
+	~VexRenderer() override;
 };
 
 } //namespace feather

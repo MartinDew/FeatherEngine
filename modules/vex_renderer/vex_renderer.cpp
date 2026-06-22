@@ -2,6 +2,9 @@
 
 #include "Vex/Texture.h"
 #include "framework/bytes.h"
+
+#include <SDL3/SDL.h>
+#include <VexImgui.h>
 #include <core/main/engine.h>
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
@@ -11,6 +14,8 @@
 #include <core/resources/shader.h>
 #include <core/resources/texture.h>
 #include <core/world/components/light.h>
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
 
 #include <raw_resources/shaders/depth_prepass.slang.gen.h>
 #include <raw_resources/shaders/pbr_forward.slang.gen.h>
@@ -70,6 +75,18 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 
 void VexRenderer::_bind_members() {
 	ClassDB::bind_property(&Type::_use_reverse_z, "use_reverse_z");
+}
+
+bool SDLCALL VexRenderer::_sdl_imgui_event_hook(void*, SDL_Event* event) {
+	ImGui_ImplSDL3_ProcessEvent(event);
+	return false;
+}
+
+VexRenderer::~VexRenderer() {
+	ImGui_ImplVex_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
+	ImGui::DestroyContext();
+	SDL_RemoveEventWatch(_sdl_imgui_event_hook, nullptr);
 }
 
 static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
@@ -202,8 +219,8 @@ VexRenderer::VexRenderer()
 			vex::StaticTextureSampler s;
 			s.minFilter = FilterMode::Linear;
 			s.magFilter = FilterMode::Linear;
-			s.addressU  = vex::AddressMode::Clamp;
-			s.addressV  = vex::AddressMode::Clamp;
+			s.addressU = vex::AddressMode::Clamp;
+			s.addressV = vex::AddressMode::Clamp;
 			s.compareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less;
 			return s;
 		}(),
@@ -211,19 +228,40 @@ VexRenderer::VexRenderer()
 
 	graphics.SetStaticSamplers(samplers);
 
-
 	// Initialize shader compiler with the shader directory on the include path
 	// (needed for Slang import resolution even when compiling from embedded source)
-	_shader_compiler = vex::ShaderCompiler(vex::ShaderCompilerSettings {
-		.shaderIncludeDirectories = { shader_path },
-	});
+	_shader_compiler = vex::ShaderCompiler(
+			vex::ShaderCompilerSettings {
+					.shaderIncludeDirectories = { shader_path },
+			}
+	);
 	_compile_engine_shaders();
 	_build_draw_descs();
 
 	graphics.Submit(ctx);
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	SDL_Window* sdl_window = _extract_internal_window(*_window);
+	ImGui_ImplSDL3_InitForOther(sdl_window);
+
+	ImGui_ImplVex_InitInfo vex_imgui_info {
+		.graphics = vex::NonNullPtr { &graphics },
+		.buffering = vex::FrameBuffering::Triple,
+		.swapchainFormat = vex::TextureFormat::BGRA8_UNORM,
+		.depthStencilFormat = vex::TextureFormat::D32_FLOAT,
+	};
+	ImGui_ImplVex_Init(vex_imgui_info);
+
+	SDL_AddEventWatch(_sdl_imgui_event_hook, nullptr);
 }
 
 void VexRenderer::_render_scene(const RenderScene capture) {
+	ImGui_ImplVex_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+
 	auto ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
 	// Upload camera uniforms
 	_upload_camera_uniforms(capture, ctx);
@@ -253,6 +291,17 @@ void VexRenderer::_render_scene(const RenderScene capture) {
 	}
 
 	graphics.Submit(ctx);
+
+	_draw_imgui();
+	ImGui::Render();
+
+	auto imgui_ctx = graphics.CreateCommandContext(vex::QueueType::Graphics);
+	vex::TextureBinding back_buffer_binding { .texture = graphics.GetCurrentPresentTexture() };
+	imgui_ctx.ExecuteInDrawContext({ back_buffer_binding }, std::nullopt, {}, [&imgui_ctx]() {
+		ImGui_ImplVex_RenderDrawData(imgui_ctx);
+	});
+	graphics.Submit(imgui_ctx);
+
 	graphics.Present();
 }
 
@@ -298,8 +347,10 @@ void VexRenderer::_compile_engine_shaders() {
 		return std::string("engine://shaders/") + filename;
 	};
 
-	auto compile = [&](const std::string& filepath, std::string_view entry_point,
-	                   vex::ShaderType type, const unsigned char* embedded_src) {
+	auto compile = [&](const std::string& filepath,
+					   std::string_view entry_point,
+					   vex::ShaderType type,
+					   const unsigned char* embedded_src) {
 		vex::ShaderKey key {
 			.filepath = filepath,
 			.entryPoint = std::string(entry_point),
@@ -308,7 +359,8 @@ void VexRenderer::_compile_engine_shaders() {
 		};
 		if (filepath.starts_with("engine://")) {
 			_shader_compiler.CompileShaderFromSourceCode(key, reinterpret_cast<const char*>(embedded_src));
-		} else {
+		}
+		else {
 			_shader_compiler.CompileShaderFromFilepath(key);
 		}
 	};
@@ -369,17 +421,19 @@ void VexRenderer::_build_draw_descs() {
 	};
 
 	auto get_view = [&](const std::string& filepath, std::string_view entry_point, vex::ShaderType type) {
-		return _shader_compiler.GetShaderView({
-			.filepath = filepath,
-			.entryPoint = std::string(entry_point),
-			.type = type,
-			.compiler = vex::ShaderCompilerBackend::Slang,
-		});
+		return _shader_compiler.GetShaderView(
+				{
+						.filepath = filepath,
+						.entryPoint = std::string(entry_point),
+						.type = type,
+						.compiler = vex::ShaderCompilerBackend::Slang,
+				}
+		);
 	};
 
 	_depth_pre_pass_desc = vex::DrawDesc {
 		.vertexShader = get_view(_depth_prepass_path, "Vertex", vex::ShaderType::VertexShader),
-		.pixelShader  = get_view(_depth_prepass_path, "Pixel",  vex::ShaderType::PixelShader),
+		.pixelShader = get_view(_depth_prepass_path, "Pixel", vex::ShaderType::PixelShader),
 		.vertexInputLayout = pbrVertexLayout,
 		.rasterizerState = {},
 		.depthStencilState = depthStencilState,
@@ -400,30 +454,31 @@ void VexRenderer::_build_draw_descs() {
 
 	_shadow_draw_desc = vex::DrawDesc {
 		.vertexShader = get_view(_shadow_depth_path, "VSMain", vex::ShaderType::VertexShader),
-		.pixelShader  = get_view(_shadow_depth_path, "PSMain", vex::ShaderType::PixelShader),
+		.pixelShader = get_view(_shadow_depth_path, "PSMain", vex::ShaderType::PixelShader),
 		.vertexInputLayout = pbrVertexLayout,
 		.depthStencilState = depthStencilState,
 	};
 }
 
 std::string VexRenderer::_get_shader_virtual_path(const Shader& shader) const {
-	if (shader.is_path_based()) return std::string(shader.get_source());
+	if (shader.is_path_based())
+		return std::string(shader.get_source());
 	auto resource_path = shader.get_path();
-	return resource_path.empty()
-		? std::string("user://shaders/") + std::to_string(reinterpret_cast<uintptr_t>(&shader))
-		: std::string("user://shaders/") + resource_path.string();
+	return resource_path.empty() ? std::string("user://shaders/") + std::to_string(reinterpret_cast<uintptr_t>(&shader))
+								 : std::string("user://shaders/") + resource_path.string();
 }
 
 void VexRenderer::_compile_shader(Shader& shader) {
-	if (!shader.is_valid()) return;
+	if (!shader.is_valid())
+		return;
 
 	std::string filepath = _get_shader_virtual_path(shader);
 	auto compile = [&](std::string_view entry, ShaderType type) {
 		ShaderKey key {
-			.filepath    = filepath,
-			.entryPoint  = std::string(entry),
-			.type        = type,
-			.compiler    = ShaderCompilerBackend::Slang,
+			.filepath = filepath,
+			.entryPoint = std::string(entry),
+			.type = type,
+			.compiler = ShaderCompilerBackend::Slang,
 		};
 		if (shader.is_source_based())
 			_shader_compiler.CompileShaderFromSourceCode(key, shader.get_source());
@@ -437,19 +492,23 @@ void VexRenderer::_compile_shader(Shader& shader) {
 
 vex::DrawDesc& VexRenderer::_get_or_build_shader_draw_desc(Shader& shader) {
 	auto it = _shader_draw_desc_cache.find(&shader);
-	if (it != _shader_draw_desc_cache.end()) return it->second;
+	if (it != _shader_draw_desc_cache.end())
+		return it->second;
 
 	_compile_shader(shader);
 
 	std::string filepath = _get_shader_virtual_path(shader);
 	auto get_view = [&](std::string_view entry, ShaderType type) {
-		ShaderKey key { .filepath = filepath, .entryPoint = std::string(entry), .type = type, .compiler = ShaderCompilerBackend::Slang };
+		ShaderKey key { .filepath = filepath,
+						.entryPoint = std::string(entry),
+						.type = type,
+						.compiler = ShaderCompilerBackend::Slang };
 		return _shader_compiler.GetShaderView(key);
 	};
 
-	vex::DrawDesc desc    = _pbr_draw_desc;
-	desc.vertexShader     = get_view(shader.get_vertex_entry(), ShaderType::VertexShader);
-	desc.pixelShader      = get_view(shader.get_pixel_entry(), ShaderType::PixelShader);
+	vex::DrawDesc desc = _pbr_draw_desc;
+	desc.vertexShader = get_view(shader.get_vertex_entry(), ShaderType::VertexShader);
+	desc.pixelShader = get_view(shader.get_pixel_entry(), ShaderType::PixelShader);
 
 	return _shader_draw_desc_cache.emplace(&shader, std::move(desc)).first->second;
 }
@@ -717,9 +776,8 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 		gpuLight.range = light.range;
 		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
 		auto vp_it = _light_view_proj_cache.find(static_cast<uint32_t>(i));
-		gpuLight.viewProj = (vp_it != _light_view_proj_cache.end())
-				? vp_it->second
-				: _compute_light_view_proj(light, capture);
+		gpuLight.viewProj =
+				(vp_it != _light_view_proj_cache.end()) ? vp_it->second : _compute_light_view_proj(light, capture);
 
 		// Shadow map index
 		auto it = _light_to_shadow_map_index.find(static_cast<uint32_t>(i));

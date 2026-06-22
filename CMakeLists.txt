@@ -155,9 +155,10 @@ add_dependencies(Standalone GenerateEmbeddedResources)
 # Bind generation of type registration functions to a custom target
 add_custom_target(GenerateRegisterTypes
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_modules.py --modules-path ./modules
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating type registration functions"
-        BYPRODUCTS ${GENERATED_FILES}
+        COMMENT "Generating type registration functions and module registry"
+        BYPRODUCTS ${GENERATED_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/modules/modules.gen.cpp
         VERBATIM
 )
 
