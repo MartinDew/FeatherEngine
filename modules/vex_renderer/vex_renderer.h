@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <Vex.h>
 #include <SDL3/SDL_events.h>
+#include <Vex.h>
 
 namespace feather {
 
@@ -98,7 +98,6 @@ class VexRenderer : public Renderer {
 	static bool SDLCALL _sdl_imgui_event_hook(void* userdata, SDL_Event* event);
 
 protected:
-	void _render_scene(RenderScene capture) override;
 	void _on_resize() override;
 	virtual void _draw_imgui() {}
 
@@ -107,6 +106,8 @@ protected:
 public:
 	VexRenderer();
 	~VexRenderer() override;
+
+	void _render_scene(RenderScene capture) override;
 };
 
 } //namespace feather
