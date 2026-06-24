@@ -89,14 +89,9 @@ void RenderingServer::begin_scene_frame() {
 	_buffers[_write_idx.load(std::memory_order_relaxed)].clear();
 }
 
-void RenderingServer::set_camera_transform(const Transform& transform) {
+void RenderingServer::set_viewport(const Viewport& viewport) {
 	std::lock_guard lock(_write_lock);
-	_buffers[_write_idx.load(std::memory_order_relaxed)].set_camera_transform(transform);
-}
-
-void RenderingServer::set_camera_projection(const Projection& projection) {
-	std::lock_guard lock(_write_lock);
-	_buffers[_write_idx.load(std::memory_order_relaxed)].set_camera_projection(projection);
+	_buffers[_write_idx.load(std::memory_order_relaxed)].set_viewport(viewport);
 }
 
 void RenderingServer::set_environment(const RenderScene::EnvironmentSettings& env) {

@@ -1,9 +1,9 @@
 ﻿#pragma once;
 
 #include "framework/cow_vector.h"
-#include "math/projection.h"
 #include "math/transform.h"
 #include "mesh_data.h"
+#include "rendering/viewport.h"
 #include "resources/material.h"
 
 namespace feather {
@@ -33,11 +33,9 @@ public:
 	RenderScene(RenderScene&&) noexcept;
 	RenderScene& operator=(RenderScene&&) noexcept;
 
-	// Camera
-	const Transform& get_camera_transform() const noexcept;
-	void set_camera_transform(const Transform& transform);
-	const Projection& get_camera_projection() const noexcept;
-	void set_camera_projection(const Projection& projection);
+	// Viewport (camera + screen rect)
+	const Viewport& get_viewport() const noexcept;
+	void set_viewport(const Viewport& viewport);
 
 	// Entity management
 	void add_entity(const EntityRender& entity);
@@ -74,8 +72,7 @@ protected:
 	static void _bind_members();
 
 private:
-	Transform _camera_transform;
-	Projection _camera_projection;
+	Viewport _viewport;
 	CowVector<EntityRender> _entities;
 	CowVector<Light> _lights;
 	EnvironmentSettings _environment;

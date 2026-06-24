@@ -12,20 +12,12 @@ RenderScene& RenderScene::operator=(const RenderScene&) = default;
 RenderScene::RenderScene(RenderScene&&) noexcept = default;
 RenderScene& RenderScene::operator=(RenderScene&&) noexcept = default;
 
-const Transform& RenderScene::get_camera_transform() const noexcept {
-	return _camera_transform;
+const Viewport& RenderScene::get_viewport() const noexcept {
+	return _viewport;
 }
 
-void RenderScene::set_camera_transform(const Transform& transform) {
-	_camera_transform = transform;
-}
-
-const Projection& RenderScene::get_camera_projection() const noexcept {
-	return _camera_projection;
-}
-
-void RenderScene::set_camera_projection(const Projection& projection) {
-	_camera_projection = projection;
+void RenderScene::set_viewport(const Viewport& viewport) {
+	_viewport = viewport;
 }
 
 void RenderScene::add_entity(const EntityRender& entity) {

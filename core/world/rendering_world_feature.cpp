@@ -20,8 +20,7 @@ void RenderingWorldFeature::_load_module(WorldSim* sim) {
 inline void _begin_render_scene(const flecs::iter& it) {
 	auto* rs = RenderingServer::get();
 	rs->begin_scene_frame();
-	rs->set_camera_projection(Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f));
-	rs->set_camera_transform({});
+	rs->set_viewport({ .camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f) });
 }
 
 inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {

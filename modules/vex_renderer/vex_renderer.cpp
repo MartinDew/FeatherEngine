@@ -517,10 +517,14 @@ vex::DrawDesc& VexRenderer::_get_or_build_shader_draw_desc(Shader& shader) {
 }
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {
+	const auto& vp_rect = capture.get_viewport().rect;
+	const int vp_w = vp_rect.is_auto() ? _window->properties.width : vp_rect.width;
+	const int vp_h = vp_rect.is_auto() ? _window->properties.height : vp_rect.height;
+
 	// Clear and set up depth target
 	ctx.ClearTexture(depthTexture);
-	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
-	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+	ctx.SetViewport(vp_rect.x, vp_rect.y, vp_w, vp_h);
+	ctx.SetScissor(vp_rect.x, vp_rect.y, vp_w, vp_h);
 
 	std::array<ResourceBinding, 1> bindings {
 		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::UniformBuffer },
@@ -641,12 +645,16 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 }
 
 void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx) {
+	const auto& vp_rect = capture.get_viewport().rect;
+	const int vp_w = vp_rect.is_auto() ? _window->properties.width : vp_rect.width;
+	const int vp_h = vp_rect.is_auto() ? _window->properties.height : vp_rect.height;
+
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
 	ctx.ClearTexture(backBuffer);
 
-	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
-	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
+	ctx.SetViewport(vp_rect.x, vp_rect.y, vp_w, vp_h);
+	ctx.SetScissor(vp_rect.x, vp_rect.y, vp_w, vp_h);
 
 	_upload_lights_buffer(capture, ctx);
 
@@ -748,9 +756,10 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 }
 
 void VexRenderer::_upload_camera_uniforms(const RenderScene& capture, vex::CommandContext& ctx) const {
-	const auto& transform = capture.get_camera_transform();
+	const auto& viewport = capture.get_viewport();
+	const auto& transform = viewport.camera_transform;
 	const auto& projection =
-			_use_reverse_z ? capture.get_camera_projection().create_reverse_z() : capture.get_camera_projection();
+			_use_reverse_z ? viewport.camera_projection.create_reverse_z() : viewport.camera_projection;
 
 	Matrix view = transform.to_matrix_no_scale().invert(); // World-to-camera
 	Matrix proj = projection.get_matrix();

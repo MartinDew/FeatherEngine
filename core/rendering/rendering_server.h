@@ -49,8 +49,7 @@ public:
 	void stop();
 
 	void begin_scene_frame();
-	void set_camera_transform(const Transform& transform);
-	void set_camera_projection(const Projection& projection);
+	void set_viewport(const Viewport& viewport);
 	void set_environment(const RenderScene::EnvironmentSettings& env);
 	void add_entity(const RenderScene::EntityRender& entity);
 	void add_light(const Light& light);
