@@ -336,6 +336,9 @@ void VexRenderer::_on_resize() {
 	graphics.OnWindowResized(width, height);
 }
 
+void VexRenderer::_draw_imgui() {
+}
+
 void VexRenderer::_compile_engine_shaders() {
 	// For each engine shader file, prefer the real file on disk (enables hot-reload and
 	// developer override), falling back to the embedded source when no file exists.

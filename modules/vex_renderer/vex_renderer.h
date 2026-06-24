@@ -99,7 +99,7 @@ class VexRenderer : public Renderer {
 
 protected:
 	void _on_resize() override;
-	virtual void _draw_imgui() {}
+	void _draw_imgui();
 
 	static void _bind_members();
 
