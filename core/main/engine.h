@@ -3,6 +3,7 @@
 #include "window.h"
 #include "world_sim.h"
 
+#include <input/inputs.h>
 #include <rendering/rendering_server.h>
 
 #include <chrono>
@@ -18,6 +19,7 @@ class Engine {
 	friend Main;
 	static Engine* _instance;
 
+	Input _input;
 	RenderingServer _rendering_server;
 	Window _main_window;
 	WorldSim _world_sim;
@@ -38,6 +40,7 @@ public:
 	static bool is_editor();
 
 	Window& get_main_window() { return _main_window; }
+	Input& get_input() { return _input; }
 
 	double get_current_delta_time() const;
 

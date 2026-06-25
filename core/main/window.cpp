@@ -2,6 +2,7 @@
 
 #include "engine.h"
 #include "notification.h"
+#include <input/inputs.h>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -31,7 +32,7 @@ constexpr Notification to_notification(const SDL_Event& event) {
 
 } //namespace
 
-Window::Window() : _internal_event(), _fullscreen_mode() {
+Window::Window() : _fullscreen_mode() {
 	if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 		std::cerr << SDL_GetError() << std::endl;
 		assert(false);
@@ -115,23 +116,29 @@ void Window::register_notification(Notification notification, const std::functio
 }
 
 bool Window::update() {
-	while (SDL_PollEvent(&_internal_event)) {
-		switch (_internal_event.type) {
+	Input::get()._begin_frame();
+
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+		switch (event.type) {
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 			SDL_LogDebug(0, "Close window requested");
 			return false;
 		case SDL_EVENT_KEY_DOWN: {
-			// Hard code alt + enter for fullscreen toggle
-			if (_internal_event.key.key == SDLK_F11) {
+			if (event.key.key == SDLK_F11) {
 				_fullscreen_mode = (_fullscreen_mode == FullscreenMode::WINDOWED) ? FullscreenMode::FULLSCREEN
 																				  : FullscreenMode::WINDOWED;
 				set_fullscreen_mode(_fullscreen_mode);
 			}
 			break;
 		}
+		default:
+			break;
 		}
 
-		auto notification = to_notification(_internal_event);
+		Input::get()._process_event(&event);
+
+		auto notification = to_notification(event);
 		_notification_listeners[std::to_underlying(notification)].execute();
 	}
 

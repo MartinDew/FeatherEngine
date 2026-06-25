@@ -34,6 +34,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
 set(FEATHER_CORE_SOURCES
+        "core/input/inputs.cpp"
+
         "core/framework/callable.cpp"
         "core/framework/reflected.cpp"
         "core/framework/shared_library.cpp"
