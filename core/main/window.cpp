@@ -45,14 +45,14 @@ Window::Window() : _fullscreen_mode() {
 		assert(false);
 	}
 
-	_properties.width = dm->w / 2;
-	_properties.height = dm->h / 2;
+	_width = dm->w / 2;
+	_height = dm->h / 2;
 
 	auto window_flags = SDL_WINDOW_MOUSE_CAPTURE | SDL_WINDOW_RESIZABLE;
 
-	_internal_window = SDL_CreateWindow("Feather", _properties.width, _properties.height, window_flags);
+	_internal_window = SDL_CreateWindow("Feather", _width, _height, window_flags);
 
-	SDL_GetWindowPosition(_internal_window, &_properties.x, &_properties.y);
+	SDL_GetWindowPosition(_internal_window, &_x, &_y);
 
 	// Add an sdl event watch to call on resize
 	SDL_AddEventWatch(
@@ -65,17 +65,20 @@ Window::Window() : _fullscreen_mode() {
 				}
 				return false;
 			},
-			this);
+			this
+	);
 }
 
+void Window::_bind_members() {
+}
 void Window::_on_resize() {
-	SDL_GetWindowSizeInPixels(_internal_window, &_properties.width, &_properties.height);
-	SDL_LogDebug(0, "Window resized to %dx%d", _properties.width, _properties.height);
+	SDL_GetWindowSizeInPixels(_internal_window, &_width, &_height);
+	SDL_LogDebug(0, "Window resized to %dx%d", _width, _height);
 }
 
 void Window::_on_move() {
-	SDL_GetWindowPosition(_internal_window, &_properties.x, &_properties.y);
-	SDL_LogDebug(0, "Window moved to %d,%d", _properties.x, _properties.y);
+	SDL_GetWindowPosition(_internal_window, &_x, &_y);
+	SDL_LogDebug(0, "Window moved to %d,%d", _x, _y);
 }
 
 void Window::set_fullscreen_mode(const FullscreenMode mode) const {

@@ -96,10 +96,10 @@ VexRenderer::VexRenderer()
 				  vex::GraphicsCreateDesc {
 						  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 											  .width = static_cast<uint32_t>(
-													  Engine::get().get_main_window().properties.width
+													  Engine::get().get_main_window().get_width()
 											  ),
 											  .height = static_cast<uint32_t>(
-													  Engine::get().get_main_window().properties.height
+													  Engine::get().get_main_window().get_height()
 											  ) },
 						  .enableGPUDebugLayer = !VEX_SHIPPING,
 						  .enableGPUBasedValidation = !VEX_SHIPPING,
@@ -107,8 +107,8 @@ VexRenderer::VexRenderer()
 		  )
 		, _use_reverse_z { true } {
 	auto main_window = Engine::get().get_main_window();
-	uint32_t width = main_window.properties.width;
-	uint32_t height = main_window.properties.height;
+	uint32_t width = main_window.get_width();
+	uint32_t height = main_window.get_height();
 
 	// Depth texture
 	depthTexture = graphics.CreateTexture(
@@ -310,8 +310,8 @@ void VexRenderer::_on_resize() {
 	_shader_draw_desc_cache.clear();
 	_build_draw_descs();
 
-	auto width = _window->properties.width;
-	auto height = _window->properties.height;
+	auto width = _window->get_width();
+	auto height = _window->get_height();
 
 	if (width == 0 || height == 0) {
 		return;
@@ -518,8 +518,8 @@ vex::DrawDesc& VexRenderer::_get_or_build_shader_draw_desc(Shader& shader) {
 
 void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& vp_rect = capture.get_viewport().rect;
-	const int vp_w = vp_rect.is_auto() ? _window->properties.width : vp_rect.width;
-	const int vp_h = vp_rect.is_auto() ? _window->properties.height : vp_rect.height;
+	const int vp_w = vp_rect.is_auto() ? _window->get_width() : vp_rect.width;
+	const int vp_h = vp_rect.is_auto() ? _window->get_height() : vp_rect.height;
 
 	// Clear and set up depth target
 	ctx.ClearTexture(depthTexture);
@@ -646,8 +646,8 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 
 void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx) {
 	const auto& vp_rect = capture.get_viewport().rect;
-	const int vp_w = vp_rect.is_auto() ? _window->properties.width : vp_rect.width;
-	const int vp_h = vp_rect.is_auto() ? _window->properties.height : vp_rect.height;
+	const int vp_w = vp_rect.is_auto() ? _window->get_width() : vp_rect.width;
+	const int vp_h = vp_rect.is_auto() ? _window->get_height() : vp_rect.height;
 
 	// Clear back buffer and depth
 	auto backBuffer = graphics.GetCurrentPresentTexture();
