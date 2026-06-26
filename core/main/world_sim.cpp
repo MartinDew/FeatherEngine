@@ -2,7 +2,7 @@
 
 #include "engine.h"
 #include <world/components/scene.h>
-#include <world/register_core_features.h>
+#include <world/register_ecs_types.h>
 #include <framework/static_string.hpp>
 
 namespace feather {
@@ -19,7 +19,7 @@ WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_t
 	_world.set<Ecs::Rest>({});
 #endif
 
-	register_core_ecs_features(_world);
+	register_ecs_types(_world);
 	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());

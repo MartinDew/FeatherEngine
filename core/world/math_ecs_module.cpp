@@ -1,15 +1,15 @@
-﻿#include "math_feature.h"
+﻿#include "math_ecs_module.h"
 
 #include "math/transform.h"
 
 namespace feather {
 
-void MathWorldFeature::_bind_members() {
+void MathEcsModule::_bind_members() {
 }
 
-MathWorldFeature::MathWorldFeature() = default;
+MathEcsModule::MathEcsModule() = default;
 
-MathWorldFeature::MathWorldFeature(World& world) {
+MathEcsModule::MathEcsModule(World& world) {
 	world.component<Transform>("Transform");
 	world.component<Vector3>("Vector3");
 	world.component<Matrix>("Matrix");

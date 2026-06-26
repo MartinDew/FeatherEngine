@@ -1,7 +1,7 @@
 #include "engine.h"
 #include "launch_settings.h"
 #include "world/components/light.h"
-#include "world/rendering_world_feature.h"
+#include "world/rendering_ecs_module.h"
 
 #include <framework/assert.h>
 #include <resources/resource_loader.h>
@@ -55,6 +55,7 @@ bool Engine::run() {
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		struct Move {};
+		w.component<Move>();
 		auto s = _world_sim.create_scene("Ni");
 		_world_sim.set_active_scene(s);
 

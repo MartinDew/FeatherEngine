@@ -1,4 +1,4 @@
-#include "rendering_world_feature.h"
+#include "rendering_ecs_module.h"
 
 #include "components/scene.h"
 #include <main/world_sim.h>
@@ -9,11 +9,11 @@
 
 namespace feather {
 
-void RenderingWorldFeature::_bind_members() {
+void RenderingEcsModule::_bind_members() {
 	ClassDB::bind_static_method(&Type::_load_module, "_import_module");
 }
 
-void RenderingWorldFeature::_load_module(WorldSim* sim) {
+void RenderingEcsModule::_load_module(WorldSim* sim) {
 	sim->get_world()->import <Type>();
 }
 
@@ -27,7 +27,7 @@ inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, Ma
 	RenderingServer::get()->add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 }
 
-RenderingWorldFeature::RenderingWorldFeature(World world) {
+RenderingEcsModule::RenderingEcsModule(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
 

@@ -31,7 +31,7 @@ class WorldSim final : public Simulation {
 protected:
 	static void _bind_members();
 
-	template <std::derived_from<class EcsFeature> T>
+	template <std::derived_from<class EcsModule> T>
 	void _import_feature() {
 		_world.import <T>();
 	}

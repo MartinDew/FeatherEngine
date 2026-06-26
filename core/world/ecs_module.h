@@ -7,12 +7,12 @@ namespace feather {
 
 class WorldSim;
 
-class EcsFeature : public Reflected {
-	FCLASS(EcsFeature, Reflected);
+class EcsModule : public Reflected {
+	FCLASS(EcsModule, Reflected);
 
 protected:
 	static void _bind_members() {};
-	EcsFeature() = default;
+	EcsModule() = default;
 
 	static WorldSim* _get_world_sim();
 };

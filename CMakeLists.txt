@@ -75,12 +75,12 @@ set(FEATHER_CORE_SOURCES
         "core/resources/extension.cpp"
         "core/resources/extension_format_loader.cpp"
 
-        "core/world/ecs_feature.cpp"
-        "core/world/rendering_world_feature.cpp"
-        "core/world/math_feature.cpp"
-        "core/world/register_core_features.cpp"
-        "core/world/core_world_feature.cpp"
-        "core/world/core_world_feature.h"
+        "core/world/ecs_module.h"
+        "core/world/rendering_ecs_module.cpp"
+        "core/world/math_ecs_module.cpp"
+        "core/world/register_ecs_types.cpp"
+        "core/world/core_ecs_module.cpp"
+        "core/world/core_ecs_module.h"
         "core/world/components/scene.cpp"
 )
 
