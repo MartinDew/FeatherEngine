@@ -112,7 +112,7 @@ target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Development>:BETA>
 )
 
-target_include_directories(Editor PUBLIC ${CMAKE_SOURCE_DIR} core)
+target_include_directories(Editor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/core)
 
 # Compiler options for Editor
 target_compile_options(Editor PRIVATE
@@ -123,7 +123,7 @@ target_compile_options(Editor PRIVATE
 
 # Standalone target
 add_executable(Standalone ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
-target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
+target_include_directories(Standalone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
 set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
@@ -144,8 +144,8 @@ target_compile_options(Standalone PRIVATE
 # Generate embedded resource headers using #embed
 
 add_custom_target(GenerateEmbeddedResources
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_embedded_resources.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating embedded resource headers with #embed directives"
         VERBATIM
 )
@@ -156,9 +156,9 @@ add_dependencies(Standalone GenerateEmbeddedResources)
 
 # Bind generation of type registration functions to a custom target
 add_custom_target(GenerateRegisterTypes
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_modules.py --modules-path ./modules
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_modules.py --modules-path ./modules
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating type registration functions and module registry"
         BYPRODUCTS ${GENERATED_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/modules/modules.gen.cpp
         VERBATIM
@@ -229,14 +229,14 @@ get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(_isMultiConfig)
     add_custom_target(copy_shaders ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_CURRENT_SOURCE_DIR}/raw_resources/shaders
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/shaders
             COMMENT "Copying shaders"
             VERBATIM)
 else()
     add_custom_target(copy_shaders ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_CURRENT_SOURCE_DIR}/raw_resources/shaders
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
             COMMENT "Copying shaders"
             VERBATIM)
