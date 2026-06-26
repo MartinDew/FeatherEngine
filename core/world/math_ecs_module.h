@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ecs_defs.h"
+#include "world.h"
 #include "ecs_module.h"
 
 namespace feather {
@@ -12,7 +12,7 @@ protected:
 
 public:
 	MathEcsModule();
-	MathEcsModule(World& world);
+	MathEcsModule(World world);
 };
 
 } //namespace feather

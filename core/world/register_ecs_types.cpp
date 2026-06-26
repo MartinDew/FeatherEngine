@@ -7,9 +7,9 @@
 namespace feather {
 
 void register_ecs_types(World& world) {
-	world.import <MathEcsModule>();
-	world.import <CoreWorldFeature>();
-	world.import <RenderingEcsModule>();
+	world.import_module<MathEcsModule>();
+	world.import_module<CoreWorldFeature>();
+	world.import_module<RenderingEcsModule>();
 }
 
 } //namespace feather

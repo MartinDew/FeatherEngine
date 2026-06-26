@@ -1,11 +1,12 @@
 #pragma once
-#include "ecs_defs.h"
+#include "world.h"
 #include "ecs_module.h"
 
 namespace feather {
 
 class Mesh;
 class Material;
+class WorldSim;
 
 struct MeshInstance {
 	std::shared_ptr<Mesh> mesh;

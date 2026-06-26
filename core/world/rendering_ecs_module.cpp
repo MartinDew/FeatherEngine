@@ -14,7 +14,7 @@ void RenderingEcsModule::_bind_members() {
 }
 
 void RenderingEcsModule::_load_module(WorldSim* sim) {
-	sim->get_world()->import <Type>();
+	sim->get_world().import_module<Type>();
 }
 
 inline void _begin_render_scene(const flecs::iter& it) {
@@ -40,17 +40,15 @@ RenderingEcsModule::RenderingEcsModule(World world) {
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>()
 			.up()
-			.kind(flecs::PreStore)
+			.kind(Ecs::PreStore)
 			.multi_threaded(false)
 			.each(_update_meshes);
 
 	world.system<const Light>("Fill lights")
-			.kind(flecs::PreStore)
+			.kind(Ecs::PreStore)
 			.with<ActiveScene>()
 			.up()
-			.each([](Entity e, const Light& light) {
-				RenderingServer::get()->add_light(light);
-			});
+			.each([](Entity e, const Light& light) { RenderingServer::get()->add_light(light); });
 
 	world.system("Commit Render Scene").kind(flecs::OnStore).run([](const flecs::iter&) {
 		RenderingServer::get()->commit_scene_frame();

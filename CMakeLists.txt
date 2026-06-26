@@ -75,6 +75,7 @@ set(FEATHER_CORE_SOURCES
         "core/resources/extension.cpp"
         "core/resources/extension_format_loader.cpp"
 
+        "core/world/world.cpp"
         "core/world/ecs_module.h"
         "core/world/rendering_ecs_module.cpp"
         "core/world/math_ecs_module.cpp"

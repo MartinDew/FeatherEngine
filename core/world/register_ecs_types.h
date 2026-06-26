@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "ecs_defs.h"
+#include "world.h"
 
 namespace feather {
 
