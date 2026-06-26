@@ -56,7 +56,7 @@ bool Engine::run() {
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		struct Move {};
-		world.component<Move>();
+		world.component<Move>("Move");
 		auto s = world.create_scene("Ni");
 		world.set_active_scene(s);
 

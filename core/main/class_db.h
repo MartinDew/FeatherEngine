@@ -83,6 +83,11 @@ public:
 			const Delegate<std::string_view>::DelegateFuncType& callback
 	);
 
+	template <class T>
+	static std::vector<StaticString> get_children_names(bool exclusive = false) {
+		return get_children_names(T::get_class_static(), exclusive);
+	}
+
 	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);

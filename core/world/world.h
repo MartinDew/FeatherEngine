@@ -1,8 +1,8 @@
 #pragma once
 
-#include <world/ecs_defs.h>
-#include <world/components/scene.h>
 #include <flecs.h>
+#include <world/components/scene.h>
+#include <world/ecs_defs.h>
 
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@ namespace feather {
 
 class World {
 	flecs::world _flecs;
-	EcsTimer     _fixed_tick;
+	EcsTimer _fixed_tick;
 
 	Entity _scene_prefab;
 	Entity _current_scene;
@@ -23,34 +23,40 @@ public:
 
 	// --- Flecs registration passthrough ---
 
-	template<class T>
+	template <class T>
 	auto component(const char* name = nullptr) {
 		return name ? _flecs.component<T>(name) : _flecs.component<T>();
 	}
 
-	template<class... TComps>
+	template <class... TComps>
 	auto system(const char* name = nullptr) {
 		return name ? _flecs.system<TComps...>(name) : _flecs.system<TComps...>();
 	}
 
-	template<class... TComps>
+	template <class... TComps>
 	auto query_builder(const char* name = nullptr) {
 		return name ? _flecs.query_builder<TComps...>(name) : _flecs.query_builder<TComps...>();
 	}
 
-	template<class T>
+	template <class T>
 	auto module(const char* name = nullptr) {
 		return name ? _flecs.module<T>(name) : _flecs.module<T>();
 	}
 
-	template<class T>
-	auto import_module() { return _flecs.import<T>(); }
+	template <class T>
+	auto import_module() {
+		return _flecs.import <T>();
+	}
 
-	template<class T>
-	void set(T val) { _flecs.set(val); }
+	template <class T>
+	void set(T val) {
+		_flecs.set(val);
+	}
 
-	template<class T>
-	void remove_all() { _flecs.remove_all<T>(); }
+	template <class T>
+	void remove_all() {
+		_flecs.remove_all<T>();
+	}
 
 	auto prefab(const char* name) { return _flecs.prefab(name); }
 	auto timer() { return _flecs.timer(); }
@@ -72,18 +78,16 @@ public:
 
 	// --- Scene-scoped query ---
 
-	template<class... TComps>
+	template <class... TComps>
 	auto scene_query() {
-		return _flecs.query_builder<TComps...>()
-			.template with<ActiveScene>().up(Ecs::ChildOf)
-			.build();
+		return _flecs.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
 	}
 
 	// --- Fixed tick ---
 
 	void set_fixed_tick_interval(double interval);
 
-	template<class... TComps>
+	template <class... TComps>
 	auto& execute_fixed(Ecs::system_builder<TComps...>& system) {
 		return system.tick_source(_fixed_tick);
 	}
