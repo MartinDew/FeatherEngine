@@ -8,43 +8,37 @@ package("sdl3_feather")
     add_deps("cmake")
 
     on_install(function(package)
-        local static = package:config("shared") == false
+        local static = not package:config("shared")
         import("package.tools.cmake").install(package, {
-            ["SDL_SHARED"]     = static and "OFF" or "ON",
-            ["SDL_STATIC"]     = static and "ON"  or "OFF",
-            ["SDL_MAIN"]       = "OFF",
-            ["SDL_AUDIO"]      = "OFF",
-            ["SDL_VIDEO"]      = "ON",
-            ["SDL_GPU"]        = "OFF",
-            ["SDL_RENDER"]     = "OFF",
-            ["SDL_CAMERA"]     = "OFF",
-            ["SDL_JOYSTICK"]   = "OFF",
-            ["SDL_HAPTIC"]     = "OFF",
-            ["SDL_HIDAPI"]     = "OFF",
-            ["SDL_POWER"]      = "OFF",
-            ["SDL_SENSOR"]     = "OFF",
-            ["SDL_DIALOG"]     = "OFF",
-            ["SDL_TESTS"]      = "OFF",
+            ["SDL_SHARED"]      = static and "OFF" or "ON",
+            ["SDL_STATIC"]      = static and "ON"  or "OFF",
+            ["SDL_STATIC_PIC"]  = "ON",
+            ["SDL_MAIN"]        = "OFF",
+            ["SDL_AUDIO"]       = "OFF",
+            ["SDL_VIDEO"]       = "ON",
+            ["SDL_GPU"]         = "OFF",
+            ["SDL_RENDER"]      = "OFF",
+            ["SDL_CAMERA"]      = "OFF",
+            ["SDL_JOYSTICK"]    = "OFF",
+            ["SDL_HAPTIC"]      = "OFF",
+            ["SDL_HIDAPI"]      = "OFF",
+            ["SDL_POWER"]       = "OFF",
+            ["SDL_SENSOR"]      = "OFF",
+            ["SDL_DIALOG"]      = "OFF",
+            ["SDL_TESTS"]       = "OFF",
         })
     end)
 
-    on_fetch(function(package)
-        local result = {}
-        result.includedirs = {package:installdir("include")}
-        result.linkdirs    = {package:installdir("lib")}
+    -- on_load: set link names and Windows system libs for static builds.
+    -- cmake auto-discover handles includedirs/linkdirs; we only need to name the libs.
+    on_load(function(package)
         if package:config("shared") then
-            if package:is_plat("windows") then
-                result.links = {"SDL3"}
-            else
-                result.links = {"SDL3"}
-            end
+            package:add("links", "SDL3")
         else
+            package:add("links", "SDL3-static")
             if package:is_plat("windows") then
-                result.links = {"SDL3-static", "winmm", "imm32", "version", "setupapi"}
-            else
-                result.links = {"SDL3"}
+                package:add("syslinks", "winmm", "imm32", "version", "setupapi")
             end
         end
-        return result
     end)
 package_end()

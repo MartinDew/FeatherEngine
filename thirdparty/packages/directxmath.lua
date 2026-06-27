@@ -8,11 +8,10 @@ package("directxmath_feather")
     on_install(function(package)
         local dst_inc = package:installdir("include")
         os.mkdir(dst_inc)
-        -- DirectXMath headers are in Inc/ at the repo root
-        local inc_dir = path.join(package:sourcedir(), "Inc")
-        if os.isdir(inc_dir) then
-            os.cp(path.join(inc_dir, "*.h"), dst_inc)
-            os.cp(path.join(inc_dir, "*.inl"), dst_inc)
+        -- CWD is the package source dir in on_install; headers are in Inc/
+        if os.isdir("Inc") then
+            os.cp(path.join("Inc", "*.h"),   dst_inc)
+            os.cp(path.join("Inc", "*.inl"), dst_inc)
         end
         -- sal.h shim for non-MSVC (lives locally in the feather repo)
         local sal_src = path.join(os.projectdir(), "thirdparty", "DirectXMath", "sal.h")
@@ -22,8 +21,11 @@ package("directxmath_feather")
     end)
 
     on_fetch(function(package)
-        return {
-            includedirs = {package:installdir("include")},
-        }
+        local inc = package:installdir("include")
+        -- Guard: if the key header isn't present, on_install hasn't run yet
+        if not os.isfile(path.join(inc, "DirectXMath.h")) then
+            return nil
+        end
+        return {includedirs = {inc}}
     end)
 package_end()

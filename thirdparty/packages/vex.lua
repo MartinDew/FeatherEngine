@@ -7,13 +7,13 @@ package("vex")
     local AGILITY_VERSION = "618"
 
     on_install(function(package)
-        local sourcedir  = package:sourcedir()
+        -- CWD is the package source dir in on_install
         local installdir = package:installdir()
         -- cmake build dir lives inside installdir so it is cleaned up with the package
-        local builddir   = path.join(installdir, ".cmake_build")
+        local builddir = path.join(installdir, ".cmake_build")
 
         -- ---- Patch: remove invalid Vulkan validation layer ---------------
-        local vkrhi = path.join(sourcedir, "src", "Vulkan", "RHI", "VkRHI.cpp")
+        local vkrhi = path.join("src", "Vulkan", "RHI", "VkRHI.cpp")
         if os.isfile(vkrhi) then
             local content = io.readfile(vkrhi)
             local patched, n = content:gsub(
@@ -27,7 +27,7 @@ package("vex")
         -- ---- cmake configure + build + install ---------------------------
         local build_type = package:debug() and "Debug" or "Release"
         os.vrunv("cmake", {
-            "-S", sourcedir,
+            "-S", ".",
             "-B", builddir,
             "-DCMAKE_BUILD_TYPE="     .. build_type,
             "-DCMAKE_INSTALL_PREFIX=" .. installdir,
@@ -71,29 +71,59 @@ package("vex")
         end
 
         -- Vex shaders → shaders/
-        local shaders_dir = path.join(sourcedir, "shaders")
-        if os.isdir(shaders_dir) then
-            os.cp(path.join(shaders_dir, "*"), package:installdir("shaders"))
+        if os.isdir("shaders") then
+            os.cp(path.join("shaders", "*"), package:installdir("shaders"))
         end
 
         -- DX12AgilitySDK.cpp → src/DX12/  (must be compiled into the host executable)
-        local agility_src = path.join(sourcedir, "src", "DX12", "DX12AgilitySDK.cpp")
+        local agility_src = path.join("src", "DX12", "DX12AgilitySDK.cpp")
         if os.isfile(agility_src) then
             local dst = package:installdir("src", "DX12")
             os.mkdir(dst)
             os.cp(agility_src, dst)
         end
+
+        -- Import libs for slang, dxc, and PIX (cmake installs DLLs but not their .lib stubs)
+        local libdir = package:installdir("lib")
+        local slang_lib = path.join(deps, "slang-src", "lib", "slang.lib")
+        if os.isfile(slang_lib) then os.cp(slang_lib, libdir) end
+        local dxc_lib = path.join(deps, "dxc-src", "lib", "x64", "dxcompiler.lib")
+        if os.isfile(dxc_lib) then os.cp(dxc_lib, libdir) end
+        local pix_lib = path.join(deps, "PixEvents", "bin", "x64", "WinPixEventRuntime.lib")
+        if os.isfile(pix_lib) then os.cp(pix_lib, libdir) end
     end)
 
     on_fetch(function(package)
-        local result = {}
-        result.includedirs = {package:installdir("include")}
-        result.linkdirs    = {package:installdir("lib")}
-        result.links       = {"Vex"}
-        -- Expose the Agility SDK version so consuming targets can define it
-        result.defines     = {
-            "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
+        local inc = package:installdir("include")
+        -- Guard: if the key header isn't present, on_install hasn't run yet
+        if not os.isfile(path.join(inc, "Vex.h")) then
+            return nil
+        end
+        local libdir = package:installdir("lib")
+        return {
+            -- magic_enum is double-nested (include/magic_enum/magic_enum/magic_enum.hpp);
+            -- adding include/magic_enum as a secondary root makes the #include work.
+            -- directx/dxc/slang subdirs host their respective public headers.
+            includedirs = {
+                inc,
+                path.join(inc, "magic_enum"),
+                path.join(inc, "directx"),
+                path.join(inc, "dxc"),
+                path.join(inc, "slang"),
+            },
+            linkdirs = {libdir},
+            -- Vex.lib + import libs for slang/dxc/PIX DLLs (copied to lib/ during on_install)
+            links    = {"Vex", "slang", "dxcompiler", "WinPixEventRuntime"},
+            -- Windows SDK graphics libs
+            syslinks = {"d3d12", "dxgi", "dxguid"},
+            defines  = {
+                "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
+                "VEX_DX12=1",
+                "VEX_VULKAN=0",
+                "VEX_SLANG=1",
+                "VEX_SHADER_COMPILER=1",
+                "VEX_DXC=1",
+            },
         }
-        return result
     end)
 package_end()

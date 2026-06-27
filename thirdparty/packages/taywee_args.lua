@@ -8,15 +8,17 @@ package("taywee_args")
     set_urls("https://github.com/Taywee/args.git", {tag = "6.4.7"})
 
     on_install(function(package)
-        -- args is a single-header library (args.hxx at the repo root)
-        local dst = package:installdir("include")
-        os.mkdir(dst)
-        os.cp(path.join(package:sourcedir(), "args.hxx"), dst)
+        -- CWD is the package source dir in on_install; args.hxx is at the repo root
+        os.cp("args.hxx", package:installdir("include"))
     end)
 
     on_fetch(function(package)
+        local inc = package:installdir("include")
+        if not os.isfile(path.join(inc, "args.hxx")) then
+            return nil
+        end
         return {
-            includedirs = {package:installdir("include")},
+            includedirs = {inc},
             defines     = {"ARGS_NOEXCEPT"},
         }
     end)
