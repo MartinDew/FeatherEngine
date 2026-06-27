@@ -12,7 +12,8 @@ class Extension final : public Resource {
 	friend class ExtensionFormatLoader;
 
 	std::string _extension_name;
-	std::string _entry_point;
+	// std::string _entry_point;
+	std::function<void()> _register_func;
 	std::shared_ptr<SharedLibrary> _library_handle;
 
 protected:
@@ -22,12 +23,14 @@ public:
 	Extension() = default;
 	~Extension() override = default;
 
-	Extension(const std::string_view& name, const std::string_view& entry_point);
+	Extension(const std::string_view& name, const std::function<void()> register_func);
 
 	bool is_loaded() override { return _library_handle != nullptr; }
 
 	const std::string& get_name() const { return _extension_name; }
-	const std::string& get_entry_point() const { return _entry_point; }
+	// const std::string& get_entry_point() const { return _entry_point; }
+	const bool register_extension() const;
+	const bool unregister_extension() const;
 };
 
 } // namespace feather
