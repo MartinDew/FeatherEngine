@@ -1,11 +1,12 @@
 #pragma once
-#include "ecs_defs.h"
-#include "ecs_feature.h"
+#include "world.h"
+#include "ecs_module.h"
 
 namespace feather {
 
 class Mesh;
 class Material;
+class WorldSim;
 
 struct MeshInstance {
 	std::shared_ptr<Mesh> mesh;
@@ -15,8 +16,8 @@ struct MaterialInstance {
 	std::shared_ptr<Material> material; // todo: multiple materials
 };
 
-class RenderingWorldFeature : public EcsFeature {
-	FCLASS(RenderingWorldFeature, EcsFeature);
+class RenderingEcsModule : public EcsModule {
+	FCLASS(RenderingEcsModule, EcsModule);
 
 protected:
 	static void _bind_members();
@@ -24,8 +25,8 @@ protected:
 	static void _load_module(WorldSim* sim);
 
 public:
-	RenderingWorldFeature() = default;
-	RenderingWorldFeature(World world);
+	RenderingEcsModule() = default;
+	RenderingEcsModule(World world);
 };
 
 } //namespace feather

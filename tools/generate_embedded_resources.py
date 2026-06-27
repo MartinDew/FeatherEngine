@@ -51,8 +51,11 @@ def generate_header(source_file: Path, output_file: Path, base_path: Path, dry_r
 
     # Generate header content
     header_content = f"""#pragma once
-
+#ifdef _WIN32
+static const char {var_name}[] = {{
+#else
 static const unsigned char {var_name}[] = {{
+#endif
 #embed "{rel_path}"
 \t, '\\0'
 }};

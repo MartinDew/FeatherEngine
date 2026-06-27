@@ -1,4 +1,4 @@
-#include "rendering_world_feature.h"
+#include "rendering_ecs_module.h"
 
 #include "components/scene.h"
 #include <main/world_sim.h>
@@ -9,26 +9,25 @@
 
 namespace feather {
 
-void RenderingWorldFeature::_bind_members() {
+void RenderingEcsModule::_bind_members() {
 	ClassDB::bind_static_method(&Type::_load_module, "_import_module");
 }
 
-void RenderingWorldFeature::_load_module(WorldSim* sim) {
-	sim->get_world()->import <Type>();
+void RenderingEcsModule::_load_module(WorldSim* sim) {
+	sim->get_world().import_module<Type>();
 }
 
 inline void _begin_render_scene(const flecs::iter& it) {
 	auto* rs = RenderingServer::get();
 	rs->begin_scene_frame();
-	rs->set_camera_projection(Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f));
-	rs->set_camera_transform({});
+	rs->set_viewport({ .camera_projection = Projection::create_perspective_fov(90.0f, 16.0f / 9.0f, 0.1f, 1000.0f) });
 }
 
 inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
 	RenderingServer::get()->add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 }
 
-RenderingWorldFeature::RenderingWorldFeature(World world) {
+RenderingEcsModule::RenderingEcsModule(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
 
@@ -41,17 +40,15 @@ RenderingWorldFeature::RenderingWorldFeature(World world) {
 	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>()
 			.up()
-			.kind(flecs::PreStore)
+			.kind(Ecs::PreStore)
 			.multi_threaded(false)
 			.each(_update_meshes);
 
 	world.system<const Light>("Fill lights")
-			.kind(flecs::PreStore)
+			.kind(Ecs::PreStore)
 			.with<ActiveScene>()
 			.up()
-			.each([](Entity e, const Light& light) {
-				RenderingServer::get()->add_light(light);
-			});
+			.each([](Entity e, const Light& light) { RenderingServer::get()->add_light(light); });
 
 	world.system("Commit Render Scene").kind(flecs::OnStore).run([](const flecs::iter&) {
 		RenderingServer::get()->commit_scene_frame();

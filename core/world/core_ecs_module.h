@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "ecs_defs.h"
-#include "ecs_feature.h"
+#include "world.h"
+#include "ecs_module.h"
 
 namespace feather {
 
-class CoreWorldFeature : public EcsFeature {
-	FCLASS(CoreWorldFeature, EcsFeature);
+class CoreWorldFeature : public EcsModule {
+	FCLASS(CoreWorldFeature, EcsModule);
 
 protected:
 	static void _bind_members();

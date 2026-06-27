@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.31)
 
 # Configuration types for multi-config generators
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Development" CACHE STRING "" FORCE)
@@ -34,6 +34,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_MAP_IMPORTED_CONFIG_Development RelWithDebInfo CACHE STRING "" FORCE)
 
 set(FEATHER_CORE_SOURCES
+        "core/input/inputs.cpp"
+
         "core/framework/callable.cpp"
         "core/framework/reflected.cpp"
         "core/framework/shared_library.cpp"
@@ -73,12 +75,13 @@ set(FEATHER_CORE_SOURCES
         "core/resources/extension.cpp"
         "core/resources/extension_format_loader.cpp"
 
-        "core/world/ecs_feature.cpp"
-        "core/world/rendering_world_feature.cpp"
-        "core/world/math_feature.cpp"
-        "core/world/register_core_features.cpp"
-        "core/world/core_world_feature.cpp"
-        "core/world/core_world_feature.h"
+        "core/world/world.cpp"
+        "core/world/ecs_module.h"
+        "core/world/rendering_ecs_module.cpp"
+        "core/world/math_ecs_module.cpp"
+        "core/world/register_ecs_types.cpp"
+        "core/world/core_ecs_module.cpp"
+        "core/world/core_ecs_module.h"
         "core/world/components/scene.cpp"
 )
 
@@ -110,7 +113,7 @@ target_compile_definitions(Editor PUBLIC EDITOR_BUILD=1
         $<$<CONFIG:Development>:BETA>
 )
 
-target_include_directories(Editor PUBLIC ${CMAKE_SOURCE_DIR} core)
+target_include_directories(Editor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/core)
 
 # Compiler options for Editor
 target_compile_options(Editor PRIVATE
@@ -121,7 +124,7 @@ target_compile_options(Editor PRIVATE
 
 # Standalone target
 add_executable(Standalone ${FEATHER_CORE_SOURCES} ${GENERATED_FILES})
-target_include_directories(Standalone PUBLIC core ${CMAKE_SOURCE_DIR})
+target_include_directories(Standalone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_target_properties(Standalone PROPERTIES OUTPUT_NAME ${PROJECT_NAME}.standalone)
 set_target_properties(Standalone PROPERTIES ENABLE_EXPORTS ON)
@@ -142,8 +145,8 @@ target_compile_options(Standalone PRIVATE
 # Generate embedded resource headers using #embed
 
 add_custom_target(GenerateEmbeddedResources
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_embedded_resources.py
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_embedded_resources.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating embedded resource headers with #embed directives"
         VERBATIM
 )
@@ -154,10 +157,11 @@ add_dependencies(Standalone GenerateEmbeddedResources)
 
 # Bind generation of type registration functions to a custom target
 add_custom_target(GenerateRegisterTypes
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating type registration functions"
-        BYPRODUCTS ${GENERATED_FILES}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_core_registers.py --core-path ./core
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_modules.py --modules-path ./modules
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating type registration functions and module registry"
+        BYPRODUCTS ${GENERATED_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/modules/modules.gen.cpp
         VERBATIM
 )
 
@@ -226,14 +230,14 @@ get_property(_isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(_isMultiConfig)
     add_custom_target(copy_shaders ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_CURRENT_SOURCE_DIR}/raw_resources/shaders
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/shaders
             COMMENT "Copying shaders"
             VERBATIM)
 else()
     add_custom_target(copy_shaders ALL
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/raw_resources/shaders
+            ${CMAKE_CURRENT_SOURCE_DIR}/raw_resources/shaders
             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
             COMMENT "Copying shaders"
             VERBATIM)

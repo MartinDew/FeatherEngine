@@ -15,6 +15,8 @@ target_compile_options(SimpleMath PRIVATE
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-w>
 )
 
+set_target_properties(SimpleMath PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_compile_definitions(SimpleMath PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
 
 if (MSVC)

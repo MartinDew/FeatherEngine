@@ -1,7 +1,7 @@
 #include "engine.h"
 #include "launch_settings.h"
 #include "world/components/light.h"
-#include "world/rendering_world_feature.h"
+#include "world/rendering_ecs_module.h"
 
 #include <framework/assert.h>
 #include <resources/resource_loader.h>
@@ -45,7 +45,8 @@ bool Engine::run() {
 
 	// test script
 	{
-		auto w = *_world_sim.get_world();
+		auto& world = _world_sim.get_world();
+
 		Transform t1 { { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
 		Transform t2 { { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
 		Transform t3 { { 2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
@@ -55,30 +56,31 @@ bool Engine::run() {
 		material->set_base_color_factor({ .7f, .7f, .0f });
 
 		struct Move {};
-		auto s = _world_sim.create_scene("Ni");
-		_world_sim.set_active_scene(s);
+		world.component<Move>("Move");
+		auto s = world.create_scene("Ni");
+		world.set_active_scene(s);
 
-		auto _ = _world_sim.create_entity(s, "Box1")
+		auto _ = world.create_entity(s, "Box1")
 						 .emplace<Transform>(t1)
 						 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 						 .emplace<MaterialInstance>(material)
 						 .add<Move>();
 
-		_ = _world_sim.create_entity(s, "Box2")
+		_ = world.create_entity(s, "Box2")
 					.emplace<Transform>(t2)
 					.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					.emplace<MaterialInstance>(material)
 					.add<Move>();
 
-		w.entity(s, "Box3")
+		world.entity(s, "Box3")
 				.emplace<Transform>(t3)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
 				.add<Move>();
 
-		w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
+		world.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
-		_world_sim.create_entity(s, "Floor")
+		world.create_entity(s, "Floor")
 				.emplace<Transform>(
 						Vector3 { 0, -2, 0 },
 						Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
@@ -93,9 +95,9 @@ bool Engine::run() {
 				  .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
 				  .intensity = 10.0f,
 				  .cast_shadows = true };
-		w.entity(s, "Directional").emplace<Light>(std::move(l));
+		world.entity(s, "Directional").emplace<Light>(std::move(l));
 
-		w.system<const MeshInstance, Transform>("Spin")
+		world.system<const MeshInstance, Transform>("Spin")
 				.with<Move>()
 				.kind(flecs::OnUpdate)
 				.write<Transform>()
@@ -106,7 +108,7 @@ bool Engine::run() {
 							);
 				});
 
-		auto q = w.query_builder<Transform, MeshInstance, MaterialInstance*>("Test")
+		auto q = world.query_builder<Transform, MeshInstance, MaterialInstance*>("Test")
 						 .with<ActiveScene>()
 						 .optional()
 						 .parent()
