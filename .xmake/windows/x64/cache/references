@@ -1,0 +1,9 @@
+{
+    packages = {
+        [[C:\Users\sonic\AppData\Local\.xmake\packages\d\directxmath_feather\@default\10253c39aca14760ae4382272800b680]],
+        [[C:\Users\sonic\AppData\Local\.xmake\packages\s\sdl3_feather\@default\b1caf5aecf3447d1bfaf66081135de32]],
+        [[C:\Users\sonic\AppData\Local\.xmake\packages\t\taywee_args\6.4.7\10253c39aca14760ae4382272800b680]],
+        [[C:\Users\sonic\AppData\Local\.xmake\packages\v\vex\@default\b1caf5aecf3447d1bfaf66081135de32]],
+        [[C:\Users\sonic\AppData\Local\.xmake\packages\f\flecs\v4.1.5\95927ba27d4d4cdb9bf561fc1a43b5a0]]
+    }
+}

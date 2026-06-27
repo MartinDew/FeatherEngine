@@ -1,0 +1,106 @@
+{
+    sdl3 = {
+        links = {
+            "SDL3-static",
+            "winmm",
+            "imm32",
+            "version",
+            "setupapi"
+        },
+        __requireconfs = {
+            configs = {
+                shared = false
+            },
+            system = false,
+            alias = "sdl3"
+        },
+        __enabled = true,
+        installdir = [[C:\Users\sonic\AppData\Local\.xmake\packages\s\sdl3_feather\@default\b1caf5aecf3447d1bfaf66081135de32]],
+        __requirestr = "sdl3_feather",
+        envs = {
+            PATH = {
+                [[C:\Users\sonic\AppData\Local\.xmake\packages\n\ninja\v1.13.2\388143d312d14320a9c5240d43405107\bin]],
+                [[C:\Users\sonic\AppData\Local\.xmake\packages\c\cmake\4.2.3\674adf9609f646bc9f678b5e946b080a\bin]]
+            }
+        },
+        sysincludedirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\s\sdl3_feather\@default\b1caf5aecf3447d1bfaf66081135de32\include]],
+        linkdirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\s\sdl3_feather\@default\b1caf5aecf3447d1bfaf66081135de32\lib]]
+    },
+    directxmath = {
+        __requireconfs = {
+            system = false,
+            alias = "directxmath"
+        },
+        __enabled = true,
+        installdir = [[C:\Users\sonic\AppData\Local\.xmake\packages\d\directxmath_feather\@default\10253c39aca14760ae4382272800b680]],
+        sysincludedirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\d\directxmath_feather\@default\10253c39aca14760ae4382272800b680\include]],
+        __requirestr = "directxmath_feather"
+    },
+    flecs = {
+        __requirestr = "flecs 4.1.5",
+        __enabled = true,
+        license = "MIT",
+        version = "v4.1.5",
+        syslinks = {
+            "wsock32",
+            "ws2_32",
+            "Dbghelp"
+        },
+        defines = "flecs_STATIC",
+        static = true,
+        __requireconfs = {
+            configs = {
+                shared = false
+            },
+            system = false,
+            alias = "flecs"
+        },
+        libfiles = [[C:\Users\sonic\AppData\Local\.xmake\packages\f\flecs\v4.1.5\95927ba27d4d4cdb9bf561fc1a43b5a0\lib\flecs_static.lib]],
+        installdir = [[C:\Users\sonic\AppData\Local\.xmake\packages\f\flecs\v4.1.5\95927ba27d4d4cdb9bf561fc1a43b5a0]],
+        sysincludedirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\f\flecs\v4.1.5\95927ba27d4d4cdb9bf561fc1a43b5a0\include]],
+        envs = {
+            PATH = {
+                [[C:\Users\sonic\AppData\Local\.xmake\packages\n\ninja\v1.13.2\388143d312d14320a9c5240d43405107\bin]],
+                [[C:\Users\sonic\AppData\Local\.xmake\packages\c\cmake\4.2.3\674adf9609f646bc9f678b5e946b080a\bin]]
+            }
+        },
+        links = "flecs_static",
+        linkdirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\f\flecs\v4.1.5\95927ba27d4d4cdb9bf561fc1a43b5a0\lib]]
+    },
+    taywee_args = {
+        __requireconfs = {
+            system = false,
+            alias = "taywee_args"
+        },
+        __enabled = false,
+        __requirestr = "taywee_args 6.4.7"
+    },
+    assimp = {
+        __requireconfs = {
+            configs = {
+                assimp_install = false,
+                shared = false,
+                build_tests = false,
+                build_tools = false,
+                no_export = true
+            },
+            system = false,
+            alias = "assimp"
+        },
+        __enabled = false,
+        __requirestr = "assimp 6.0.4"
+    },
+    vex = {
+        linkdirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\v\vex\@default\b1caf5aecf3447d1bfaf66081135de32\lib]],
+        __requireconfs = {
+            system = false,
+            alias = "vex"
+        },
+        __enabled = true,
+        installdir = [[C:\Users\sonic\AppData\Local\.xmake\packages\v\vex\@default\b1caf5aecf3447d1bfaf66081135de32]],
+        __requirestr = "vex",
+        sysincludedirs = [[C:\Users\sonic\AppData\Local\.xmake\packages\v\vex\@default\b1caf5aecf3447d1bfaf66081135de32\include]],
+        links = "Vex",
+        defines = "VEX_AGILITY_SDK_VERSION=618"
+    }
+}

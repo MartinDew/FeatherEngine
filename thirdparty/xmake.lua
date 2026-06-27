@@ -1,0 +1,66 @@
+-- Auto-load all custom package definitions from packages/
+-- Adding a new thirdparty: drop a <name>.lua file in thirdparty/packages/ and add_requires() here.
+for _, pkg_file in ipairs(os.files(path.join(os.scriptdir(), "packages", "*.lua"))) do
+    includes(pkg_file)
+end
+
+-- ---- Package mode (debug vs release) ------------------------------------
+-- In CMake the Development config maps to RelWithDebInfo, which means
+-- thirdparties build in Release mode. Mirror that here: only use debug
+-- packages when in debug mode.
+if is_mode("debug") then
+    add_requireconfs("*", {debug = true})
+end
+
+-- ---- Core packages (all available in xrepo) -----------------------------
+-- flecs ECS framework
+add_requires("flecs 4.1.5", {
+    system = false,
+    alias  = "flecs",
+    configs = {shared = not has_config("static_deps")},
+})
+
+-- assimp asset importer
+add_requires("assimp 6.0.4", {
+    system = false,
+    alias  = "assimp",
+    configs = {
+        shared         = not has_config("static_deps"),
+        build_tools    = false,
+        build_tests    = false,
+        assimp_install = false,
+        no_export      = true,
+    },
+})
+
+-- ---- Custom packages (local definitions in packages/) -------------------
+
+-- DirectXMath (header-only, apr2025 tag, includes local sal.h shim)
+add_requires("directxmath_feather", {
+    system = false,
+    alias  = "directxmath",
+})
+
+-- SDL3 (VIDEO subsystem only, static or shared based on static_deps)
+add_requires("sdl3_feather", {
+    system = false,
+    alias  = "sdl3",
+    configs = {shared = not has_config("static_deps")},
+})
+
+-- taywee/args (single-header, ARGS_NOEXCEPT)
+add_requires("taywee_args 6.4.7", {
+    system = false,
+    alias  = "taywee_args",
+})
+
+-- Vex (Vulkan rendering, not on Apple platforms)
+if not is_plat("macosx") then
+    add_requires("vex", {
+        system = false,
+        alias  = "vex",
+    })
+end
+
+-- ---- SimpleMath: local static target (not an xrepo package) -------------
+includes(path.join(os.scriptdir(), "SimpleMath", "xmake.lua"))

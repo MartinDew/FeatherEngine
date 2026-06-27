@@ -1,0 +1,20 @@
+{
+    cmdlines = {
+        "xmake f -m debug",
+        "xmake f -m debug",
+        "xmake f -m debug",
+        "xmake f -m debug",
+        "xmake f -m debug",
+        "xmake f -m debug -y",
+        "xmake f -m debug",
+        "xmake f -m debug",
+        "xmake f -m debug -y",
+        "xmake f -m debug -y",
+        "xmake f -m debug -y",
+        "xmake c",
+        "xmake c",
+        "xmake c debug",
+        "xmake ",
+        [[xmake lua "C:\\Program Files\\xmake\\modules\\private\\utils\\statistics.lua"]]
+    }
+}
