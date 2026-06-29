@@ -10,7 +10,8 @@ package("taywee_args")
     on_install(function(package)
         -- CWD is the package source dir in on_install; args.hxx is at the repo root
         os.cp("args.hxx", package:installdir("include"))
-        package:add_exported_defines("ARGS_NOEXCEPT")
+        -- package:add_exported_defines("ARGS_NOEXCEPT")
+        package:add("defines", "ARGS_NOEXCEPT")
     end)
 
     on_fetch(function(package)

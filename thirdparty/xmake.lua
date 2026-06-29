@@ -30,6 +30,8 @@ add_requires("assimp 6.0.4", {
         build_tests    = false,
         assimp_install = false,
         no_export      = true,
+        -- Debug build fails because of a pbd error in the assimp CMakeLists.txt, so force release build for now
+        debug          = false
     },
 })
 
