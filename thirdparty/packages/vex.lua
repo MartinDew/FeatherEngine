@@ -43,16 +43,57 @@ package("vex")
         -- ---- Collect runtime artifacts from cmake's _deps ----------------
         local deps = path.join(builddir, "_deps")
 
-        -- Slang DLLs → runtime/
-        local slang_bin = path.join(deps, "slang-src", "bin")
-        if os.isdir(slang_bin) then
-            os.cp(path.join(slang_bin, "*.dll"), package:installdir("runtime"))
+        -- Slang: search recursively under _deps/slang-src for DLLs and the import lib.
+        -- Pre-built slang releases nest by platform+config (bin/windows-x64/release/),
+        -- while source builds may put outputs at bin/ directly — recursive glob handles both.
+        local slang_src = path.join(deps, "slang-src")
+        if os.isdir(slang_src) then
+            -- DLLs → runtime/
+            for _, dll in ipairs(os.files(path.join(slang_src, "**.dll"))) do
+                os.cp(dll, package:installdir("runtime"))
+            end
+            -- slang.lib → lib/
+            local libdir = package:installdir("lib")
+            for _, lib in ipairs(os.files(path.join(slang_src, "**", "slang.lib"))) do
+                os.cp(lib, libdir)
+                break
+            end
+            -- slang headers → include/slang/
+            -- Slang headers live under include/ in the prebuilt archive; copy them so
+            -- consumers can #include <slang.h> via the includedirs returned by on_fetch.
+            for _, inc_dir in ipairs({
+                path.join(slang_src, "include"),
+                path.join(slang_src, "src"),  -- source builds expose headers here
+            }) do
+                if os.isdir(inc_dir) then
+                    local dst = package:installdir("include", "slang")
+                    os.mkdir(dst)
+                    -- Only copy .h/.hpp files to avoid pulling in sources
+                    for _, hdr in ipairs(os.files(path.join(inc_dir, "*.h"))) do
+                        os.cp(hdr, dst)
+                    end
+                    for _, hdr in ipairs(os.files(path.join(inc_dir, "*.hpp"))) do
+                        os.cp(hdr, dst)
+                    end
+                    break
+                end
+            end
         end
 
-        -- DXC DLLs (x64) → runtime/
-        local dxc_bin = path.join(deps, "dxc-src", "bin", "x64")
-        if os.isdir(dxc_bin) then
-            os.cp(path.join(dxc_bin, "*.dll"), package:installdir("runtime"))
+        -- DXC: same treatment — search recursively for DLLs and the import lib.
+        local dxc_src = path.join(deps, "dxc-src")
+        if os.isdir(dxc_src) then
+            -- DLLs → runtime/
+            for _, dll in ipairs(os.files(path.join(dxc_src, "**.dll"))) do
+                -- Skip dxil.dll copies that live next to dxcompiler; they are system-managed
+                os.cp(dll, package:installdir("runtime"))
+            end
+            -- dxcompiler.lib → lib/  (search x64 subdir first, then anywhere)
+            local libdir = package:installdir("lib")
+            for _, lib in ipairs(os.files(path.join(dxc_src, "**", "dxcompiler.lib"))) do
+                os.cp(lib, libdir)
+                break
+            end
         end
 
         -- WinPIX runtime (x64) → runtime/
@@ -83,23 +124,22 @@ package("vex")
             os.cp(agility_src, dst)
         end
 
-        -- Import libs for slang, dxc, and PIX (cmake installs DLLs but not their .lib stubs)
+        -- PIX import lib
         local libdir = package:installdir("lib")
-        local slang_lib = path.join(deps, "slang-src", "lib", "slang.lib")
-        if os.isfile(slang_lib) then os.cp(slang_lib, libdir) end
-        local dxc_lib = path.join(deps, "dxc-src", "lib", "x64", "dxcompiler.lib")
-        if os.isfile(dxc_lib) then os.cp(dxc_lib, libdir) end
         local pix_lib = path.join(deps, "PixEvents", "bin", "x64", "WinPixEventRuntime.lib")
         if os.isfile(pix_lib) then os.cp(pix_lib, libdir) end
     end)
 
     on_fetch(function(package)
-        local inc = package:installdir("include")
-        -- Guard: if the key header isn't present, on_install hasn't run yet
-        if not os.isfile(path.join(inc, "Vex.h")) then
+        local libdir = package:installdir("lib")
+        -- Use Vex.lib as the authoritative "installed" indicator: cmake's install step always
+        -- produces it, whereas the header location varies (Vex.h vs Vex/Vex.h).
+        local vex_lib = path.join(libdir, "Vex.lib")
+        if not os.isfile(vex_lib) then
             return nil
         end
-        local libdir = package:installdir("lib")
+
+        local inc = package:installdir("include")
         return {
             -- magic_enum is double-nested (include/magic_enum/magic_enum/magic_enum.hpp);
             -- adding include/magic_enum as a secondary root makes the #include work.
