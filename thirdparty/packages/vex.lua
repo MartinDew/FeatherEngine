@@ -26,7 +26,7 @@ package("vex")
 
         -- ---- cmake configure + build + install ---------------------------
         local build_type = package:debug() and "Debug" or "Release"
-        os.vrunv("cmake", {
+        local cmake_args = {
             "-S", ".",
             "-B", builddir,
             "-DCMAKE_BUILD_TYPE="     .. build_type,
@@ -36,7 +36,17 @@ package("vex")
             "-DVEX_BUILD_TESTS=OFF",
             "-DVEX_BUILD_TOOLS=OFF",
             "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
-        })
+            "-DCMAKE_CXX_STANDARD=23",
+        }
+        if package:is_plat("linux") then
+            -- Ubuntu 24.04 ships libstdc++ 13 which lacks <print>; the LLVM tarball
+            -- (install-llvm-action) bundles libc++ which does. Force libc++ so the
+            -- cmake build uses the same stdlib ABI as the rest of the project.
+            table.insert(cmake_args, "-DCMAKE_CXX_FLAGS=-stdlib=libc++")
+            table.insert(cmake_args, "-DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++")
+            table.insert(cmake_args, "-DCMAKE_SHARED_LINKER_FLAGS=-stdlib=libc++")
+        end
+        os.vrunv("cmake", cmake_args)
         os.vrunv("cmake", {"--build",   builddir, "--config", build_type})
         os.vrunv("cmake", {"--install", builddir, "--config", build_type})
 

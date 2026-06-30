@@ -138,7 +138,7 @@ jobs:
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
-        run: xmake build -v feather.editor feather.standalone
+        run: xmake build -v
 
       # ── Upload artifacts ───────────────────────────────────────────────────
       - name: Upload binaries

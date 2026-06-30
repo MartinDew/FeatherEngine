@@ -135,6 +135,11 @@ local function apply_compile_flags(target)
     -- LLD linker on POSIX with LLVM toolchain
     if is_toolchain("llvm") and not is_plat("windows", "macosx") then
         target:add("ldflags", "-fuse-ld=lld", {force = true})
+        -- Ubuntu 24.04 ships libstdc++ 13 which lacks <print>; the LLVM tarball
+        -- includes libc++ which does. Forces libc++ for ABI consistency with the
+        -- Vex and assimp cmake builds which also compile with -stdlib=libc++.
+        target:add("cxflags", "-stdlib=libc++", {force = true})
+        target:add("ldflags", "-stdlib=libc++", {force = true})
     end
 
     -- ThinLTO on non-MSVC
@@ -143,8 +148,8 @@ local function apply_compile_flags(target)
         target:add("ldflags", "-flto=thin", {force = true})
     end
 
-    -- Static libstdc++ on Linux
-    if want_static and is_plat("linux") then
+    -- Static C++ runtime on Linux (LLVM toolchain uses libc++; skip for non-GCC)
+    if want_static and is_plat("linux") and not is_toolchain("llvm") then
         target:add("ldflags", "-static-libgcc", "-static-libstdc++", {force = true})
     end
 

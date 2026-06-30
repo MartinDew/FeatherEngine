@@ -137,6 +137,12 @@ package("assimp")
             end
         end
 
+        if package:is_plat("linux") then
+            -- Match the libc++ stdlib used by the rest of the project on Linux+LLVM
+            -- to avoid C++ ABI mismatches when linking assimp into the executables.
+            table.insert(configs, "-DCMAKE_CXX_FLAGS=-stdlib=libc++")
+        end
+
         import("package.tools.cmake").install(package, configs)
 
         if package:is_plat("windows") then
