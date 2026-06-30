@@ -29,16 +29,33 @@ package("sdl3_feather")
         })
     end)
 
-    -- on_load: set link names and Windows system libs for static builds.
-    -- cmake auto-discover handles includedirs/linkdirs; we only need to name the libs.
-    on_load(function(package)
-        if package:config("shared") then
-            package:add("links", "SDL3")
-        else
-            package:add("links", "SDL3-static")
-            if package:is_plat("windows") then
-                package:add("syslinks", "winmm", "imm32", "version", "setupapi")
-            end
+    -- on_fetch: explicitly return include/link info because cmake.install()'s
+    -- auto-detection only populates sysincludedirs but not linkdirs or links.
+    -- On Linux the static library is libSDL3.a (link name "SDL3");
+    -- on Windows it's SDL3-static.lib (link name "SDL3-static").
+    on_fetch(function(package)
+        local libdir = package:installdir("lib")
+        local inc    = package:installdir("include")
+
+        local lib_check = package:is_plat("windows")
+            and path.join(libdir, "SDL3-static.lib")
+            or  path.join(libdir, "libSDL3.a")
+        if not os.isfile(lib_check) then
+            return nil
         end
+
+        local info = {
+            includedirs = {inc},
+            linkdirs    = {libdir},
+        }
+        if package:config("shared") then
+            info.links = {"SDL3"}
+        elseif package:is_plat("windows") then
+            info.links    = {"SDL3-static"}
+            info.syslinks = {"winmm", "imm32", "version", "setupapi"}
+        else
+            info.links = {"SDL3"}
+        end
+        return info
     end)
 package_end()

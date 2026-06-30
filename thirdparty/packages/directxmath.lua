@@ -5,6 +5,11 @@ package("directxmath_feather")
     set_homepage("https://github.com/microsoft/DirectXMath")
     set_urls("https://github.com/microsoft/DirectXMath.git", {tag = "apr2025"})
 
+    -- Declare include dir at package level so xmake resolves it relative to
+    -- installdir without any runtime guard. A custom on_fetch() that returns
+    -- nil silently drops include dirs for headeronly packages.
+    add_includedirs("include")
+
     on_install(function(package)
         local dst_inc = package:installdir("include")
         os.mkdir(dst_inc)
@@ -18,14 +23,5 @@ package("directxmath_feather")
         if os.isfile(sal_src) then
             os.cp(sal_src, dst_inc)
         end
-    end)
-
-    on_fetch(function(package)
-        local inc = package:installdir("include")
-        -- Guard: if the key header isn't present, on_install hasn't run yet
-        if not os.isfile(path.join(inc, "DirectXMath.h")) then
-            return nil
-        end
-        return {includedirs = {inc}}
     end)
 package_end()

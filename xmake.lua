@@ -55,6 +55,8 @@ target("feather_public_api")
     add_deps("simplemath", {public = true})
     -- flecs headers appear in core/world/ headers
     add_packages("flecs", {public = true})
+    -- launch_settings.h (public) includes args.hxx, so modules need this too
+    add_packages("taywee_args", {public = true})
 target_end()
 
 -- ---- Core source files --------------------------------------------------

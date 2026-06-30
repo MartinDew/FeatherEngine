@@ -96,18 +96,42 @@ package("vex")
             end
         end
 
-        -- WinPIX runtime (x64) → runtime/
-        local pix_bin = path.join(deps, "PixEvents", "bin", "x64")
-        if os.isdir(pix_bin) then
-            os.cp(path.join(pix_bin, "WinPixEventRuntime.dll"), package:installdir("runtime"))
-        end
+        if package:is_plat("windows") then
+            -- WinPIX runtime (x64) → runtime/
+            local pix_bin = path.join(deps, "PixEvents", "bin", "x64")
+            if os.isdir(pix_bin) then
+                os.cp(path.join(pix_bin, "WinPixEventRuntime.dll"), package:installdir("runtime"))
+            end
 
-        -- D3D12 Agility SDK DLLs (x64) → D3D12/
-        for _, agility_dir in ipairs(os.dirs(path.join(deps, "DirectX-AgilitySDK-*"))) do
-            local x64_dir = path.join(agility_dir, "build", "native", "bin", "x64")
-            if os.isdir(x64_dir) then
-                os.cp(path.join(x64_dir, "D3D12Core.dll"),       package:installdir("D3D12"))
-                os.cp(path.join(x64_dir, "d3d12SDKLayers.dll"),  package:installdir("D3D12"))
+            -- D3D12 Agility SDK DLLs (x64) → D3D12/
+            for _, agility_dir in ipairs(os.dirs(path.join(deps, "DirectX-AgilitySDK-*"))) do
+                local x64_dir = path.join(agility_dir, "build", "native", "bin", "x64")
+                if os.isdir(x64_dir) then
+                    os.cp(path.join(x64_dir, "D3D12Core.dll"),       package:installdir("D3D12"))
+                    os.cp(path.join(x64_dir, "d3d12SDKLayers.dll"),  package:installdir("D3D12"))
+                end
+            end
+
+            -- PIX import lib
+            local libdir = package:installdir("lib")
+            local pix_lib = path.join(deps, "PixEvents", "bin", "x64", "WinPixEventRuntime.lib")
+            if os.isfile(pix_lib) then os.cp(pix_lib, libdir) end
+        else
+            -- Linux: copy slang and dxc shared libs so the linker and runtime can find them
+            local libdir = package:installdir("lib")
+            local runtimedir = package:installdir("runtime")
+            os.mkdir(runtimedir)
+            for _, so in ipairs(os.files(path.join(deps, "slang-src", "lib", "libslang.so*"))) do
+                os.cp(so, libdir)
+                os.cp(so, runtimedir)
+            end
+            for _, so in ipairs(os.files(path.join(deps, "dxc-src", "lib", "libdxcompiler.so*"))) do
+                os.cp(so, libdir)
+                os.cp(so, runtimedir)
+            end
+            -- libdxil.so is a runtime dep of dxcompiler; not a direct link target
+            for _, so in ipairs(os.files(path.join(deps, "dxc-src", "lib", "libdxil.so*"))) do
+                os.cp(so, runtimedir)
             end
         end
 
@@ -123,47 +147,62 @@ package("vex")
             os.mkdir(dst)
             os.cp(agility_src, dst)
         end
-
-        -- PIX import lib
-        local libdir = package:installdir("lib")
-        local pix_lib = path.join(deps, "PixEvents", "bin", "x64", "WinPixEventRuntime.lib")
-        if os.isfile(pix_lib) then os.cp(pix_lib, libdir) end
     end)
 
     on_fetch(function(package)
         local libdir = package:installdir("lib")
-        -- Use Vex.lib as the authoritative "installed" indicator: cmake's install step always
-        -- produces it, whereas the header location varies (Vex.h vs Vex/Vex.h).
-        local vex_lib = path.join(libdir, "Vex.lib")
-        if not os.isfile(vex_lib) then
-            return nil
-        end
+        local inc    = package:installdir("include")
 
-        local inc = package:installdir("include")
-        return {
-            -- magic_enum is double-nested (include/magic_enum/magic_enum/magic_enum.hpp);
-            -- adding include/magic_enum as a secondary root makes the #include work.
-            -- directx/dxc/slang subdirs host their respective public headers.
-            includedirs = {
-                inc,
-                path.join(inc, "magic_enum"),
-                path.join(inc, "directx"),
-                path.join(inc, "dxc"),
-                path.join(inc, "slang"),
-            },
-            linkdirs = {libdir},
-            -- Vex.lib + import libs for slang/dxc/PIX DLLs (copied to lib/ during on_install)
-            links    = {"Vex", "slang", "dxcompiler", "WinPixEventRuntime"},
-            -- Windows SDK graphics libs
-            syslinks = {"d3d12", "dxgi", "dxguid"},
-            defines  = {
-                "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
-                "VEX_DX12=1",
-                "VEX_VULKAN=0",
-                "VEX_SLANG=1",
-                "VEX_SHADER_COMPILER=1",
-                "VEX_DXC=1",
-            },
-        }
+        if package:is_plat("windows") then
+            -- Use Vex.lib as the installed indicator (always produced by cmake's install step)
+            if not os.isfile(path.join(libdir, "Vex.lib")) then
+                return nil
+            end
+            return {
+                -- magic_enum is double-nested (include/magic_enum/magic_enum/magic_enum.hpp);
+                -- adding include/magic_enum as a secondary root makes the #include work.
+                includedirs = {
+                    inc,
+                    path.join(inc, "magic_enum"),
+                    path.join(inc, "directx"),
+                    path.join(inc, "dxc"),
+                    path.join(inc, "slang"),
+                },
+                linkdirs = {libdir},
+                links    = {"Vex", "slang", "dxcompiler", "WinPixEventRuntime"},
+                syslinks = {"d3d12", "dxgi", "dxguid"},
+                defines  = {
+                    "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
+                    "VEX_DX12=1",
+                    "VEX_VULKAN=0",
+                    "VEX_SLANG=1",
+                    "VEX_SHADER_COMPILER=1",
+                    "VEX_DXC=1",
+                },
+            }
+        else
+            -- Linux/Vulkan: cmake produces libVex.a; slang/dxc are shared libs
+            if not os.isfile(path.join(libdir, "libVex.a")) then
+                return nil
+            end
+            return {
+                includedirs = {
+                    inc,
+                    path.join(inc, "magic_enum"),
+                    path.join(inc, "dxc"),
+                    path.join(inc, "slang"),
+                },
+                linkdirs = {libdir},
+                links    = {"Vex", "slang", "dxcompiler"},
+                syslinks = {"vulkan"},
+                defines  = {
+                    "VEX_DX12=0",
+                    "VEX_VULKAN=1",
+                    "VEX_SLANG=1",
+                    "VEX_SHADER_COMPILER=1",
+                    "VEX_DXC=1",
+                },
+            }
+        end
     end)
 package_end()

@@ -40,10 +40,14 @@ if has_config("enable_vex_renderer") then
                 if not vex then return end
                 local tdir = target:targetdir()
 
-                -- Runtime DLLs (Slang, DXC, WinPIX) → next to exe
+                -- Runtime libs (Slang, DXC, WinPIX) → next to exe
                 local runtime_dir = vex:installdir("runtime")
                 if os.isdir(runtime_dir) then
-                    os.cp(path.join(runtime_dir, "*.dll"), tdir)
+                    for _, pat in ipairs({"*.dll", "*.so*"}) do
+                        for _, f in ipairs(os.files(path.join(runtime_dir, pat))) do
+                            os.cp(f, tdir)
+                        end
+                    end
                 end
 
                 -- D3D12 Agility SDK DLLs → <targetdir>/D3D12/
