@@ -138,6 +138,14 @@ package("assimp")
         end
 
         if package:is_plat("linux") then
+            -- cmake auto-detects /usr/bin/c++ (GCC) on Ubuntu; force clang so that
+            -- -stdlib=libc++ is accepted. LLVM_PATH is set by install-llvm-action
+            -- on CI; fall back to PATH-resident clang on local dev (e.g. Arch Linux).
+            local llvm_path = os.getenv("LLVM_PATH")
+            local clangxx = llvm_path and path.join(llvm_path, "bin", "clang++") or "clang++"
+            local clang   = llvm_path and path.join(llvm_path, "bin", "clang")   or "clang"
+            table.insert(configs, "-DCMAKE_CXX_COMPILER=" .. clangxx)
+            table.insert(configs, "-DCMAKE_C_COMPILER="   .. clang)
             -- Match the libc++ stdlib used by the rest of the project on Linux+LLVM
             -- to avoid C++ ABI mismatches when linking assimp into the executables.
             table.insert(configs, "-DCMAKE_CXX_FLAGS=-stdlib=libc++")

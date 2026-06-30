@@ -57,6 +57,9 @@ target("feather_public_api")
     add_packages("flecs", {public = true})
     -- launch_settings.h (public) includes args.hxx, so modules need this too
     add_packages("taywee_args", {public = true})
+    -- core/main/window.h includes <SDL3/SDL_events.h>, so any module that
+    -- transitively includes engine headers needs SDL3's include path.
+    add_packages("sdl3", {public = true})
 target_end()
 
 -- ---- Core source files --------------------------------------------------
