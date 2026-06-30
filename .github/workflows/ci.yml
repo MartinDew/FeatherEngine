@@ -48,7 +48,7 @@ jobs:
 
       # ── Install xmake ─────────────────────────────────────────────────────
       - name: Install xmake
-        uses: xmake-io/github-action-xmake@v1
+        uses: xmake-io/github-action-setup-xmake@v1
 
       # ── Vulkan SDK ────────────────────────────────────────────────────────
       - name: Setup Vulkan SDK
