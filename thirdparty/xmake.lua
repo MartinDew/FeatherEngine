@@ -21,17 +21,17 @@ add_requires("flecs 4.1.5", {
 })
 
 -- assimp asset importer
+-- Uses a local package definition (thirdparty/packages/assimp.lua) that passes
+-- -DASSIMP_BUILD_MINIZIP=ON so assimp compiles its own contrib/unzip/ instead
+-- of relying on system minizip (whose pkgconfig omits the include subdir).
 add_requires("assimp 6.0.4", {
     system = false,
     alias  = "assimp",
     configs = {
-        shared         = not has_config("static_deps"),
-        build_tools    = false,
-        build_tests    = false,
-        assimp_install = false,
-        no_export      = true,
-        -- Debug build fails because of a pbd error in the assimp CMakeLists.txt, so force release build for now
-        debug          = false
+        shared    = not has_config("static_deps"),
+        no_export = true,
+        -- Debug build fails due to a PDB error in assimp's CMakeLists.txt; force release
+        debug     = false,
     },
 })
 
