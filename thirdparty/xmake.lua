@@ -50,12 +50,6 @@ add_requires("sdl3_feather", {
     configs = {shared = not has_config("static_deps")},
 })
 
--- taywee/args (single-header, ARGS_NOEXCEPT)
-add_requires("taywee_args 6.4.7", {
-    system = false,
-    alias  = "taywee_args",
-})
-
 -- Vex (Vulkan rendering, not on Apple platforms)
 if not is_plat("macosx") then
     add_requires("vex", {
