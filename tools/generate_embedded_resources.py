@@ -32,8 +32,9 @@ def generate_header(source_file: Path, output_file: Path, base_path: Path, dry_r
     header_content = f"""#pragma once
 #include <cstddef>
 
-extern const std::byte {var_name}[];
+//extern const int {var_name}_storage[];
 extern const std::size_t {var_name}_size;
+extern const std::byte* {var_name};
 """
 
     if dry_run:
@@ -72,10 +73,11 @@ def generate_cpp(entries: list[tuple[str, str, Path]], output_file: Path, base_p
 
     for var_name, rel_embed_path, source_file in entries:
         lines += [
-            f"const std::byte {var_name}[] = {{",
+            f"const int {var_name}_storage[] = {{",
             f'#embed "{rel_embed_path}"',
             "};",
-            f"const std::size_t {var_name}_size = sizeof({var_name});",
+            f"const std::size_t {var_name}_size = sizeof({var_name}_storage);",
+            f"const std::byte* {var_name} = reinterpret_cast<const std::byte*>({var_name}_storage);",
             "",
         ]
 
