@@ -112,6 +112,8 @@ local CORE_SOURCES = {
     "core/rendering/register_rendering_types.gen.cpp",
     "core/resources/register_resources_types.gen.cpp",
     "core/world/register_world_types.gen.cpp",
+    -- Generated embedded resources
+    "raw_resources/resources.gen.cpp"
 }
 
 -- ---- Shared codegen function --------------------------------------------
