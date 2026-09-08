@@ -12,7 +12,7 @@ namespace feather_gen
     namespace CI = mrbind::CInterop;
 
     // A C++ type the consumer already defines identically, aliased instead of wrapped -- the engine's math types, whose
-    // SimpleMath source a plugin vendors verbatim.
+    // core/math source a plugin vendors verbatim.
     struct NativeType
     {
         std::string header;
@@ -83,6 +83,9 @@ namespace feather_gen
         std::string arg;
         // Statements to run after the call, if any.
         std::string post;
+        // The default argument, " = <spelling>", or empty. Belongs on the
+        // declaration only -- C++ rejects it on the out-of-class definition.
+        std::string default_arg;
     };
 
     // How a return value comes back out of the C call.

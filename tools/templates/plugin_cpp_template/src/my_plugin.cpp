@@ -19,7 +19,7 @@ namespace
 
         if (level == feather::InitLevel::Core)
         {
-            // The math types are the engine's own, compiled from the SimpleMath
+            // The math types are the engine's own, compiled from the core/math
             // sources the SDK vendors, so they cross by value.
             feather::Transform transform = feather::Transform::create();
             transform.set_position(feather::Vector3(1.0f, 2.0f, 3.0f));
@@ -31,7 +31,8 @@ namespace
         if (level == feather::InitLevel::World)
         {
             // A component and a system defined at runtime, through the same
-            // flat C ABI a C# plugin uses.
+            // flat C ABI a C# plugin uses. Everything after the two definitions
+            // is the engine's own World/Entity/ComponentHandle API.
             const feather::Field fields[] = {
                 {.name = "speed", .type = feather::FieldType::Float},
                 {.name = "ticks", .type = feather::FieldType::Int},
@@ -43,13 +44,14 @@ namespace
                 feather::Phase::OnUpdate,
                 [](const feather::Invocation &invocation)
                 {
-                    const feather::ComponentHandle &spin = invocation.components[0];
+                    feather::ComponentHandle spin = invocation.entity.component("MyPluginSpin");
                     const std::int32_t ticks = spin.get_int("ticks") + 1;
-                    spin.set("ticks", ticks);
-                    spin.set("speed", spin.get_float("speed") + float(invocation.delta_time));
+                    spin.set_int("ticks", ticks);
+                    spin.set_float("speed", spin.get_float("speed") + float(invocation.delta_time));
                 });
 
-            const feather::Entity entity = feather::create_entity_handle("MyPluginDemo");
+            feather::World world = feather::WorldSim::get().get_world();
+            feather::Entity entity = world.create_entity("MyPluginDemo");
             entity.add_component("MyPluginSpin");
         }
     }

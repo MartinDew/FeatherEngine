@@ -96,8 +96,8 @@ package("mrbind_generators")
             table.insert(configs, "-DCMAKE_CXX_FLAGS=/Zc:preprocessor /EHsc")
         end
 
-        -- Lets --expose-as-struct accept standard-layout classes with base classes -- what SimpleMath's Vector2/3/4, Quaternion and Color are,
-        -- fields inherited from XMFLOAT2/3/4. Size/alignment/offset validation is untouched. Rationale: ../gen_cpp/patches/expose-as-struct-standard-layout-bases.md. KEEP IN SYNC with thirdparty/packages/mrbind.lua.
+        -- Lets --expose-as-struct accept a standard-layout class that has base classes, so its inherited fields are exposed too.
+        -- Size/alignment/offset validation is untouched. Rationale: ../gen_cpp/patches/expose-as-struct-standard-layout-bases.md. KEEP IN SYNC with thirdparty/packages/mrbind.lua.
         local function _allow_exposed_structs_with_bases()
             local f = path.join("src", "generators", "c", "generator.cpp")
             local needle = '                // Must have no bases. I ain\'t dealing with those.\n'

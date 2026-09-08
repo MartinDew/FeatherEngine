@@ -53,7 +53,7 @@ rule("feather.mrbind_api")
         feather_bindings.run_parse(target, {
             combined_header = combined_header,
             output = feather_bindings.api_json_path(),
-            -- Admits the SimpleMath types the C ABI carries; see
+            -- Shapes the parse for the C ABI; see
             -- feather_bindings.c_abi_parser_flags.
             extra_parser_flags = feather_bindings.c_abi_parser_flags(),
         })

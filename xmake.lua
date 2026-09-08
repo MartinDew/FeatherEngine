@@ -93,11 +93,11 @@ task("export-api")
         assert(content:find(feather_bindings.feather_token(), 1, true),
             "export-api: no filename in " .. api_json .. " starts with " .. feather_root
             .. " -- the parse was produced from a different checkout")
-        -- Any absolute path left is one the substitutions above don't know about, and would send a consumer's generator looking for a
+        -- Any absolute path left is one the substitution above doesn't know about, and would send a consumer's generator looking for a
         -- directory only this machine has.
         local leftover = content:match('"(/[^/*][^"]*)"') or content:match('"(%a:/[^"]*)"')
         assert(not leftover, "export-api: an absolute path survived the rewrite: "
-            .. tostring(leftover) .. "\n  It needs a token of its own, like the two above.")
+            .. tostring(leftover) .. "\n  It needs a token of its own, like the one above.")
 
         os.mkdir(feather_bindings.dist_dir())
         io.writefile(feather_bindings.dist_api_json_path(), content)

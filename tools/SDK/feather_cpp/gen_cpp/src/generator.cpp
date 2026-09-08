@@ -3,6 +3,7 @@
 #include "common/filesystem.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <stdexcept>
 
@@ -37,6 +38,15 @@ namespace feather_gen
             if (keywords.contains(name))
                 return name + "_";
             return name;
+        }
+
+        // A default argument as the engine spelled it. A qualified name is rooted at the global namespace, since the wrapper sits
+        // inside `feather` and would otherwise re-resolve it; a literal is left alone.
+        [[nodiscard]] std::string QualifyDefaultArg(std::string_view spelling)
+        {
+            const bool is_qualified_name = !spelling.empty() && (std::isalpha(spelling.front()) || spelling.front() == '_') &&
+                spelling.find("::") != std::string_view::npos;
+            return is_qualified_name ? "::" + std::string(spelling) : std::string(spelling);
         }
 
         // The last `::`-separated component of a qualified name.
@@ -221,12 +231,19 @@ namespace feather_gen
             ? "_arg" + std::to_string(index) : param.name_or_placeholder);
         const ParsedType type = ParseType(param.cpp_type);
 
-        // A default argument that changes how the parameter is passed needs
-        // the pass-by enum spelled out; not supported yet.
-        if (param.default_arg_affects_parameter_passing)
-            return ret;
         if (param.is_array_pointer)
             return ret;
+
+        // A default the wrapper repeats, so a call omitting the argument means
+        // in a plugin what it means in the engine. The C side spells one out as
+        // a nullable pointer to what it would otherwise take by value; the
+        // wrapper never passes null, it passes the default it was handed.
+        // A pointer parameter is a reference in the wrapper except for the two
+        // that stay pointers, so its default has nothing left to bind to.
+        const bool keeps_cpp_type = type.form != ParsedType::Form::ptr || type.base == "char" || type.base == "void";
+        if (param.default_arg_spelling && keeps_cpp_type)
+            ret.default_arg = " = " + QualifyDefaultArg(*param.default_arg_spelling);
+        const bool by_pointer = param.default_arg_affects_parameter_passing;
 
         // Strings arrive as a (begin, end) pair. `uses_sugar` marks the
         // parameters whose C form is not the plain one for their type.
@@ -242,8 +259,18 @@ namespace feather_gen
 
         if (type.base == "char" && type.form == ParsedType::Form::ptr && type.is_const)
         {
+            if (by_pointer)
+                return ret;
             ret.ok = true;
             ret.decl = "const char *" + name;
+            ret.arg = name;
+            return ret;
+        }
+
+        if (type.base == "void" && type.form == ParsedType::Form::ptr && !by_pointer)
+        {
+            ret.ok = true;
+            ret.decl = (type.is_const ? "const void *" : "void *") + name;
             ret.arg = name;
             return ret;
         }
@@ -260,7 +287,7 @@ namespace feather_gen
             // Taken by value either way: that gives an addressable lvalue for
             // the forms the C side spells as a pointer.
             ret.decl = type.base + " " + name;
-            ret.arg = type.IsIndirect() ? "&" + name : name;
+            ret.arg = (type.IsIndirect() || by_pointer) ? "&" + name : name;
             return ret;
         }
 
@@ -270,7 +297,16 @@ namespace feather_gen
                 return ret;
             ret.ok = true;
             ret.decl = info->wrapper + " " + name;
-            ret.arg = "static_cast<::" + info->c_name + ">(" + name + ")";
+            const std::string value = "static_cast<::" + info->c_name + ">(" + name + ")";
+            if (by_pointer)
+            {
+                ret.pre = "    const ::" + info->c_name + " _c_" + name + " = " + value + ";\n";
+                ret.arg = "&_c_" + name;
+            }
+            else
+            {
+                ret.arg = value;
+            }
             return ret;
         }
 
@@ -299,10 +335,16 @@ namespace feather_gen
             // through a pointer to a copy the callee reads.
             ret.ok = true;
             ret.decl = "const " + info->wrapper + " &" + name;
-            if (info->exposed)
-                ret.arg = "std::bit_cast<::" + info->c_name + ">(" + name + ")";
-            else
+            if (!info->exposed)
                 ret.arg = "reinterpret_cast<const ::" + info->c_name + " *>(&" + name + ")";
+            else if (by_pointer)
+            {
+                ret.pre = "    const ::" + info->c_name + " _c_" + name
+                    + " = std::bit_cast<::" + info->c_name + ">(" + name + ");\n";
+                ret.arg = "&_c_" + name;
+            }
+            else
+                ret.arg = "std::bit_cast<::" + info->c_name + ">(" + name + ")";
             return ret;
         }
 
@@ -351,9 +393,9 @@ namespace feather_gen
             return ret;
         }
 
-        // An owned string helper is copied out and released; a borrowed one is
-        // only copied.
-        if (ret_desc.uses_sugar && (type.base == "std::string" || type.base == "std::string_view"))
+        // A string crosses as the helper type either way -- as itself when the C form is sugared, otherwise as a handle to one.
+        // Owned means by value, and is copied out and released; borrowed is only copied.
+        if (type.base == "std::string")
         {
             ret.ok = true;
             ret.type = "std::string";
@@ -362,10 +404,27 @@ namespace feather_gen
                 : "::feather::detail::take_string($)";
             return ret;
         }
+        if (type.base == "std::string_view")
+        {
+            ret.ok = true;
+            ret.type = "std::string_view";
+            ret.expr = type.IsIndirect()
+                ? "::feather::detail::to_string_view($)"
+                : "::feather::detail::take_string_view($)";
+            return ret;
+        }
         if (type.base == "char" && type.form == ParsedType::Form::ptr && type.is_const)
         {
             ret.ok = true;
             ret.type = "const char *";
+            return ret;
+        }
+        // Raw storage, which crosses as itself: the engine hands back an
+        // address, and what it points at is the caller's business.
+        if (type.base == "void" && type.form == ParsedType::Form::ptr)
+        {
+            ret.ok = true;
+            ret.type = type.is_const ? "const void *" : "void *";
             return ret;
         }
         if (ret_desc.uses_sugar)
@@ -444,6 +503,7 @@ namespace feather_gen
         const std::string &comment) const
     {
         std::vector<std::string> param_decls;
+        std::vector<std::string> param_defaults;
         std::vector<std::string> args;
         std::string pre, post;
         bool is_const_method = false;
@@ -469,6 +529,7 @@ namespace feather_gen
             if (!bound.ok)
                 return false;
             param_decls.push_back(bound.decl);
+            param_defaults.push_back(bound.default_arg);
             args.push_back(bound.arg);
             pre += bound.pre;
             post += bound.post;
@@ -492,9 +553,25 @@ namespace feather_gen
             is_void = bound.is_void;
         }
 
+        // A default only holds while every parameter after it has one too, and
+        // it belongs on the declaration alone.
+        for (std::size_t i = param_defaults.size(); i-- > 0;)
+        {
+            if (param_defaults[i].empty())
+            {
+                for (std::size_t j = 0; j < i; j++)
+                    param_defaults[j].clear();
+                break;
+            }
+        }
+
         std::string param_list;
+        std::string param_list_decl;
         for (std::size_t i = 0; i < param_decls.size(); i++)
+        {
             param_list += (i ? ", " : "") + param_decls[i];
+            param_list_decl += (i ? ", " : "") + param_decls[i] + param_defaults[i];
+        }
 
         std::string arg_list;
         for (std::size_t i = 0; i < args.size(); i++)
@@ -513,7 +590,7 @@ namespace feather_gen
         decls += comment;
         if (is_ctor)
         {
-            decls += "    static " + owner->wrapper + " " + wrapper_name + "(" + param_list + ");\n";
+            decls += "    static " + owner->wrapper + " " + wrapper_name + "(" + param_list_decl + ");\n";
         }
         else
         {
@@ -522,7 +599,7 @@ namespace feather_gen
                 decls += "inline ";
             else if (is_static)
                 decls += "static ";
-            decls += ret_type + " " + wrapper_name + "(" + param_list + ")" + qualifier + ";\n";
+            decls += ret_type + " " + wrapper_name + "(" + param_list_decl + ")" + qualifier + ";\n";
         }
 
         // Definition, after every class is complete.

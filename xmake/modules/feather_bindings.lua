@@ -270,7 +270,7 @@ function api_parser_flags()
         "--skip-mentions-of", "/std::tuple<.*>/",
         "--skip-mentions-of", "/std::unordered_map<.*>/",
 
-        -- Third-party types reachable from core's headers. SimpleMath is admitted separately (see c_abi_parser_flags).
+        -- Third-party types reachable from core's headers.
         "--skip-mentions-of", "/flecs::.*/",
         "--skip-mentions-of", "/args::.*/",
         -- RTM's register types are compiler vector typedefs (__m128), which no C ABI can carry. Feather's math types are plain structs
@@ -286,7 +286,7 @@ function api_parser_flags()
         "--ignore", "feather::EngineSettings",
         "--skip-mentions-of", "feather::EngineSettings",
 
-        -- Variant type-erases many alternatives (SimpleMath's included): its as<T>()/is<T>() surface needs traits for every alternative.
+        -- Variant type-erases many alternatives (the math types included): its as<T>()/is<T>() surface needs traits for every alternative.
         -- That holds even when the individual functions are skipped, so it needs --ignore.
         "--ignore", "feather::Variant",
         "--skip-mentions-of", "feather::Variant",
@@ -313,17 +313,11 @@ function api_parser_flags()
         -- --skip-mentions-of doesn't reach a parameter spelled through a container.
         "--ignore", "feather::World::register_described_component",
 
-        -- The ECS frontend is engine-side. A plugin cannot hold a World, so it reaches the ECS through the flat entry points of
-        -- modules/c_bindings/scripted_abi.h, which the SDK wraps in classes of the same names (feather_cpp/scripted_abi.hpp).
-        "--ignore", "feather::World",
-        "--skip-mentions-of", "feather::World",
-        "--ignore", "feather::Entity",
-        "--skip-mentions-of", "feather::Entity",
-        "--ignore", "feather::ComponentHandle",
-        "--skip-mentions-of", "feather::ComponentHandle",
-        -- --skip-mentions-of does not reach a function that only names World
-        -- through a pointer return.
-        "--ignore", "feather::WorldSim::get_world",
+        -- World/Entity/ComponentHandle are bound: a C++ plugin drives the ECS through the same classes and the same method names
+        -- engine code does. Only the members with no C spelling drop out.
+        -- flecs itself, which nothing outside the engine's own address space can hold.
+        "--ignore", "feather::World::ecs",
+        "--ignore", "feather::Entity::ecs",
 
         -- Delegate<T>, instantiated exhaustively as bindings do, surfaces a pre-existing bug: class_db.h's subclass_delegate_t fails to compile
         -- delegate.h's forwarding call once actually instantiated.

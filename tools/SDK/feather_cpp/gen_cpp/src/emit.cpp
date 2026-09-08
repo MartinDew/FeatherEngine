@@ -296,6 +296,7 @@ namespace feather_gen
     std::string Generator::CoreHeader() const
     {
         const bool have_string = Find("std::string") != nullptr;
+        const bool have_string_view = Find("std::string_view") != nullptr;
 
         std::string out;
         out += "#pragma once\n\n";
@@ -305,7 +306,9 @@ namespace feather_gen
         out += "#include <feather_helpers/common.h>\n";
         if (have_string)
             out += "#include <feather_helpers/std_string.h>\n";
-        out += "\n#include <exception>\n#include <source_location>\n#include <stdexcept>\n#include <string>\n\n";
+        if (have_string_view)
+            out += "#include <feather_helpers/std_string_view.h>\n";
+        out += "\n#include <exception>\n#include <source_location>\n#include <stdexcept>\n#include <string>\n#include <string_view>\n\n";
 
         out += "// Whether this translation unit can throw. The engine builds with\n";
         out += "// exceptions off, and a plugin may too, so nothing here throws\n";
@@ -362,6 +365,19 @@ namespace feather_gen
             out += "        inline std::string take_string(Feather_std_string *s)\n        {\n";
             out += "            std::string ret = to_string(s);\n";
             out += "            Feather_std_string_Destroy(s);\n";
+            out += "            return ret;\n        }\n\n";
+        }
+
+        if (have_string_view)
+        {
+            out += "        // A view of engine memory, which outlives the handle describing it\n";
+            out += "        // exactly as the std::string_view the engine returned does.\n";
+            out += "        inline std::string_view to_string_view(const Feather_std_string_view *s)\n        {\n";
+            out += "            if (!s) return {};\n";
+            out += "            return std::string_view(Feather_std_string_view_data(s), Feather_std_string_view_size(s));\n        }\n\n";
+            out += "        inline std::string_view take_string_view(Feather_std_string_view *s)\n        {\n";
+            out += "            std::string_view ret = to_string_view(s);\n";
+            out += "            Feather_std_string_view_Destroy(s);\n";
             out += "            return ret;\n        }\n\n";
         }
 
