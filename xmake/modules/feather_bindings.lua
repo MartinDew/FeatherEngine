@@ -313,6 +313,18 @@ function api_parser_flags()
         -- --skip-mentions-of doesn't reach a parameter spelled through a container.
         "--ignore", "feather::World::register_described_component",
 
+        -- The ECS frontend is engine-side. A plugin cannot hold a World, so it reaches the ECS through the flat entry points of
+        -- modules/c_bindings/scripted_abi.h, which the SDK wraps in classes of the same names (feather_cpp/scripted_abi.hpp).
+        "--ignore", "feather::World",
+        "--skip-mentions-of", "feather::World",
+        "--ignore", "feather::Entity",
+        "--skip-mentions-of", "feather::Entity",
+        "--ignore", "feather::ComponentHandle",
+        "--skip-mentions-of", "feather::ComponentHandle",
+        -- --skip-mentions-of does not reach a function that only names World
+        -- through a pointer return.
+        "--ignore", "feather::WorldSim::get_world",
+
         -- Delegate<T>, instantiated exhaustively as bindings do, surfaces a pre-existing bug: class_db.h's subclass_delegate_t fails to compile
         -- delegate.h's forwarding call once actually instantiated.
         "--ignore", "feather::Delegate",

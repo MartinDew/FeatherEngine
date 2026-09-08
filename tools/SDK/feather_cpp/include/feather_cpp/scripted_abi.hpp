@@ -51,7 +51,7 @@ extern "C"
         const double *values, std::int32_t count);
 }
 
-namespace feather::ecs
+namespace feather
 {
     // Only trivially-copyable types: a scripted component lives in flecs'
     // zero-initialized storage, which runs no destructor.
@@ -74,29 +74,31 @@ namespace feather::ecs
 
     // One component of one entity. Inside a system callback it is valid only for that call; obtained from view() it is valid
     // until the entity's archetype changes, so it is meant to be used and dropped.
-    class ComponentView
+    class ComponentHandle
     {
         void *_handle = nullptr;
         const char *_component = nullptr;
 
       public:
-        ComponentView() = default;
-        ComponentView(void *handle, const char *component) noexcept
+        ComponentHandle() = default;
+        ComponentHandle(void *handle, const char *component) noexcept
             : _handle(handle), _component(component) {}
 
         [[nodiscard]] explicit operator bool() const noexcept { return _handle != nullptr; }
-        [[nodiscard]] void *handle() const noexcept { return _handle; }
+        [[nodiscard]] void *data() const noexcept { return _handle; }
+        [[nodiscard]] bool is_valid() const noexcept { return _handle != nullptr; }
+        [[nodiscard]] std::string get_type_name() const { return _component ? _component : std::string{}; }
 
         [[nodiscard]] bool get_bool(std::string_view field) const { return _read(field, 1)[0] != 0.0; }
         [[nodiscard]] std::int32_t get_int(std::string_view field) const { return static_cast<std::int32_t>(_read(field, 1)[0]); }
         [[nodiscard]] float get_float(std::string_view field) const { return static_cast<float>(_read(field, 1)[0]); }
 
-        [[nodiscard]] Vector2 get_vec2(std::string_view field) const
+        [[nodiscard]] Vector2 get_vector2(std::string_view field) const
         {
             const auto v = _read(field, 2);
             return Vector2(static_cast<float>(v[0]), static_cast<float>(v[1]));
         }
-        [[nodiscard]] Vector3 get_vec3(std::string_view field) const
+        [[nodiscard]] Vector3 get_vector3(std::string_view field) const
         {
             const auto v = _read(field, 3);
             return Vector3(static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2]));
@@ -138,12 +140,12 @@ namespace feather::ecs
         }
     };
 
-    // What a system is handed for one matching entity. The views are valid only
-    // for the duration of the call.
+    // What a system is handed for one matching entity. The handles are valid
+    // only for the duration of the call.
     struct Invocation
     {
         std::uint64_t entity = 0;
-        std::span<const ComponentView> components;
+        std::span<const ComponentHandle> components;
         double delta_time = 0.0;
     };
 
@@ -165,14 +167,14 @@ namespace feather::ecs
         {
             auto *state = static_cast<SystemState *>(user_data);
 
-            std::vector<ComponentView> views;
-            views.reserve(std::size_t(component_count));
+            std::vector<ComponentHandle> handles;
+            handles.reserve(std::size_t(component_count));
             for (std::int32_t i = 0; i < component_count; i++)
-                views.emplace_back(components[i], state->component_names[std::size_t(i)].c_str());
+                handles.emplace_back(components[i], state->component_names[std::size_t(i)].c_str());
 
             const Invocation invocation{
                 .entity = entity,
-                .components = views,
+                .components = handles,
                 .delta_time = delta_time,
             };
 
@@ -261,9 +263,42 @@ namespace feather::ecs
 
     // A handle to one component of a live entity. Empty if the entity does not
     // have that component.
-    [[nodiscard]] inline ComponentView view(std::uint64_t entity, const char *component)
+    [[nodiscard]] inline ComponentHandle component_handle(std::uint64_t entity, const char *component)
     {
-        return ComponentView(::feather_script_component_handle(entity, component), component);
+        return ComponentHandle(::feather_script_component_handle(entity, component), component);
+    }
+
+    // A handle to one entity, the same shape the engine's own Entity has: it
+    // owns nothing, and names components by string.
+    class Entity
+    {
+        std::uint64_t _id = 0;
+
+      public:
+        Entity() = default;
+        explicit Entity(std::uint64_t id) noexcept : _id(id) {}
+
+        [[nodiscard]] std::uint64_t id() const noexcept { return _id; }
+        [[nodiscard]] bool is_valid() const noexcept { return _id != 0; }
+        explicit operator bool() const noexcept { return is_valid(); }
+
+        bool operator==(const Entity &o) const noexcept { return _id == o._id; }
+        bool operator!=(const Entity &o) const noexcept { return !(*this == o); }
+
+        // Throws feather::Error with the engine's message when the component is
+        // not one the world knows.
+        void add_component(std::string_view component) const { ::feather::add_component(_id, component); }
+
+        [[nodiscard]] ComponentHandle component(const char *name) const
+        {
+            return component_handle(_id, name);
+        }
+    };
+
+    // Creates an entity, optionally named, and returns a handle to it.
+    [[nodiscard]] inline Entity create_entity_handle(std::string_view name = {})
+    {
+        return Entity(create_entity(name));
     }
 
     // The fields a component was registered with, in order.

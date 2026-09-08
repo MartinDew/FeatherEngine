@@ -32,25 +32,25 @@ namespace
         {
             // A component and a system defined at runtime, through the same
             // flat C ABI a C# plugin uses.
-            const feather::ecs::Field fields[] = {
-                {.name = "speed", .type = feather::ecs::FieldType::Float},
-                {.name = "ticks", .type = feather::ecs::FieldType::Int},
+            const feather::Field fields[] = {
+                {.name = "speed", .type = feather::FieldType::Float},
+                {.name = "ticks", .type = feather::FieldType::Int},
             };
-            feather::ecs::define_component("MyPluginSpin", fields);
+            feather::define_component("MyPluginSpin", fields);
 
             const std::string components[] = {"MyPluginSpin"};
-            feather::ecs::define_system("my_plugin_spin", components,
-                feather::ecs::Phase::OnUpdate,
-                [](const feather::ecs::Invocation &invocation)
+            feather::define_system("my_plugin_spin", components,
+                feather::Phase::OnUpdate,
+                [](const feather::Invocation &invocation)
                 {
-                    const feather::ecs::ComponentView &spin = invocation.components[0];
+                    const feather::ComponentHandle &spin = invocation.components[0];
                     const std::int32_t ticks = spin.get_int("ticks") + 1;
                     spin.set("ticks", ticks);
                     spin.set("speed", spin.get_float("speed") + float(invocation.delta_time));
                 });
 
-            const std::uint64_t entity = feather::ecs::create_entity("MyPluginDemo");
-            feather::ecs::add_component(entity, "MyPluginSpin");
+            const feather::Entity entity = feather::create_entity_handle("MyPluginDemo");
+            entity.add_component("MyPluginSpin");
         }
     }
 }
