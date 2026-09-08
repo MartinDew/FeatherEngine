@@ -16,7 +16,7 @@ void RenderingWorldModule::_begin_render_scene(const Ecs::iter& it) {
 	rs->set_camera_transform({});
 }
 
-void RenderingWorldModule::_update_meshes(Entity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
+void RenderingWorldModule::_update_meshes(EcsEntity e, Transform transform, MeshInstance& mesh, MaterialInstance* mat) {
 	RenderingServer::get()->add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 }
 
@@ -35,7 +35,7 @@ RenderingWorldModule::RenderingWorldModule(World& world) {
 			.kind(flecs::PreStore)
 			.with<ActiveScene>()
 			.up()
-			.each([](Entity e, const Light& light) { RenderingServer::get()->add_light(light); });
+			.each([](EcsEntity e, const Light& light) { RenderingServer::get()->add_light(light); });
 
 	system<>(world, "Commit Render Scene").kind(flecs::OnStore).run([](const flecs::iter&) {
 		RenderingServer::get()->commit_scene_frame();

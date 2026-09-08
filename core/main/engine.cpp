@@ -113,7 +113,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 					 .cascade()
 					 .build();
 
-	q.each([](Entity e, Transform& t, MeshInstance mi, MaterialInstance* mat) { std::cout << e.name() << std::endl; });
+	q.each([](EcsEntity e, Transform& t, MeshInstance mi, MaterialInstance* mat) { std::cout << e.name() << std::endl; });
 }
 #endif
 

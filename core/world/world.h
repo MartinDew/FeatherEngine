@@ -4,6 +4,8 @@
 
 #include <framework/class_info.h>
 #include <framework/delegate.h>
+#include <framework/reflected.h>
+#include <framework/reflection_macros.h>
 #include <framework/static_string.hpp>
 #include <framework/variant.h>
 
@@ -13,7 +15,13 @@
 #include <unordered_map>
 #include <vector>
 
+#ifndef FEATHER_REFLECTION_PARSER
+#include "world.gen.h"
+#endif
+
 namespace feather {
+
+class Entity;
 
 // The engine's ECS world: flecs underneath, Feather's own vocabulary on top.
 //
@@ -23,7 +31,11 @@ namespace feather {
 // registers, becomes a flecs component here without anyone naming its C++ type.
 // That is what lets a plugin or a script contribute a component type the engine
 // was never compiled against.
-class World {
+// abstract: reflected so its API is reachable by name, but never built through
+// ClassDB -- a second World would be a second ECS, and WorldSim owns the one.
+class World : public Reflected {
+	FCLASS(abstract);
+
 	std::unique_ptr<Ecs::world> _ecs;
 
 	// Component id per registered class name. Also the record of what has
@@ -38,7 +50,7 @@ class World {
 
 	// Opens a module scope named after `class_name`, returning the scope to
 	// restore. Shared by import_module<T> so the template stays thin.
-	Ecs::entity_t _begin_module(StaticString class_name, Entity& out_module);
+	Ecs::entity_t _begin_module(StaticString class_name, Ecs::entity_t& out_module);
 	void _end_module(Ecs::entity_t previous_scope);
 
 	// Registers whatever Component subclasses ClassDB already knows, then keeps
@@ -56,7 +68,7 @@ public:
 
 	// ---- Simulation --------------------------------------------------------
 
-	bool progress(double delta = 0.0);
+	[[method]] bool progress(double delta = 0.0);
 
 	// ---- Entities ----------------------------------------------------------
 
@@ -127,10 +139,19 @@ public:
 	// Constructs an EcsModule subclass with this world, once, under a module scope named after it so everything it declares is namespaced
 	// the way flecs expects. Feather's own import rather than flecs's, because a module is handed this World, not the flecs one.
 	template <typename T>
-	Entity import_module();
+	Ecs::entity_t import_module();
 
 	// The same, for a module reached by class name rather than by type.
 	[[nodiscard]] bool is_module_imported(StaticString class_name) const;
+
+	// ---- Reflected surface -------------------------------------------------
+	// Names, never ids: an entity id is 64 bits and a Variant's integer is not,
+	// so anything taking one stays C++-only and goes through Entity instead.
+
+	[[method]] bool has_component_type(std::string class_name) const;
+	[[method]] bool register_component_type(std::string class_name);
+	[[method]] bool has_module(std::string class_name) const;
+	[[method]] int get_component_type_count() const;
 
 	// ---- Escape hatch ------------------------------------------------------
 
@@ -171,17 +192,17 @@ void World::remove_all() const {
 }
 
 template <typename T>
-Entity World::import_module() {
+Ecs::entity_t World::import_module() {
 	const StaticString name = T::get_class_static();
 	if (auto it = _modules.find(name); it != _modules.end()) {
-		return entity(it->second);
+		return it->second;
 	}
 
-	Entity module_entity;
+	Ecs::entity_t module_entity = 0;
 	const Ecs::entity_t previous = _begin_module(name, module_entity);
 	// Recorded before constructing: a module that imports another one during its
 	// own constructor must not start this one a second time.
-	_modules[name] = module_entity.id();
+	_modules[name] = module_entity;
 	{
 		T instance(*this);
 		(void)instance;

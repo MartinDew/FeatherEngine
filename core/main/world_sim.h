@@ -6,6 +6,7 @@
 #include <framework/reflection_macros.h>
 #include <world/components/scene.h>
 #include <world/ecs_defs.h>
+#include <world/entity.h>
 #include <world/world.h>
 
 #include <flecs.h>
@@ -29,7 +30,7 @@ class WorldSim final : public Simulation {
 	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
 
 	// In world_sim.h, private section:
-	bool _is_in_scene(flecs::entity e, Entity scene) const;
+	bool _is_in_scene(const Entity& e, const Entity& scene) const;
 
 	template <class... TComps, class TFunc>
 	void _iterate_tree(flecs::entity e, TFunc func) {

@@ -1,6 +1,7 @@
 #include "world.h"
 
 #include "component.h"
+#include "entity.h"
 
 #include <framework/assert.h>
 #include <main/class_db.h>
@@ -102,23 +103,25 @@ bool World::progress(double delta) {
 }
 
 Entity World::create_entity(const std::string& name) const {
-	return name.empty() ? _ecs->entity() : _ecs->entity(name.c_str());
+	const EcsEntity created = name.empty() ? _ecs->entity() : _ecs->entity(name.c_str());
+	return { const_cast<World&>(*this), created };
 }
 
 Entity World::create_entity(const Entity& parent, const std::string& name) const {
-	return create_entity(name).child_of(parent);
+	Entity created = create_entity(name);
+	return created.child_of(parent);
 }
 
 Entity World::entity(Ecs::entity_t id) const {
-	return _ecs->entity(id);
+	return { const_cast<World&>(*this), id };
 }
 
 Entity World::prefab(const std::string& name) const {
-	return _ecs->prefab(name.c_str());
+	return { const_cast<World&>(*this), _ecs->prefab(name.c_str()) };
 }
 
 Entity World::lookup(const std::string& name) const {
-	return _ecs->lookup(name.c_str());
+	return { const_cast<World&>(*this), _ecs->lookup(name.c_str()) };
 }
 
 void World::destroy_entity(Ecs::entity_t id) const {
@@ -196,12 +199,13 @@ Ecs::entity_t World::register_component(StaticString class_name) {
 	return component;
 }
 
-Ecs::entity_t World::_begin_module(StaticString class_name, Entity& out_module) {
+Ecs::entity_t World::_begin_module(StaticString class_name, Ecs::entity_t& out_module) {
 	// A module is an entity everything it declares is scoped under, which is how
 	// flecs namespaces a module's components and systems.
-	out_module = _ecs->entity(class_name.data());
-	out_module.add(Ecs::Module);
-	return ecs_set_scope(_ecs->c_ptr(), out_module.id());
+	EcsEntity module_entity = _ecs->entity(class_name.data());
+	module_entity.add(Ecs::Module);
+	out_module = module_entity.id();
+	return ecs_set_scope(_ecs->c_ptr(), out_module);
 }
 
 void World::_end_module(Ecs::entity_t previous_scope) {
@@ -210,6 +214,22 @@ void World::_end_module(Ecs::entity_t previous_scope) {
 
 bool World::is_module_imported(StaticString class_name) const {
 	return _modules.contains(class_name);
+}
+
+bool World::has_component_type(std::string class_name) const {
+	return find_component(StaticString(class_name)) != 0;
+}
+
+bool World::register_component_type(std::string class_name) {
+	return register_component(StaticString(class_name)) != 0;
+}
+
+bool World::has_module(std::string class_name) const {
+	return is_module_imported(StaticString(class_name));
+}
+
+int World::get_component_type_count() const {
+	return static_cast<int>(_components.size());
 }
 
 Ecs::entity_t World::find_component(StaticString class_name) const {

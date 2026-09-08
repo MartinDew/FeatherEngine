@@ -52,6 +52,8 @@ for _, p in ipairs({
     "core/resources/fext_format_loader.cpp",
     "core/world/ecs_module.cpp",
     "core/world/world.cpp",
+    "core/world/entity.cpp",
+    "core/world/component_handle.cpp",
     "core/world/rendering_world_module.cpp",
     "core/world/math_module.cpp",
     "core/world/core_world_module.cpp",

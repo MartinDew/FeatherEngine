@@ -72,18 +72,12 @@ void WorldSim::add_to_scene(Entity entity) const {
 	entity.child_of(_current_scene);
 }
 
-bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
-	flecs::entity current = e;
-	while (current.is_valid()) {
-		if (current == scene)
-			return true;
-		current = current.parent();
-	}
-	return false;
+bool WorldSim::_is_in_scene(const Entity& e, const Entity& scene) const {
+	return e.is_descendant_of(scene);
 }
 
 void WorldSim::set_active_scene(Entity scene) {
-	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
+	fassert(scene.ecs().is_a(_scene_prefab.ecs()), "Given scene isn't a scene instance");
 
 	// Clear old active scene marker
 	_world.remove_all<ActiveScene>();
