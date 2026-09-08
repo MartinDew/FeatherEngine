@@ -285,7 +285,7 @@ jobs:
           xmake build
 
       # Same, for plugin_cpp_template -- proves a C++ plugin needs no engine checkout: it compiles the generated wrappers plus the SDK's
-      # vendored SimpleMath, and links nothing.
+      # vendored core/math, and links nothing.
       - name: Build the C++ plugin template (consumer smoke test)
         if: matrix.mode == 'debug'
         shell: bash
