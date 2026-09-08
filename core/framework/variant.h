@@ -222,10 +222,12 @@ public:
 		else if constexpr (std::is_floating_point_v<T>) {
 			return static_cast<T>(std::get<real_t>(_data));
 		}
-		else if constexpr (std::is_pointer_v<T> && is_reflected_class_type<std::remove_pointer_t<T>>) {
+		// Reflected-derived only: a reflected *value* type (Vector3, Color) is held
+		// in the variant itself, not behind a Reflected*.
+		else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
 			return static_cast<T>(std::get<Reflected*>(_data));
 		}
-		else if constexpr (!std::is_pointer_v<T> && is_reflected_class_type<std::remove_reference_t<T>>) {
+		else if constexpr (!std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_reference_t<T>>) {
 			return *static_cast<T*>(std::get<Reflected*>(_data));
 		}
 		else

@@ -225,28 +225,6 @@ function feather_gen_cpp_rev(dir)
     return hash.strhash128(table.concat(parts, "\0"))
 end
 
--- DirectXMath is parsed too (SimpleMath's fields live in XMFLOAT bases) so its headers need their own --map-path.
--- Published as directxmath_root so a plugin's own generator can reproduce the same mapping.
-function directxmath_includedir(target)
-    local pkg = assert(target:pkg("directxmath"),
-        "feather_bindings: target must have the directxmath package (via feather_public_api)")
-    return path.join(pkg:installdir(), "include")
-end
-
--- The DirectXMath include dir as the parse itself recorded it, found through the one header every such parse names. Preferred over asking
--- the current configuration, whose package hash differs from the one api.json was produced under after any reconfigure.
-function directxmath_root_in(api_json_content)
-    return api_json_content:match('"([^"]*)/DirectXMath%.h"')
-end
-
--- The prefix every generator must strip from DirectXMath's filenames: what the parse recorded, since that is what the filenames being
--- mapped actually say. Falls back to the configured package for a parse that names no DirectXMath header at all.
-function directxmath_map_root(target)
-    local recorded = os.isfile(api_json_path())
-        and directxmath_root_in(io.readfile(api_json_path()))
-    return to_forward_slashes(recorded or directxmath_includedir(target))
-end
-
 -- Entities excluded from the parse for every language at once -- each exclusion is a type mrbind can't express, not an API choice.
 -- --ignore drops the entity itself; --skip-mentions-of also drops any function naming it.
 function api_parser_flags()
@@ -361,37 +339,22 @@ function api_parser_flags()
     }
 end
 
--- Flags for the parse the C ABI is generated from, admitting the six SimpleMath types core actually uses (core/math/math_defs.h).
--- What gives a C/C++ plugin a Transform with a position.
+-- Flags for the parse the C ABI is generated from. Feather's math types are
+-- ordinary structs in its own namespace, so nothing extra has to be admitted.
 function c_abi_parser_flags()
     return {
         -- Exposed structs take their fields from their bases, and the parser only copies base members when asked.
         -- Also what lets a derived class offer its inherited methods in C.
         "--copy-inherited-members",
 
-        -- Patterns match whole, so the optional member tail is load-bearing: admitting only the class would reject its own ctors/dtor too.
-        -- Only ctors/dtor are admitted, never "::.*": SimpleMath's out-of-line methods (SimpleMath.inl) trip a parser assertion when admitted.
-        "--allow", "/DirectX::SimpleMath::(Vector2|Vector3|Vector4|Quaternion|Color|Matrix)"
-            .. "(::~?(Vector2|Vector3|Vector4|Quaternion|Color|Matrix))?/",
-        -- Their fields live in these bases; a base the parse never saw is dropped from the class entirely, leaving it with no members and no destructor.
-        -- XMFLOAT4X4 (Matrix's base) holds an anonymous union the parser won't record as a field -- rules Matrix out of --expose-as-struct only.
-        "--allow", "/DirectX::XMFLOAT[234](::.*)?/",
-        -- No "(::.*)?" tail here: its members live in the anonymous union, and admitting those crashes the parser (no entity for it to attach to).
-        -- Matrix is opaque, so only its own members matter.
-        "--allow", "DirectX::XMFLOAT4X4",
-
-        -- The SIMD types the math methods take/return -- no C ABI can pass an __m128, so most of SimpleMath's arithmetic drops out here
-        -- (the wrapper aliases these to the plugin's own SimpleMath copy instead). Also catches the matrix/packed shapes from the rejected out-of-line ctors above.
-        "--skip-mentions-of", "/DirectX::(XMVECTOR[A-Z0-9]*|XMMATRIX|[FGHC]XMVECTOR|[FC]XMMATRIX|XMFLOAT[34]X[34]|XM(U?INT)[234])/",
-        -- XMVECTOR is a compiler vector typedef; matching is by canonical spelling, so the pattern above never catches it off MSVC.
-        "--skip-mentions-of", "/.*__vector_size__.*/",
-        "--skip-mentions-of", "/DirectX::PackedVector::.*/",
-
-        -- The comparison categories a defaulted operator<=> returns -- no C spelling, and DirectXMath's structs default their comparisons.
+        -- The comparison categories a defaulted operator<=> returns, which have
+        -- no C spelling.
         "--skip-mentions-of", "/std::(partial|weak|strong)_ordering/",
 
-        -- Members are deliberately NOT ignored: mrbind decides constructibility/copyability from the parsed constructors.
-        -- An opaque Matrix needs those to be constructible and returnable.
+        -- RTM's register types are compiler vector typedefs, and matching is by canonical spelling -- the rtm:: pattern in
+        -- api_parser_flags never sees them. This is what drops to_rtm()/from_rtm() from the bound surface.
+        "--skip-mentions-of", "/.*__vector_size__.*/",
+        "--skip-mentions-of", "/.*__attribute__.*/",
     }
 end
 
@@ -438,14 +401,10 @@ function to_forward_slashes(p)
     return (tostring(p):gsub("\\", "/"))
 end
 
--- What the export task writes in place of the two absolute prefixes baked into api.json, and what a consumer substitutes back
--- (tools/SDK/modules/feather_plugin_bindings.lua). "@" starts no real path on any platform. KEEP IN SYNC with the SDK's copies.
+-- What the export task writes in place of the absolute prefix baked into api.json, and what a consumer substitutes back
+-- (tools/SDK/modules/feather_plugin_bindings.lua). "@" starts no real path on any platform. KEEP IN SYNC with the SDK's copy.
 function feather_token()
     return "@feather"
-end
-
-function directxmath_token()
-    return "@directxmath"
 end
 
 function dist_dir()
@@ -467,9 +426,6 @@ function gen_c_flags_id()
         "assume-include-dir=<root>",
         "force-emit-common-helpers",
         "helper-header-dir=feather_helpers",
-        -- Placeholder, like the <root> entries above: only the mapping's shape must agree between engine and plugin, never the absolute path.
-        "map-path=<directxmath>->feather_c/_ext/directxmath",
-        "assume-include-dir=<directxmath>",
     }
     for _, t in ipairs(exposed_struct_types()) do
         table.insert(shape, "expose-as-struct=" .. t)
@@ -477,28 +433,33 @@ function gen_c_flags_id()
     return hash.strhash128(table.concat(shape, "\0"))
 end
 
--- The math types a C++ plugin defines itself (same vendored SimpleMath sources), so the generator aliases these instead of wrapping them.
--- Matrix is here too though not an exposed struct -- it crosses as a pointer to a copy. KEEP IN SYNC with the SDK's feather_plugin_bindings.lua.
+-- The math types a plugin compiles for itself from the same headers the engine did, so the generator aliases these instead of wrapping them.
+-- KEEP IN SYNC with the SDK's feather_plugin_bindings.lua.
 function native_math_types()
     return {
-        "DirectX::SimpleMath::Vector2",
-        "DirectX::SimpleMath::Vector3",
-        "DirectX::SimpleMath::Vector4",
-        "DirectX::SimpleMath::Quaternion",
-        "DirectX::SimpleMath::Color",
-        "DirectX::SimpleMath::Matrix",
+        "feather::Vector2f",
+        "feather::Vector3f",
+        "feather::Vector4f",
+        "feather::Quaternionf",
+        "feather::Colorf",
+        "feather::Matrix4x4f",
+        "feather::Vector2d",
+        "feather::Vector3d",
+        "feather::Vector4d",
+        "feather::Quaterniond",
     }
 end
 
--- The C++ types emitted as real C structs (cross the ABI by value) rather than opaque pointers -- only the union-free SimpleMath types qualify.
+-- The C++ types emitted as real C structs (cross the ABI by value) rather than opaque pointers: the math types, which are plain fields.
+-- Matrix4x4f is not one -- its rows are Vector4f, and an exposed struct's fields must be scalars.
 -- KEEP IN SYNC with the SDK's shape_flags() and gen_c_argv() in tools/SDK/modules/feather_plugin_bindings.lua.
 function exposed_struct_types()
     return {
-        "DirectX::SimpleMath::Vector2",
-        "DirectX::SimpleMath::Vector3",
-        "DirectX::SimpleMath::Vector4",
-        "DirectX::SimpleMath::Quaternion",
-        "DirectX::SimpleMath::Color",
+        "feather::Vector2f",
+        "feather::Vector3f",
+        "feather::Vector4f",
+        "feather::Quaternionf",
+        "feather::Colorf",
     }
 end
 
@@ -604,10 +565,6 @@ function run_gen_c(target, opts)
     os.mkdir(stage_headers)
     os.mkdir(stage_sources)
 
-    -- Taken from the parse, not the configuration: these prefixes are matched against the filenames inside api.json, and a package's
-    -- install directory is hashed from the config that built it, so the two drift apart across a reconfigure.
-    local directxmath_root = directxmath_map_root(target)
-
     local argv = {
         "--input", api_json_path(),
         "--output-header-dir", stage_headers,
@@ -619,11 +576,7 @@ function run_gen_c(target, opts)
         -- or a generated .cpp's quoted/angled includes would resolve identically, leaving resolution to -I order alone.
         "--map-path", to_forward_slashes(feather_root) .. "/core", "feather_c",
         "--map-path", to_forward_slashes(feather_root), "feather_c/_root",
-        -- Parsed from outside the engine tree; see directxmath_map_root.
-        "--map-path", directxmath_root, "feather_c/_ext/directxmath",
         "--assume-include-dir", to_forward_slashes(feather_root),
-        -- The glue includes the real <DirectXMath.h> to call into it, distinct from the mapping above (which spells the generated header).
-        "--assume-include-dir", directxmath_root,
         "--clean-output-dirs",
         "--output-desc-json", stage_desc,
         -- The C# bindings need this header regardless of whether the C bindings alone would have pulled it in, so it's always emitted.
@@ -663,12 +616,52 @@ function gen_cpp_shape_flags()
     for _, t in ipairs(native_math_types()) do
         table.insert(argv, "--native-type")
         table.insert(argv, t)
-        table.insert(argv, "SimpleMath.h")
+        table.insert(argv, "feather_math.h")
     end
     -- The engine spells these unqualified in its own headers (core/math/math_defs.h); a plugin gets the same spellings.
     table.insert(argv, "--native-alias-namespace")
     table.insert(argv, "feather")
     return argv
+end
+
+-- The math headers a plugin compiles for itself. One source of truth -- core/math -- refreshed into the SDK tree, since a plugin has the SDK
+-- and not an engine checkout. Written only when the contents differ, so it never churns the tree.
+function sync_math_headers(feather_root, sdk_cpp_dir)
+    local source_dir = path.join(feather_root, "core", "math")
+    local dest_dir = path.join(sdk_cpp_dir, "feather_math")
+    os.mkdir(dest_dir)
+
+    local names = {"rtm_interop.h", "vector2.h", "vector3.h", "vector4.h", "quaternion.h", "color.h", "matrix.h",
+                   "precision.h"}
+    for _, name in ipairs(names) do
+        _sync_file(path.join(source_dir, name), path.join(dest_dir, name))
+    end
+
+    -- The umbrella the generated wrappers include (--native-type names it), and
+    -- what turns reflection off for the copy a plugin compiles.
+    local umbrella = table.concat({
+        "// Generated by feather_bindings.sync_math_headers. Do not edit.",
+        "#pragma once",
+        "",
+        "// A plugin compiles the engine's own math sources with reflection off:",
+        "// same fields, same layout, none of the ClassDB machinery.",
+        "#ifndef FEATHER_MATH_STANDALONE",
+        "#define FEATHER_MATH_STANDALONE",
+        "#endif",
+        "",
+    }, "\n")
+    -- precision.h last: it is what turns the suffixed types into Vector3 and the
+    -- rest, and it includes the others itself.
+    for _, name in ipairs({"vector2.h", "vector3.h", "vector4.h", "quaternion.h", "color.h", "matrix.h",
+                           "precision.h"}) do
+        umbrella = umbrella .. "#include <feather_math/" .. name .. ">\n"
+    end
+
+    local umbrella_path = path.join(sdk_cpp_dir, "feather_math.h")
+    if not os.isfile(umbrella_path) or io.readfile(umbrella_path) ~= umbrella then
+        io.writefile(umbrella_path, umbrella)
+    end
+    return dest_dir
 end
 
 -- Generates the C++ wrappers from the C generator's descriptor into
@@ -681,6 +674,10 @@ function run_gen_cpp(target, opts)
     local desc_json = c_desc_json_path()
     assert(os.isfile(desc_json),
         "feather_bindings: " .. desc_json .. " is missing -- the C bindings must be generated first")
+
+    if opts.feather_root then
+        sync_math_headers(opts.feather_root, sdk_cpp_dir)
+    end
 
     local flags = gen_cpp_shape_flags()
     -- Unlike mrbind's generators, this one is ours and changes with the engine, so its own binary hash must feed the stamp too.
@@ -704,6 +701,15 @@ function run_gen_cpp(target, opts)
     local stamp = output_dir .. ".stamp"
     if _gen_outputs_fresh(stamp, desc_json, flags_id,
             #os.files(path.join(output_dir, "**.hpp")) > 0) then
+        -- Generation skipped, but the hand-written and math headers travel with
+        -- the output and can change without the descriptor changing.
+        for _, f in ipairs(os.files(path.join(sdk_cpp_dir, "feather_cpp", "*.hpp"))) do
+            _sync_file(f, path.join(output_dir, "feather_cpp", path.filename(f)))
+        end
+        for _, f in ipairs(os.files(path.join(sdk_cpp_dir, "feather_math", "*.h"))) do
+            _sync_file(f, path.join(output_dir, "feather_math", path.filename(f)))
+        end
+        _sync_file(path.join(sdk_cpp_dir, "feather_math.h"), path.join(output_dir, "feather_math.h"))
         return output_dir
     end
 
@@ -724,6 +730,12 @@ function run_gen_cpp(target, opts)
     for _, f in ipairs(os.files(path.join(sdk_cpp_dir, "feather_cpp", "*.hpp"))) do
         os.cp(f, path.join(stage, "feather_cpp", path.filename(f)))
     end
+    -- The math types a plugin compiles rather than reaches through a wrapper.
+    os.mkdir(path.join(stage, "feather_math"))
+    for _, f in ipairs(os.files(path.join(sdk_cpp_dir, "feather_math", "*.h"))) do
+        os.cp(f, path.join(stage, "feather_math", path.filename(f)))
+    end
+    os.cp(path.join(sdk_cpp_dir, "feather_math.h"), path.join(stage, "feather_math.h"))
 
     os.mkdir(output_dir)
     _sync_tree(stage, output_dir)

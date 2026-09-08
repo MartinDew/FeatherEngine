@@ -120,9 +120,6 @@ target("feather")
     end
 
     add_deps("feather_public_api")
-    -- Direct, not just via feather_public_api (see public_api.lua): an
-    -- object-kind dep's .o files don't propagate across a second headeronly hop.
-    add_deps("simplemath")
     add_packages("flecs", "assimp", "sdl3", "taywee_args", "nlohmann_json")
 
     if is_plat("linux") then

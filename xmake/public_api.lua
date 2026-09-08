@@ -13,13 +13,8 @@ target("feather_public_api")
     add_defines("EDITOR_BUILD=" .. (has_config("editor_build") and "1" or "0"), {public = true})
     add_includedirs(FEATHER_ROOT, {public = true})
     add_includedirs(path.join(FEATHER_ROOT, "core"), {public = true})
-    -- xmake doesn't propagate public include dirs across a second headeronly hop.
-    add_includedirs(path.join(FEATHER_ROOT, "tools", "SDK", "feather_cpp", "thirdparty", "SimpleMath"), {public = true})
-    add_packages("directxmath", {public = true})
+    -- Realtime Math is header-only; the engine's math types compute through it.
     add_packages("rtm", {public = true})
-    -- Also direct-linked by binary targets: an object-kind dep's .o files
-    -- don't propagate across a second headeronly hop either.
-    add_deps("simplemath", {public = true})
     -- flecs is a real shared library on every platform now (thirdparty/xmake.lua), so it links normally: one copy in the
     -- process, and a consumer's undefined flecs symbols resolve against it through DT_NEEDED rather than hoping the host exported them.
     add_packages("flecs", {public = true})

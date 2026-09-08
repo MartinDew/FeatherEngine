@@ -13,6 +13,8 @@
 
 namespace feather {
 
+// Declared in framework/reflection_fwd.h, which a reflected class body names in
+// a friend declaration without needing this file.
 template <class T>
 void has_bind_method(const T& t) {
 	t._bind_members();

@@ -134,10 +134,10 @@ int32_t values_from_variant(const Variant& value, double* values, int32_t max_va
 		}
 		case VariantType::COLOR: {
 			auto c = value.as<Color>().value_or(Color {});
-			values[0] = c.x;
-			values[1] = c.y;
-			values[2] = c.z;
-			values[3] = c.w;
+			values[0] = c.r;
+			values[1] = c.g;
+			values[2] = c.b;
+			values[3] = c.a;
 			break;
 		}
 		default:

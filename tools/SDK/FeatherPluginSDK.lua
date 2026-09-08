@@ -58,10 +58,9 @@ function feather_plugin_sdk_init()
     add_moduledirs(path.join(SDK_DIR, "modules"))
     includes(path.join(SDK_DIR, "packages", "mrbind_generators.lua"))
     if HAVE_CPP_SDK then
-        -- Header-only, and the C++ wrappers alias its types rather than
-        -- wrapping them; a C or C# plugin never resolves it.
-        includes(path.join(SDK_DIR, "feather_cpp", "packages", "directxmath.lua"))
-        add_requires("directxmath_feather", {system = false, alias = "directxmath"})
+        -- Header-only: the math types a C++ plugin compiles compute through it.
+        -- A C or C# plugin never resolves it.
+        add_requires("rtm 2.3.1", {system = false, alias = "rtm"})
     end
     -- host = true: these are build tools this machine runs, not libraries the
     -- plugin links, so a cross-compiling plugin build still gets runnable ones.

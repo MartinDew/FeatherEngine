@@ -1,6 +1,6 @@
 #pragma once
 
-#include "main/class_db.inl"
+#include "reflection_fwd.h"
 #include "static_string.hpp"
 
 template <class T>

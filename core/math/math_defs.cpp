@@ -56,7 +56,7 @@ uint32_t round_up_to_next_pow_2(uint32_t x) {
 }
 
 Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward) {
-	Vector3 WorldUp = Vector3::unit_y;
+	Vector3 WorldUp = Vector3::up;
 	forward.normalize();
 
 	// Make sure side vector is valid (direction could be close to WorldUp)
@@ -68,7 +68,11 @@ Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward) {
 	right.normalize();
 
 	Vector3 up = forward.cross(right);
-	return Matrix(forward, right, up);
+	// Rows are the basis axes; the fourth is the (identity) translation row.
+	return Matrix({ right.x, right.y, right.z, 0.0f },
+				  { up.x, up.y, up.z, 0.0f },
+				  { forward.x, forward.y, forward.z, 0.0f },
+				  { 0.0f, 0.0f, 0.0f, 1.0f });
 }
 
 constexpr uint32_t RaiseToNextMultipleOf(uint32_t val, uint32_t multiple) {

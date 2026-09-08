@@ -11,7 +11,6 @@
 -- This file's own directory's parent -- inside a function called from the consumer's xmake.lua, os.scriptdir() would resolve
 -- to the CONSUMER's directory instead.
 local SDK_DIR = path.directory(os.scriptdir())
-local SIMPLEMATH_DIR = path.join(SDK_DIR, "feather_cpp", "thirdparty", "SimpleMath")
 
 function feather_cpp_plugin(name, opts)
     opts = opts or {}
@@ -36,19 +35,17 @@ function feather_cpp_plugin(name, opts)
         -- stale copies of other configurations for it to load too.
         set_targetdir(path.join(os.projectdir(), "bin"))
         add_files(opts.files)
-        -- The same SimpleMath the engine compiled, built here rather than linking the engine's -- what makes the math types cross as
-        -- themselves: the layouts agree because the sources do, and the generated headers assert it.
-        add_files(path.join(SIMPLEMATH_DIR, "SimpleMath.cpp"))
-        add_includedirs(SIMPLEMATH_DIR)
+        -- The math types arrive as headers beside the generated wrappers and are
+        -- compiled here with reflection off -- see FEATHER_MATH_STANDALONE.
         add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX")
         -- Generated before the compiler runs; see on_config below.
         add_includedirs(
             path.join(os.projectdir(), "build", "feather_bindings", "include"),
             path.join(os.projectdir(), "build", "feather_bindings", "cpp"))
-        add_packages("mrbind_generators", "directxmath")
+        add_packages("mrbind_generators", "rtm")
 
-        -- Only the entry point is meant to be findable; everything else, including this plugin's own copy of SimpleMath's statics,
-        -- stays private to the library.
+        -- Only the entry point is meant to be findable; everything else stays
+        -- private to the library.
         if not is_plat("windows") then
             add_cxflags("-fvisibility=hidden")
         end

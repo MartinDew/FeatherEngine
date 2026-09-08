@@ -3,6 +3,7 @@
 #include "simulation.h"
 
 #include <framework/delegate.h>
+#include <main/class_db.h>
 #include <framework/reflection_macros.h>
 #include <world/components/scene.h>
 #include <world/ecs_defs.h>

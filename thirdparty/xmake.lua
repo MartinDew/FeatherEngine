@@ -3,10 +3,6 @@ for _, pkg_file in ipairs(os.files(path.join(os.scriptdir(), "packages", "*.lua"
     includes(pkg_file)
 end
 
--- DirectXMath's package lives in the SDK instead, next to the SimpleMath sources it supplies a sal.h shim for: a plugin vendors both and
--- builds the same math types the engine did, which is what lets those types cross the C boundary as themselves.
-includes(path.join(path.directory(os.scriptdir()), "tools", "SDK", "feather_cpp", "packages", "directxmath.lua"))
-
 -- CMake's Development config mapped to RelWithDebInfo, so thirdparties built in
 -- release mode; mirror that by only requesting debug packages in debug mode.
 if is_mode("debug") then
@@ -40,7 +36,6 @@ add_requires("assimp 6.0.4", {
 -- Not in feather_public_api: it stays out of the engine's public headers.
 add_requires("nlohmann_json", {system = false, alias = "nlohmann_json"})
 
-add_requires("directxmath_feather", {system = false, alias = "directxmath"})
 -- Realtime Math: header-only SIMD math. Feather's own math types compute through
 -- it (core/math/rtm_interop.h) while staying plain structs the engine reflects.
 add_requires("rtm 2.3.1", {system = false, alias = "rtm"})
@@ -77,4 +72,3 @@ if has_config("enable_c_bindings", "enable_cs_bindings", "enable_cpp_bindings") 
     end
 end
 
-includes(path.join(os.scriptdir(), "SimpleMath", "xmake.lua"))

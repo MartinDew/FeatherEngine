@@ -1,5 +1,7 @@
 #pragma once
 
+#include <framework/path.h>
+
 #include "rid.h"
 #include <core/framework/reflected.h>
 #include <core/framework/reflection_macros.h>

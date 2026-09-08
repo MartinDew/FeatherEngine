@@ -40,11 +40,12 @@ target("cpp_bindings")
             output_dir = OUTPUT_DIR,
             sdk_cpp_dir = SDK_CPP_DIR,
             gen_cpp_dir = path.join(FEATHER_ROOT, "tools", "SDK", "feather_cpp", "gen_cpp"),
+            feather_root = FEATHER_ROOT,
         })
     end)
 target_end()
 
--- Compiles every generated header with only the C bindings, the vendored SimpleMath and DirectXMath on the include path.
+-- Compiles every generated header with only the C bindings and the math headers a plugin gets on the include path.
 -- Deliberately does NOT depend on feather_public_api: reaching an engine header from here would defeat the point of the check.
 target("cpp_bindings_check")
     set_kind("object")
@@ -53,11 +54,9 @@ target("cpp_bindings_check")
     set_warnings("none")
 
     add_deps("cpp_bindings")
-    add_deps("simplemath", {inherit = false}) -- for its include dirs only
-    add_packages("directxmath")
 
-    add_includedirs(OUTPUT_DIR, C_INCLUDE_DIR,
-        path.join(FEATHER_ROOT, "tools", "SDK", "feather_cpp", "thirdparty", "SimpleMath"))
+    add_includedirs(OUTPUT_DIR, C_INCLUDE_DIR)
+    add_packages("rtm")
     add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX")
 
     on_config(function (target)

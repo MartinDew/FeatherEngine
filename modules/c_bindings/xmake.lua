@@ -27,9 +27,8 @@ feather_module_target("c_bindings", os.scriptdir(), {"scripted_abi.cpp"},
     {kind = "object", deps = {"bindings_api"}})
 
 target("c_bindings")
-    -- run_gen_c resolves the generator binary and DirectXMath's include dir
-    -- through these handles; a package reached only via a dep isn't in pkg().
-    add_packages("mrbind", "directxmath")
+    -- run_gen_c resolves the generator binary through this handle.
+    add_packages("mrbind")
 
     -- Marks this as the build of the generated bindings themselves, so FEATHER_C_API resolves to dllexport rather than dllimport
     -- (feather_helpers/exports.h) -- a separate macro from the engine's own, though both resolve to "export" here since both are built here.

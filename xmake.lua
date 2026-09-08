@@ -88,13 +88,6 @@ task("export-api")
         -- SDK substitutes back to directories of its own (feather_plugin_bindings.resolve_api_json), so the published file names no machine.
         local content = io.readfile(api_json)
 
-        -- Read out of the parse rather than asked of the current configuration: a package's install directory carries a hash of the config
-        -- that built it, so the two disagree whenever api.json predates a reconfigure.
-        local directxmath_root = feather_bindings.directxmath_root_in(content)
-        -- DirectXMath first: its package directory lives under the engine root, so replacing the root first would bury the longer prefix.
-        if directxmath_root then
-            content = content:replace(directxmath_root, feather_bindings.directxmath_token(), {plain = true})
-        end
         content = content:replace(feather_root, feather_bindings.feather_token(), {plain = true})
 
         assert(content:find(feather_bindings.feather_token(), 1, true),

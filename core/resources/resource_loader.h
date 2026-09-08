@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
 #include "resource.h"
 #include "resource_format_loader.h"
 #include "rid.h"

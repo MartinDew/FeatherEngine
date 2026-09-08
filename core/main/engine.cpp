@@ -48,10 +48,10 @@ Engine::~Engine() {
 inline void _setup_demo_scene(WorldSim& _world_sim) {
 	// test script
 	World& w = *_world_sim.get_world();
-	Transform t1 { { 0, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
-	Transform t2 { { -2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
-	Transform t3 { { 2, -1, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
-	Transform t4 { { 0, 2, -3 }, Quaternion::create_from_yaw_pitch_roll(1.f, 0, 0), Vector3::one };
+	Transform t1 { Vector3(0, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t2 { Vector3(-2, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t3 { Vector3(2, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t4 { Vector3(0, 2, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
 
 	auto material = std::make_shared<PBRMaterial>();
 	material->set_base_color_factor({ .7f, .7f, .0f });
@@ -83,7 +83,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	_world_sim.create_entity(s, "Floor")
 			.emplace<Transform>(
 					Vector3 { 0, -2, 0 },
-					Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
+					Quaternion::identity,
 					Vector3 { 200, 0.1f, 200 }
 			)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>());
@@ -102,8 +102,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 			.kind(flecs::OnUpdate)
 			.write<Transform>()
 			.each([](flecs::iter& it, size_t, const MeshInstance& mi, Transform& t) {
-				t.rotation = t.rotation *
-						Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, static_cast<real_t>(it.delta_time()), 0 });
+				t.rotation = t.rotation * Quaternion::from_euler(static_cast<real_t>(it.delta_time()), 0, 0);
 			});
 
 	auto q = w.ecs().query_builder<Transform, MeshInstance, MaterialInstance*>("Test")

@@ -658,7 +658,7 @@ void VexRenderer::_upload_camera_uniforms(const RenderScene& capture, vex::Comma
 	const auto& projection =
 			_use_reverse_z ? capture.get_camera_projection().create_reverse_z() : capture.get_camera_projection();
 
-	Matrix view = transform.to_matrix_no_scale().invert(); // World-to-camera
+	Matrix view = transform.to_matrix_no_scale().inverse(); // World-to-camera
 	Matrix proj = projection.get_matrix();
 	Matrix viewProj = view * proj;
 
@@ -681,7 +681,7 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 		gpuLight.type = static_cast<uint32_t>(light.type);
 		gpuLight.position = light.position;
 		gpuLight.direction = light.direction;
-		gpuLight.color = Color(light.color.x, light.color.y, light.color.z, light.intensity);
+		gpuLight.color = Color(light.color.r, light.color.g, light.color.b, light.intensity);
 		gpuLight.range = light.range;
 		gpuLight.spotAngleCos = std::cos(deg_to_rad(light.spot_angle));
 		auto vp_it = _light_view_proj_cache.find(static_cast<uint32_t>(i));
@@ -767,20 +767,20 @@ Matrix VexRenderer::_compute_light_view_proj(const Light& light, const RenderSce
 		float sceneRadius = _compute_scene_radius(capture, sceneCenter);
 
 		Vector3 lightPos = sceneCenter - light.direction; // * (sceneRadius * 2.0f);
-		Matrix view = Matrix::create_look_at(lightPos, sceneCenter, Vector3(0, 1, 0));
+		Matrix view = Matrix::look_at(lightPos, sceneCenter, Vector3(0, 1, 0));
 		auto nearFar = std::make_pair(-sceneRadius * 4.0f, sceneRadius * 4.0f);
 		if (_use_reverse_z) {
 			std::swap(nearFar.first, nearFar.second);
 		}
 		Matrix proj =
-				Matrix::create_orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, nearFar.first, nearFar.second);
+				Matrix::orthographic(sceneRadius * 2.0f, sceneRadius * 2.0f, nearFar.first, nearFar.second);
 		return view * proj;
 	}
 
 	if (light.type == LightType::Spot) {
-		Matrix view = Matrix::create_look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
+		Matrix view = Matrix::look_at(light.position, light.position + light.direction, Vector3(0, 1, 0));
 		float fov = light.spot_angle * 2.0f;
-		Matrix proj = Matrix::create_perspective_field_of_view(deg_to_rad(fov), 1.0f, 0.1f, light.range);
+		Matrix proj = Matrix::perspective(deg_to_rad(fov), 1.0f, 0.1f, light.range);
 		return view * proj;
 	}
 
@@ -805,7 +805,7 @@ float VexRenderer::_compute_scene_radius(const RenderScene& capture, const Vecto
 	float maxDist = 10.0f;
 
 	for (const auto& entity : entities) {
-		float dist = Vector3::distance(center, entity.transform.position);
+		float dist = (center).distance(entity.transform.position);
 		// TODO: Add mesh bounding sphere radius
 		maxDist = std::max(maxDist, dist + 10.0f);
 	}
@@ -813,8 +813,8 @@ float VexRenderer::_compute_scene_radius(const RenderScene& capture, const Vecto
 }
 
 Matrix VexRenderer::_compute_normal_matrix(const Matrix& modelMatrix) {
-	Matrix inv = modelMatrix.invert();
-	return inv.transpose();
+	Matrix inv = modelMatrix.inverse();
+	return inv.transposed();
 }
 
 } //namespace feather

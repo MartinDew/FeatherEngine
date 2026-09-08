@@ -45,8 +45,7 @@ function output_layout()
         -- resolve_api_json.
         resolved_json = path.join(root, "feather_api.resolved.json"),
         roots = {
-            feather    = to_forward_slashes(path.join(root, "roots", "feather")),
-            directxmath = to_forward_slashes(path.join(root, "roots", "directxmath")),
+            feather = to_forward_slashes(path.join(root, "roots", "feather")),
         },
     }
 end
@@ -61,7 +60,6 @@ end
 -- What the engine's `export-api` wrote in place of the two absolute prefixes
 -- baked into the parse. KEEP IN SYNC with the engine's feather_bindings.lua.
 local FEATHER_TOKEN = "@feather"
-local DIRECTXMATH_TOKEN = "@directxmath"
 
 -- Substitutes real directories back in for the published file's path tokens, since mrbind_gen_c matches --map-path against the filenames
 -- in the JSON literally. The directories only have to exist and be canonical -- nothing is ever read from them.
@@ -71,13 +69,11 @@ local function resolve_api_json(api_json, out)
         "FeatherPluginSDK: " .. api_json .. " has no " .. FEATHER_TOKEN .. " paths.\n"
         .. "  Re-export it with `xmake export-api` from an engine matching this SDK.")
 
-    content = content:replace(DIRECTXMATH_TOKEN, out.roots.directxmath, {plain = true})
     content = content:replace(FEATHER_TOKEN, out.roots.feather, {plain = true})
 
     -- Created, not just named: the generator canonicalizes both flag and filename, and a path under a symlinked build directory would
     -- otherwise resolve to something the JSON's own spelling no longer prefixes.
     os.mkdir(out.roots.feather)
-    os.mkdir(out.roots.directxmath)
 
     -- Write-if-changed: this file feeds the staleness stamp below.
     if not os.isfile(out.resolved_json) or io.readfile(out.resolved_json) ~= content then
@@ -90,24 +86,28 @@ end
 -- KEEP IN SYNC with exposed_struct_types() in the engine's xmake/modules/feather_bindings.lua.
 function exposed_struct_types()
     return {
-        "DirectX::SimpleMath::Vector2",
-        "DirectX::SimpleMath::Vector3",
-        "DirectX::SimpleMath::Vector4",
-        "DirectX::SimpleMath::Quaternion",
-        "DirectX::SimpleMath::Color",
+        "feather::Vector2f",
+        "feather::Vector3f",
+        "feather::Vector4f",
+        "feather::Quaternionf",
+        "feather::Colorf",
     }
 end
 
--- The math types a C++ plugin defines itself, compiling the same vendored SimpleMath sources rather than reaching through a wrapper.
--- Matrix is here too though not an exposed struct -- it crosses as a pointer to a copy. KEEP IN SYNC with the engine's native_math_types().
+-- The math types a C++ plugin compiles for itself, from the headers that ship with the generated wrappers, rather than reaching
+-- through a wrapper. KEEP IN SYNC with the engine's native_math_types().
 function native_math_types()
     return {
-        "DirectX::SimpleMath::Vector2",
-        "DirectX::SimpleMath::Vector3",
-        "DirectX::SimpleMath::Vector4",
-        "DirectX::SimpleMath::Quaternion",
-        "DirectX::SimpleMath::Color",
-        "DirectX::SimpleMath::Matrix",
+        "feather::Vector2f",
+        "feather::Vector3f",
+        "feather::Vector4f",
+        "feather::Quaternionf",
+        "feather::Colorf",
+        "feather::Matrix4x4f",
+        "feather::Vector2d",
+        "feather::Vector3d",
+        "feather::Vector4d",
+        "feather::Quaterniond",
     }
 end
 
@@ -117,7 +117,7 @@ local function gen_cpp_shape_flags()
     for _, t in ipairs(native_math_types()) do
         table.insert(argv, "--native-type")
         table.insert(argv, t)
-        table.insert(argv, "SimpleMath.h")
+        table.insert(argv, "feather_math.h")
     end
     -- The engine spells these unqualified in its own headers; a plugin gets the
     -- same spellings.
@@ -135,10 +135,6 @@ local function shape_flags()
         "assume-include-dir=<root>",
         "force-emit-common-helpers",
         "helper-header-dir=feather_helpers",
-        -- Placeholder, like the <root> entries above: the mapping's shape is
-        -- what must agree with the engine, never the absolute path.
-        "map-path=<directxmath>->feather_c/_ext/directxmath",
-        "assume-include-dir=<directxmath>",
     }
     for _, t in ipairs(exposed_struct_types()) do
         table.insert(shape, "expose-as-struct=" .. t)
@@ -154,7 +150,7 @@ end
 
 -- Every shaping flag here must match the engine's run_gen_c() exactly: the
 -- headers generated here describe an ABI the engine binary already implements.
-local function gen_c_argv(api_json, feather_root, directxmath_root, out)
+local function gen_c_argv(api_json, feather_root, out)
     local argv = {
         "--input", api_json,
         "--output-header-dir", out.header_dir,
@@ -165,13 +161,7 @@ local function gen_c_argv(api_json, feather_root, directxmath_root, out)
         -- The engine's run_gen_c() derives these exactly the same way.
         "--map-path", to_forward_slashes(feather_root) .. "/core", "feather_c",
         "--map-path", to_forward_slashes(feather_root), "feather_c/_root",
-        -- DirectXMath's headers were parsed from outside the engine tree (SimpleMath's fields live in XMFLOAT bases).
-        -- Every parsed filename must match some prefix or the generator stops.
-        "--map-path", to_forward_slashes(directxmath_root), "feather_c/_ext/directxmath",
         "--assume-include-dir", to_forward_slashes(feather_root),
-        -- The glue includes the real <DirectXMath.h> to call into it. Distinct
-        -- from the mapping above, which spells the generated header instead.
-        "--assume-include-dir", to_forward_slashes(directxmath_root),
         "--clean-output-dirs",
         "--output-desc-json", out.desc_json,
         "--force-emit-common-helpers",
@@ -265,7 +255,7 @@ function generate(target, opts, langs)
         cprint("${cyan}[feather]${reset} mrbind_gen_c -> %s",
             path.relative(out.header_dir, os.projectdir()))
         os.vrunv(c_generator,
-            gen_c_argv(resolved_json, out.roots.feather, out.roots.directxmath, staged))
+            gen_c_argv(resolved_json, out.roots.feather, staged))
 
         os.mkdir(out.header_dir)
         os.mkdir(out.source_dir)
@@ -343,6 +333,13 @@ function generate(target, opts, langs)
             for _, f in ipairs(os.files(path.join(sdk_cpp, "*.hpp"))) do
                 os.cp(f, path.join(stage, "feather_cpp", path.filename(f)))
             end
+            -- The math types a plugin compiles rather than reaches through a wrapper.
+            local sdk_include = path.directory(sdk_cpp)
+            os.mkdir(path.join(stage, "feather_math"))
+            for _, f in ipairs(os.files(path.join(sdk_include, "feather_math", "*.h"))) do
+                os.cp(f, path.join(stage, "feather_math", path.filename(f)))
+            end
+            os.cp(path.join(sdk_include, "feather_math.h"), path.join(stage, "feather_math.h"))
 
             os.mkdir(out.cpp_dir)
             sync_tree(stage, out.cpp_dir)
@@ -351,9 +348,14 @@ function generate(target, opts, langs)
         else
             -- Generation skipped, but a vendored-SDK update can still change the
             -- hand-written headers while desc.json stays put.
+            local sdk_include = path.directory(sdk_cpp)
             for _, f in ipairs(os.files(path.join(sdk_cpp, "*.hpp"))) do
                 sync_file(f, path.join(out.cpp_dir, "feather_cpp", path.filename(f)))
             end
+            for _, f in ipairs(os.files(path.join(sdk_include, "feather_math", "*.h"))) do
+                sync_file(f, path.join(out.cpp_dir, "feather_math", path.filename(f)))
+            end
+            sync_file(path.join(sdk_include, "feather_math.h"), path.join(out.cpp_dir, "feather_math.h"))
         end
     end
 

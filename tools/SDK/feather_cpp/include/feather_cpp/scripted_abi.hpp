@@ -113,7 +113,7 @@ namespace feather::ecs
         void set(std::string_view field, float value) const { const double v[] = {double(value)}; _write(field, v, 1); }
         void set(std::string_view field, const Vector2 &value) const { const double v[] = {value.x, value.y}; _write(field, v, 2); }
         void set(std::string_view field, const Vector3 &value) const { const double v[] = {value.x, value.y, value.z}; _write(field, v, 3); }
-        void set(std::string_view field, const Color &value) const { const double v[] = {value.x, value.y, value.z, value.w}; _write(field, v, 4); }
+        void set(std::string_view field, const Color &value) const { const double v[] = {value.r, value.g, value.b, value.a}; _write(field, v, 4); }
 
       private:
         [[noreturn]] static void detail_fail(const std::string &message) { ::feather::detail::fail(message); }
