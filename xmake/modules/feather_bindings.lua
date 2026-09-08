@@ -655,6 +655,16 @@ function sync_math_headers(feather_root, sdk_cpp_dir)
         "#define FEATHER_MATH_STANDALONE",
         "#endif",
         "",
+        "// The fields still carry the [[get, set]] the reflection codegen reads",
+        "// off the declaration; no compiler knows them, and none needs to here.",
+        "#if defined(__GNUC__) || defined(__clang__)",
+        "#pragma GCC diagnostic push",
+        "#pragma GCC diagnostic ignored \"-Wattributes\"",
+        "#elif defined(_MSC_VER)",
+        "#pragma warning(push)",
+        "#pragma warning(disable : 5030)",
+        "#endif",
+        "",
     }, "\n")
     -- precision.h last: it is what turns the suffixed types into Vector3 and the
     -- rest, and it includes the others itself.
@@ -662,6 +672,16 @@ function sync_math_headers(feather_root, sdk_cpp_dir)
                            "precision.h"}) do
         umbrella = umbrella .. "#include <feather_math/" .. name .. ">\n"
     end
+
+    umbrella = umbrella .. table.concat({
+        "",
+        "#if defined(__GNUC__) || defined(__clang__)",
+        "#pragma GCC diagnostic pop",
+        "#elif defined(_MSC_VER)",
+        "#pragma warning(pop)",
+        "#endif",
+        "",
+    }, "\n")
 
     local umbrella_path = path.join(sdk_cpp_dir, "feather_math.h")
     if not os.isfile(umbrella_path) or io.readfile(umbrella_path) ~= umbrella then

@@ -6,6 +6,16 @@
 #ifndef FEATHER_MATH_STANDALONE
 #define FEATHER_MATH_STANDALONE
 #endif
+
+// The fields still carry the [[get, set]] the reflection codegen reads
+// off the declaration; no compiler knows them, and none needs to here.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 5030)
+#endif
 #include <feather_math/vector2.h>
 #include <feather_math/vector3.h>
 #include <feather_math/vector4.h>
@@ -13,3 +23,9 @@
 #include <feather_math/color.h>
 #include <feather_math/matrix.h>
 #include <feather_math/precision.h>
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
