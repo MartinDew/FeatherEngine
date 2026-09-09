@@ -5,6 +5,7 @@
 #include "resource_loader.h"
 
 #include <framework/shared_library.h>
+#include <main/project_settings.h>
 
 #include <nlohmann/json.hpp>
 
@@ -16,8 +17,8 @@ namespace feather {
 
 namespace {
 
-// The key a manifest's "libraries" table must use for this build. Kept deliberately coarse -- os.arch -- since that is what
-// decides which binary can be loaded at all.
+// The key a manifest's "libraries" table must use for this build. Kept deliberately coarse -- os.arch -- since that is
+// what decides which binary can be loaded at all.
 constexpr const char* PLATFORM_KEY =
 #if defined(_WIN32)
 		"windows."
@@ -38,7 +39,8 @@ constexpr const char* PLATFORM_KEY =
 
 // Manifest-relative, so a project can be moved or checked out anywhere.
 Path resolve_relative(const Path& manifest_path, const std::string& relative) {
-	return manifest_path.parent_path() / relative;
+	auto localized = ProjectSettings::get()->localize_path(relative);
+	return manifest_path.parent_path() / localized;
 }
 
 } // namespace
@@ -62,8 +64,8 @@ std::shared_ptr<Resource> FextFormatLoader::instantiate(const Path& path) {
 		return nullptr;
 	}
 
-	// Only the field that decides how to read everything else is checked against a hard-coded value; unknown *newer* minor
-	// additions stay forward-compatible by being ignored.
+	// Only the field that decides how to read everything else is checked against a hard-coded value; unknown *newer*
+	// minor additions stay forward-compatible by being ignored.
 	const auto version = manifest.value("fext_version", 0);
 	if (version != 1) {
 		std::cerr << "FextFormatLoader: Unsupported fext_version " << version << " in " << path
@@ -77,7 +79,8 @@ std::shared_ptr<Resource> FextFormatLoader::instantiate(const Path& path) {
 		return nullptr;
 	}
 
-	// The only kind an extension can be: a native library exporting a void(uint8_t) entry point, whatever language produced it.
+	// The only kind an extension can be: a native library exporting a void(uint8_t) entry point, whatever language
+	// produced it.
 	const auto type = manifest.value("type", std::string { "native" });
 	if (type != "native") {
 		std::cerr << "FextFormatLoader: Extension '" << name << "' has type \"" << type
@@ -93,15 +96,15 @@ std::shared_ptr<Resource> FextFormatLoader::instantiate(const Path& path) {
 	const auto& libraries = manifest["libraries"];
 	auto entry_it = libraries.find(PLATFORM_KEY);
 	if (entry_it == libraries.end()) {
-		std::cerr << "FextFormatLoader: Extension '" << name << "' has no library for platform " << PLATFORM_KEY
-				  << ": " << path << std::endl;
+		std::cerr << "FextFormatLoader: Extension '" << name << "' has no library for platform " << PLATFORM_KEY << ": "
+				  << path << std::endl;
 		return nullptr;
 	}
 
 	auto library_path = resolve_relative(path, entry_it->get<std::string>());
 	if (!std::filesystem::exists(library_path)) {
-		std::cerr << "FextFormatLoader: Extension '" << name << "' names a library that doesn't exist: "
-				  << library_path << " (from " << path << ")" << std::endl;
+		std::cerr << "FextFormatLoader: Extension '" << name << "' names a library that doesn't exist: " << library_path
+				  << " (from " << path << ")" << std::endl;
 		return nullptr;
 	}
 
