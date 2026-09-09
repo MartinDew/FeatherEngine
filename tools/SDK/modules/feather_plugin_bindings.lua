@@ -12,6 +12,7 @@
 -- entire toolchain a C or C# plugin needs.
 
 import("lib.detect.find_tool")
+import("detect.sdks.find_dotnet")
 
 -- This module lives in <sdk>/modules, so the SDK root is one level up. Used to
 -- find the C# bootstrap that ships beside it.
@@ -479,7 +480,8 @@ end
 
 -- The .NET Runtime Identifier for the machine actually running dotnet: NativeAOT cannot cross the OS boundary, so a hardcoded default like
 -- "linux-x64" broke every other host. os.host()/os.arch() name that machine; xmake's is_plat()/is_arch() name the *target*, the wrong question here.
-local function host_dotnet_rid()
+-- Exported: feather.plugin.cs seeds csharp.runtime_identifier with it too.
+function host_dotnet_rid()
     local os_part = ({windows = "win", linux = "linux", macosx = "osx"})[os.host()]
     local arch_part = ({x86_64 = "x64", x64 = "x64", i386 = "x86", arm64 = "arm64", ["arm64-v8a"] = "arm64"})[os.arch()]
     if not os_part or not arch_part then
@@ -489,15 +491,8 @@ local function host_dotnet_rid()
     return os_part .. "-" .. arch_part
 end
 
--- The filename dotnet's NativeAOT publish produces: the csproj's own filename (absent an explicit <AssemblyName>) plus the host's native
--- shared-library extension, never .so unconditionally as a hardcoded default would assume.
-local function default_published_name(csproj)
-    local ext = ({windows = ".dll", linux = ".so", macosx = ".dylib"})[os.host()] or ".so"
-    return path.basename(csproj) .. ext
-end
-
 -- The filename staged into bin/, and so the one a .fext manifest's "libraries" table names.
--- Mirrors feather_c_plugin's own convention (no "lib" prefix on Windows) so a C and C# extension of the same name are found the same way.
+-- Mirrors feather.plugin.c's own convention (no "lib" prefix on Windows) so a C and C# extension of the same name are found the same way.
 local function default_output_name(name)
     if os.host() == "windows" then
         return name .. ".dll"
@@ -508,41 +503,79 @@ local function default_output_name(name)
     end
 end
 
--- Publishes a C# plugin with NativeAOT, so the result is an ordinary native
--- shared library the engine loads exactly like a C one.
-function publish_csharp(target, opts, out)
-    local dotnet = assert(find_tool("dotnet"),
-        "FeatherPluginSDK: dotnet SDK not found on PATH (needed for C# extensions)")
-    local csproj = path.absolute(assert(opts.csproj, "FeatherPluginSDK: opts.csproj is required"),
-        os.projectdir())
+-- The `dotnet` program, via xmake's own .NET SDK probe (the one the dotnet
+-- toolchain uses), falling back to a bare PATH lookup.
+local function dotnet_program()
+    local info = find_dotnet()
+    if info and info.bindir then
+        return path.join(info.bindir, is_host("windows") and "dotnet.exe" or "dotnet")
+    end
+    return assert(find_tool("dotnet"),
+        "FeatherPluginSDK: the .NET SDK (dotnet) was not found (needed for C# extensions)").program
+end
 
-    -- Staged outside the project: the engine's project walk opens every shared
-    -- library it finds, and dotnet's intermediate directories are full of them.
-    local stage = path.join(os.tmpdir(), "feather_cs_plugin", target:name())
+-- The one native library `dotnet publish` leaves in `stage`: <assembly> plus the
+-- host's shared-library extension, or -- if <AssemblyName> was overridden -- the
+-- single non-sidecar library found there.
+local function published_native_lib(stage, assembly)
+    local exts = {".so", ".dylib", ".dll"}
+    for _, ext in ipairs(exts) do
+        local direct = path.join(stage, assembly .. ext)
+        if os.isfile(direct) then
+            return direct
+        end
+    end
+    for _, f in ipairs(os.files(path.join(stage, "*"))) do
+        local ext = path.extension(f)
+        if (ext == ".so" or ext == ".dylib" or ext == ".dll")
+                and not f:endswith(".dbg") and not f:endswith(".pdb") then
+            return f
+        end
+    end
+    return nil
+end
+
+-- Publishes a C# plugin with NativeAOT, so the result is an ordinary native
+-- shared library the engine loads exactly like a C one. Reads the .csproj
+-- xmake's built-in csharp rule generated from the target's set_values("csharp.*").
+function publish_csharp(target, opts, out)
+    local csproj = assert(target:data("csharp.csproj"),
+        "FeatherPluginSDK: xmake's csharp rule produced no .csproj for " .. target:name()
+        .. " (is add_rules(\"feather.plugin.cs\") applied?)")
+    -- The csharp rule regenerates this at config time incrementally; a partly
+    -- wiped build/ can leave the stamp without the file.
+    assert(os.isfile(csproj), "FeatherPluginSDK: " .. csproj .. " is missing"
+        .. "\n  Reconfigure with `xmake f -c` (or remove build/ and rebuild).")
+
+    -- The two ItemGroups xmake's csproj generator has no hook for -- the glob
+    -- over the generated bindings and the trimmer root. Beside the .csproj so
+    -- MSBuild auto-imports it.
+    local targets_src = path.join(sdk_dir(), "feather_cs", "Directory.Build.targets")
+    assert(os.isfile(targets_src), "FeatherPluginSDK: missing " .. targets_src
+        .. "\n  Vendor the SDK's feather_cs/ directory alongside modules/ and packages/.")
+    sync_file(targets_src, path.join(path.directory(csproj), "Directory.Build.targets"))
+
+    -- Under the target's autogen dir, not os.tmpdir(): disposable, per-config,
+    -- and never anywhere the engine's project walk looks.
+    local stage = path.join(target:autogendir(), "feather_cs_publish")
     os.tryrm(stage)
-    os.mkdir(stage)
 
     cprint("${cyan}[feather]${reset} dotnet publish %s", path.filename(csproj))
-    os.vrunv(dotnet.program, {
+    os.vrunv(dotnet_program(), {
         "publish", csproj,
         "-c", "Release",
         "-r", opts.runtime or host_dotnet_rid(),
-        -- Emits a plain native .so exporting the [UnmanagedCallersOnly] entry
-        -- points, rather than a managed assembly needing a host.
+        -- Emits a plain native library exporting the [UnmanagedCallersOnly]
+        -- entry point, rather than a managed assembly needing a host.
         "-p:NativeLib=Shared",
-        "-p:PublishAot=true",
-        -- Where the generated .cs files are; the csproj globs this.
+        -- Where the generated .cs live; Directory.Build.targets globs this.
         "-p:FeatherCsharpDir=" .. out.csharp_dir,
-        "-p:BaseIntermediateOutputPath=" .. path.join(stage, "obj") .. "/",
-        "-p:BaseOutputPath=" .. path.join(stage, "out") .. "/",
-        "-o", path.join(stage, "publish"),
+        "-o", stage,
     }, {envs = {DOTNET_CLI_TELEMETRY_OPTOUT = "1", DOTNET_NOLOGO = "1"}})
 
-    local published_name = opts.published_name or default_published_name(csproj)
-    local produced = path.join(stage, "publish", published_name)
-    assert(os.isfile(produced), "FeatherPluginSDK: dotnet publish produced no " .. produced
-        .. "\n  (looked for the assembly name derived from " .. path.filename(csproj)
-        .. "; pass opts.published_name if <AssemblyName> overrides it in the .csproj)")
+    local produced = published_native_lib(stage, target:basename() or target:name())
+    assert(produced, "FeatherPluginSDK: dotnet publish produced no native library in " .. stage
+        .. "\n  (expected NativeLib=Shared + PublishAot to emit one; check the publish output above)")
 
     local output_name = opts.output_name or default_output_name(target:name())
     local bindir = path.join(os.projectdir(), "bin")
