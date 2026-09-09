@@ -396,7 +396,7 @@ namespace feather_gen
     {
         std::string out;
         out += "#pragma once\n\n";
-        out += "// The math types cross as themselves: a plugin compiles the same SimpleMath\n";
+        out += "// The math types cross as themselves: a plugin compiles the same core/math\n";
         out += "// sources the engine did, so the layouts agree by construction. The\n";
         out += "// assertions check that against what the engine published, making a\n";
         out += "// mismatch a compile error rather than silently reinterpreted memory.\n\n";

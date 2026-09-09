@@ -25,9 +25,6 @@ mrbind sets at directory scope — `-std=c++23`, `_ITERATOR_DEBUG_LEVEL=0`,
 which is what makes linking `mrbind_c_interop` work on every toolchain the
 engine supports.
 
-Both packages also apply the source edit documented in
-`patches/expose-as-struct-standard-layout-bases.md`.
-
 ## Rebuilding after editing these sources
 
 The packages hash this directory into a `gen_cpp_rev` config, so an edit here
@@ -47,6 +44,6 @@ feather_gen_cpp --input-json <desc.json> --output-dir <dir> [--clean-output-dir]
 ```
 
 `--native-type` declares that the consumer already has a bit-identical
-definition of a C++ type (the vendored SimpleMath types), so the generator
+definition of a C++ type (the vendored `core/math` types), so the generator
 aliases it instead of emitting a wrapper class, and asserts the layout the
 descriptor recorded.

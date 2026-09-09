@@ -6,7 +6,7 @@
 // header, and its default `std::source_location` argument only means anything
 // when it is evaluated at the caller. Routed through a C entry point it would
 // report the glue's own line, every time. Vendored for the same reason the
-// SimpleMath sources are -- a plugin compiles it itself and gets the engine's
+// math sources are -- a plugin compiles it itself and gets the engine's
 // behaviour exactly.
 //
 // KEEP IN SYNC with core/framework/assert.h.

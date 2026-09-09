@@ -197,27 +197,6 @@ package("mrbind")
             end
         end
 
-        -- Lets --expose-as-struct accept a standard-layout class that has base classes, so its inherited fields are exposed too.
-        -- Size/alignment/offset validation is untouched. Rationale: tools/SDK/feather_cpp/gen_cpp/patches/expose-as-struct-standard-layout-bases.md. KEEP IN SYNC with mrbind_generators.lua.
-        local function _allow_exposed_structs_with_bases()
-            local f = path.join("src", "generators", "c", "generator.cpp")
-            local needle = '                // Must have no bases. I ain\'t dealing with those.\n'
-                .. '                if (!class_info.parsed->bases.empty())\n'
-                .. '                    throw std::runtime_error("The class `" + cpp_type_name + "` is whitelisted by `--expose-as-struct`, but it has a base class. This flag only supports the structs/classes with no base classes.");\n'
-
-            local contents = io.readfile(f)
-            if contents:find(needle, 1, true) then
-                -- Parenthesized: replace() also returns a count, which would
-                -- otherwise land in writefile's opt parameter.
-                io.writefile(f, (contents:replace(needle, "", {plain = true})))
-            end
-            -- An upstream edit to this text must fail the build rather than
-            -- silently leave the check in and break the math bindings.
-            assert(not io.readfile(f):find("I ain't dealing with those", 1, true),
-                "mrbind: could not remove the --expose-as-struct no-bases check from " .. f
-                .. " -- upstream source moved; see tools/SDK/feather_cpp/gen_cpp/patches/")
-        end
-
         -- Copies Feather's C++ wrapper generator into the fetched source tree and hooks it into mrbind's own CMakeLists. Grafted rather than
         -- built standalone: mrbind sets -std=c++23/_ITERATOR_DEBUG_LEVEL=0/CMAKE_MSVC_RUNTIME_LIBRARY at directory scope; missing any fails to link (LNK2038). KEEP IN SYNC with mrbind_generators.lua.
         local function _graft_feather_gen_cpp()
@@ -235,7 +214,6 @@ package("mrbind")
             end
         end
 
-        _allow_exposed_structs_with_bases()
         _graft_feather_gen_cpp()
 
         local builddir = path.join(package:builddir(), ".cmake_build")

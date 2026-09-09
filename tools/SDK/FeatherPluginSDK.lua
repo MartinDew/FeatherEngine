@@ -40,7 +40,7 @@
 local SDK_DIR = os.scriptdir()
 
 -- The C++ half of the SDK (wrapper generator, headers, math sources) is optional.
--- A C or C# plugin vendors none of it and must not be made to build a generator it never runs, nor fetch DirectXMath.
+-- A C or C# plugin vendors none of it and must not be made to build a generator it never runs.
 local HAVE_CPP_SDK = os.isdir(path.join(SDK_DIR, "feather_cpp", "gen_cpp"))
 
 -- Shared link setup: a plugin links nothing of the engine's. On ELF its feather_* imports stay undefined and bind against the running engine
