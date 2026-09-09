@@ -30,16 +30,20 @@ void SharedLibrary::unload() {
 		return;
 	}
 
-	SDL_UnloadObject(_handle);
+	SDL_UnloadObject(static_cast<SDL_SharedObject*>(_handle));
 	_handle = nullptr;
 }
 
-Callable SharedLibrary::get_symbol(const std::string& name) const {
+void* SharedLibrary::resolve_symbol(const std::string& name) const {
 	if (!_handle) {
-		return {};
+		return nullptr;
 	}
 
-	auto sym = SDL_LoadFunction(_handle, name.c_str());
+	return reinterpret_cast<void*>(SDL_LoadFunction(static_cast<SDL_SharedObject*>(_handle), name.c_str()));
+}
+
+Callable SharedLibrary::get_symbol(const std::string& name) const {
+	auto sym = resolve_symbol(name);
 	if (!sym) {
 		return {};
 	}

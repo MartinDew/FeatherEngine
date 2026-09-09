@@ -58,6 +58,13 @@ public:
 	};
 #endif
 
+	// A headless test hook: exits cleanly, through the same path as SIGINT, after this many real (not fixed) update frames --
+	// i.e. after WorldSim::update() has called world.progress() this many times. --dump-db exits before World enters its init level, so this is the flag for observing a system's frame-loop side effects. 0 (the default) runs indefinitely.
+	args::ValueFlag<int> run_frames {
+		_parser, "frames", "Exit headless after this many real update frames (0 = run indefinitely)",
+		{ "run-frames" }, 0
+	};
+
 	static LaunchSettings& get();
 
 	static constexpr args::Group& get_group(StaticString name = "root"_ss) {

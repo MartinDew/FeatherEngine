@@ -33,6 +33,24 @@ option("editor_build")
     set_description("Compile with editor support (EDITOR_BUILD=1); off builds a shipping-only binary (EDITOR_BUILD=0)")
 option_end()
 
+-- Bindings options live here rather than next to their modules (modules/*_bindings/xmake.lua) because thirdparty/xmake.lua is
+-- included first and gates the mrbind package on them -- building it can mean building LLVM from source, so a build with none enabled must not pull it in.
+
+option("enable_c_bindings")
+    set_default(true)
+    set_description("Generate C bindings for the public API via MRBind (build/bindings/c)")
+option_end()
+
+option("enable_cs_bindings")
+    set_default(true)
+    set_description("Generate C# bindings from the C bindings' descriptor (build/bindings/csharp)")
+option_end()
+
+option("enable_cpp_bindings")
+    set_default(true)
+    set_description("Generate C++ wrappers from the C bindings' descriptor (build/bindings/cpp)")
+option_end()
+
 -- Toolchain selection is done via CLI flags, not options:
 --   LLVM/Clang (non-Windows):  xmake f --toolchain=llvm
 --   Clang-CL (Windows):        xmake f --toolchain=clang-cl

@@ -3,6 +3,7 @@
 #include "window.h"
 #include "world_sim.h"
 
+#include <framework/export_defs.h>
 #include <rendering/rendering_server.h>
 
 #include <chrono>
@@ -42,7 +43,7 @@ public:
 
 	double get_current_delta_time() const;
 
-	static constexpr double simulation_time = 1.0 / 60.0;
+	FEATHER_NO_BIND static constexpr double simulation_time = 1.0 / 60.0;
 };
 
 } //namespace feather

@@ -2,14 +2,13 @@
 
 #include "callable.h"
 
-#include <SDL3/SDL_loadso.h>
 #include <memory>
 #include <string>
 
 namespace feather {
 
 class SharedLibrary {
-	SDL_SharedObject* _handle;
+	void* _handle;
 
 public:
 	SharedLibrary();
@@ -25,11 +24,12 @@ public:
 
 	template <typename Fn>
 	[[nodiscard]] Fn get_typed_symbol(const std::string& name) const {
-		if (!_handle)
-			return nullptr;
-		auto sym = SDL_LoadFunction(_handle, name.c_str());
-		return reinterpret_cast<Fn>(sym);
+		return reinterpret_cast<Fn>(resolve_symbol(name));
 	}
+
+private:
+	// Out of line so the dlfcn.h/SDL split stays in the .cpp.
+	[[nodiscard]] void* resolve_symbol(const std::string& name) const;
 };
 
 } // namespace feather

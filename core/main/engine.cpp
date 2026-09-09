@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "init_level.h"
 #include "launch_settings.h"
 #include "world/components/light.h"
 #include "world/rendering_world_module.h"
@@ -8,6 +9,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <iostream>
 
 #include <rendering/rendering_server.h>
 #include <resources/mesh.h>
@@ -16,9 +18,8 @@ namespace feather {
 
 namespace {
 
-// Headless has no window which in turn can't deliver quit events.
-// this is the only exit condition. sig_atomic_t is the only type a signal
-// handler may portably touch.
+// Headless has no window, and so no quit events to deliver -- this is the only exit condition. sig_atomic_t is the only type
+// a signal handler may portably touch.
 volatile std::sig_atomic_t quit_requested = 0;
 
 void _on_terminate_signal(int) {
@@ -35,10 +36,12 @@ Engine::Engine() {
 
 	_instance = this;
 	_rendering_server.init();
+
+	enter_init_level(InitLevel::Servers);
 }
 
 Engine::~Engine() {
-	// unregister_modules();
+	// Levels are left by Main, after run() returns -- see feather_main.cpp.
 }
 
 #if BETA
@@ -129,7 +132,15 @@ bool Engine::run() {
 	}
 #endif
 
+	// Before init(), not after: the flecs world already exists (WorldSim owns it from construction), and init() imports every
+	// EcsModule subclass registered by this point -- including the ones registered right here.
+	enter_init_level(InitLevel::World);
+
 	_world_sim.init();
+
+	if (is_editor()) {
+		enter_init_level(InitLevel::Editor);
+	}
 
 #if BETA
 	if (LaunchSettings::get().demo_mode.Get()) {
@@ -143,6 +154,8 @@ bool Engine::run() {
 	std::signal(SIGTERM, &_on_terminate_signal);
 
 	// update
+	const int run_frames = LaunchSettings::get().run_frames.Get();
+	int frames_run = 0;
 	double accumulator = 0.0;
 	while (keep_running && !quit_requested) {
 		keep_running = _main_window.update();
@@ -164,6 +177,12 @@ bool Engine::run() {
 
 		// Tell the renderer to render here
 		_rendering_server.update(frame_time);
+
+		// --run-frames: a headless test hook, see launch_settings.h. Checked after the frame that reaches the target count has
+		// fully run, so its systems' output is never cut off mid-frame.
+		if (run_frames > 0 && ++frames_run >= run_frames) {
+			keep_running = false;
+		}
 	}
 
 	_rendering_server.stop();

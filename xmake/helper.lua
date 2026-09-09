@@ -2,9 +2,8 @@
 -- CONSUMER's repo if this file were ever includes()'d cross-repo.
 local FEATHER_ROOT = path.directory(os.scriptdir())
 
--- Copies raw_resources/shaders next to the built executable. Modules needing
--- their own post-build deploy steps should define their own rule (see
--- vex_renderer.deploy_runtime) -- rules stack across a target, closures don't.
+-- Copies raw_resources/shaders next to the built executable. Modules needing their own post-build deploy steps should define
+-- their own rule (see vex_renderer.deploy_runtime) -- rules stack across a target, closures don't.
 rule("feather.deploy_shaders")
     after_build(function(target)
         os.cp(
@@ -17,10 +16,11 @@ rule_end()
 -- add_packages() only wires the import lib, not the runtime file itself.
 rule("feather.deploy_shared_deps")
     after_build(function(target)
-        if not target:is_plat("windows", "mingw") then return end
         for _, pkgname in ipairs({"flecs", "sdl3"}) do
             local pkg = target:pkg(pkgname)
-            if pkg then
+            if not pkg then goto continue end
+
+            if target:is_plat("windows", "mingw") then
                 -- installdir(subpath) ignores the arg, returns the root.
                 local bindir = path.join(pkg:installdir(), "bin")
                 if os.isdir(bindir) then
@@ -28,17 +28,37 @@ rule("feather.deploy_shared_deps")
                         os.cp(f, target:targetdir())
                     end
                 end
+            else
+                -- ELF/Mach-O: into lib/ next to the binary, already on the rpath ($ORIGIN/lib, xmake/engine.lua). Without this
+                -- a shared dep is only findable through the absolute rpath xmake bakes into a dev build, which no deployed copy would have.
+                local libdir = path.join(pkg:installdir(), "lib")
+                if os.isdir(libdir) then
+                    local outdir = path.join(target:targetdir(), "lib")
+                    os.mkdir(outdir)
+                    for _, pattern in ipairs({"*.so", "*.so.*", "*.dylib"}) do
+                        for _, f in ipairs(os.files(path.join(libdir, pattern))) do
+                            os.vcp(f, outdir, {symlink = true})
+                        end
+                    end
+                end
             end
+
+            ::continue::
         end
     end)
 rule_end()
 
 -- feather_module_target(name, module_dir, files, opts)
 --
--- Creates a {name} static lib and re-opens the feather target to link it in.
--- Module-specific build/deploy logic belongs in a rule (opts.exe_rules).
+-- Creates the {name} module target and re-opens the feather target to pull it
+-- in. Module-specific build/deploy logic belongs in a rule (opts.exe_rules).
 --
 -- opts:
+--   kind                 : "static" (default), "object" for code the
+--                          executable must keep even though nothing references
+--                          it (a static archive drops those members), or
+--                          "phony" for a module that only generates files
+--   deps                 : other targets this module needs ordered before it
 --   exe_packages         : packages added to the executable
 --   exe_packages_windows : same, Windows-only
 --   exe_rules             : rule names attached to the executable
@@ -49,7 +69,7 @@ function feather_module_target(name, module_dir, files, opts)
     opts = opts or {}
 
     target(name)
-        set_kind("static")
+        set_kind(opts.kind or "static")
         set_warnings("none")
         set_group("modules")
         for _, f in ipairs(files or {}) do
@@ -60,7 +80,6 @@ function feather_module_target(name, module_dir, files, opts)
         end
         add_defines(name .. "_ENABLED", {public = true})
         -- Not {public=true}: a consumer must never see this define.
-        add_defines("FEATHER_BUILDING_ENGINE")
         if is_mode("debug", "releasedbg") then
             add_defines("BETA")
         end
@@ -68,6 +87,9 @@ function feather_module_target(name, module_dir, files, opts)
         add_includedirs(path.join(FEATHER_ROOT, "core"), {public = true})
         add_includedirs(module_dir, {public = false})
         add_deps("feather_public_api")
+        for _, dep in ipairs(opts.deps or {}) do
+            add_deps(dep)
+        end
     target_end()
 
     target("feather")

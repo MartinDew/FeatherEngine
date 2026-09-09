@@ -7,8 +7,7 @@
 local FEATHER_ROOT = path.directory(os.scriptdir())
 
 -- ---- Core source files ----------------------------------------------------
--- add_files() resolves relative paths against this file's own directory, not
--- the engine root, so every entry is joined with FEATHER_ROOT explicitly.
+-- add_files() resolves relative paths against this file's own directory, not the engine root, so every entry joins FEATHER_ROOT explicitly.
 local function core_path(p) return path.join(FEATHER_ROOT, p) end
 
 local CORE_SOURCES = {}
@@ -23,6 +22,7 @@ for _, p in ipairs({
     "core/main/engine.cpp",
     "core/main/engine_settings.cpp",
     "core/main/feather_main.cpp",
+    "core/main/init_level.cpp",
     "core/main/launch_settings.cpp",
     "core/main/project_settings.cpp",
     "core/main/window.cpp",
@@ -47,12 +47,15 @@ for _, p in ipairs({
     "core/resources/texture.cpp",
     "core/resources/texture_format_loader.cpp",
     "core/resources/extension.cpp",
-    "core/resources/extension_format_loader.cpp",
+    "core/resources/extension_loading.cpp",
+    "core/resources/fext_format_loader.cpp",
     "core/world/ecs_module.cpp",
     "core/world/rendering_world_module.cpp",
     "core/world/math_module.cpp",
     "core/world/register_core_features.cpp",
     "core/world/core_world_module.cpp",
+    "core/world/scripted_component.cpp",
+    "core/world/scripted_system.cpp",
     "core/world/components/scene.cpp",
 }) do
     table.insert(CORE_SOURCES, core_path(p))
@@ -106,10 +109,6 @@ target("feather")
     add_files(path.join(FEATHER_ROOT, "modules", "modules.gen.cpp"))
     add_includedirs(FEATHER_ROOT, path.join(FEATHER_ROOT, "core"))
 
-    -- Flips FEATHER_API to dllexport; consumer DLLs never define this, so
-    -- they get dllimport and resolve against this exe's import lib.
-    add_defines("FEATHER_BUILDING_ENGINE")
-
     if is_mode("debug", "releasedbg") then
         add_defines("BETA")
     end
@@ -118,13 +117,15 @@ target("feather")
     end
 
     add_deps("feather_public_api")
-    -- Direct, not just via feather_public_api: see public_api.lua.
+    -- Direct, not just via feather_public_api (see public_api.lua): an
+    -- object-kind dep's .o files don't propagate across a second headeronly hop.
     add_deps("simplemath")
-    add_packages("flecs", "assimp", "sdl3", "taywee_args")
+    add_packages("flecs", "assimp", "sdl3", "taywee_args", "nlohmann_json")
 
     if is_plat("linux") then
         add_rpathdirs("$ORIGIN/lib", "$ORIGIN/runtime")
-        -- Lets a dlopen'd project DLL resolve engine symbols at runtime.
+        -- Exports the engine's own symbols to what it dlopens: the generated C
+        -- bindings a plugin calls, and sdl3's copy (xmake/public_api.lua).
         add_ldflags("-rdynamic", {force = true})
     end
 
