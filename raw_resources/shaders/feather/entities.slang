@@ -1,5 +1,13 @@
 ﻿implementing feather;
 
+// Per-vertex data, fetched by SV_VertexID from a bindless structured buffer
+// (Vex no longer binds vertex buffers through the input assembler).
+public struct VertexData {
+    public float3 position;
+    public float3 normal;
+    public float2 uv;
+};
+
 // Camera uniforms
 public struct CameraData {
     public float4x4 viewProj;

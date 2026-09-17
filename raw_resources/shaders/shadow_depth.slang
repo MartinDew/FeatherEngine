@@ -1,17 +1,8 @@
 // Shadow map generation shader (depth-only pass)
 // Renders scene from light's perspective to create shadow maps
 
-// Uniforms for shadow pass
-struct ShadowUniforms {
-    float4x4 lightViewProj;     // Light's view-projection matrix
-    float4x4 model;             // Model matrix for this entity
-};
-
-// Vertex input
-struct VSInput {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-};
+import Vex;
+import feather;
 
 // Vertex shader output
 struct VSOutput {
@@ -21,13 +12,17 @@ struct VSOutput {
 // Vertex shader
 [shader("vertex")]
 VSOutput VSMain(
-    VSInput input,
-    uniform float4x4 mvp  // Model-View-Projection from light's perspective
+    uint vertexID : SV_VertexID,
+    uniform float4x4 mvp,      // Model-View-Projection from light's perspective
+    uniform uint vertexHandle  // Bindless handle for this mesh's vertex buffer
 ) {
     VSOutput output;
 
+    StructuredBuffer<VertexData> vertices = GetBindlessResource<StructuredBuffer<VertexData>>(vertexHandle);
+    VertexData v = vertices[vertexID];
+
     // Transform vertex position to light clip space
-    output.position = mul(mvp, float4(input.position, 1.0));
+    output.position = mul(mvp, float4(v.position, 1.0));
 
     return output;
 }

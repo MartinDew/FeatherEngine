@@ -10,6 +10,7 @@ __include pbr.pbr_lighting;
 
 struct Uniforms {
 uint camera_handle;
+uint vertex_handle;
 uint instance_handle;
 uint material_handle;
 uint lights_handle;
@@ -17,13 +18,6 @@ uint num_lights;
 }
 
 [vk::push_constant] uniform Uniforms uniforms;
-
-// Vertex input (matches Vertex struct in C++)
-struct VSInput {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;  // Optional UVs for texturing (not used in this example)
-};
 
 // Vertex shader output
 struct VSOutput {
@@ -38,9 +32,12 @@ static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniform
 // Vertex shader
 [shader("vertex")]
 VSOutput VSMain(
-    VSInput input
+    uint vertexID : SV_VertexID
 ) {
     VSOutput output;
+
+    StructuredBuffer<VertexData> vertices = GetBindlessResource<StructuredBuffer<VertexData>>(uniforms.vertex_handle);
+    VertexData input = vertices[vertexID];
 
     let entity = *entity_desc;
     let camera = *camera_desc;

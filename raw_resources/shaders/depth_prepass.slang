@@ -1,13 +1,7 @@
-﻿module depth_prepass;
+module depth_prepass;
 
 import Vex;
 import feather;
-
-struct VSInput {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;
-};
 
 struct VSOutput {
     float4 clipPos : SV_Position;
@@ -16,6 +10,7 @@ struct VSOutput {
 struct Uniforms
 {
 	uint camera_handle;
+	uint vertex_handle;
 };
 
 [[vk::push_constant]]
@@ -25,12 +20,15 @@ static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniform
 
 [shader("vertex")]
 VSOutput Vertex(
-	VSInput input
+	uint vertexID : SV_VertexID
 ) {
 	VSOutput output;
 
+	StructuredBuffer<VertexData> vertices = GetBindlessResource<StructuredBuffer<VertexData>>(uniforms.vertex_handle);
+	VertexData v = vertices[vertexID];
+
     let cam = *camera_desc;
-	output.clipPos = mul(cam.viewProj, float4(input.position, 1.0));
+	output.clipPos = mul(cam.viewProj, float4(v.position, 1.0));
     return output;
 }
 
