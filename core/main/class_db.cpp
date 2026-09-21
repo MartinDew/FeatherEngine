@@ -110,11 +110,14 @@ std::string ClassDB::get_children_names_string(StaticString object_name, bool ex
 	return children_str;
 }
 
-Delegate<std::string_view>::id_t ClassDB::on_subclass_registered(
+ClassDB::subclass_delegate_t::id_t ClassDB::on_subclass_registered(
 		std::string_view base_class_name,
 		const Delegate<std::string_view>::DelegateFuncType& callback
 ) {
-
+	// Immediate run so that the class learns about previously registered type
+	for (StaticString name : get_children_names(base_class_name, false)) {
+		callback(name);
+	}
 
 	return get()->_subclass_delegates[StaticString(base_class_name)].subscribe(callback);
 }

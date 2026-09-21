@@ -59,9 +59,6 @@ class FEATHER_API World : public Reflected {
 	EntityId _begin_module(StaticString class_name, EntityId& out_module);
 	void _end_module(EntityId previous_scope);
 
-	// Registers whatever IComponent subclasses ClassDB already knows, then keeps listening.
-	void _watch_component_registrations();
-
 	// Imports one module by class name, through the static hook codegen gives every EcsModule subclass.
 	void _import_module_by_name(StaticString class_name);
 
