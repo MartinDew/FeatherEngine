@@ -88,8 +88,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 			)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>());
 
-	// Light derives from IComponent, so it is no longer an aggregate: a designated-initializer list cannot name the
-	// base subobject, and the fields are set here instead.
+	// A designated-initializer list cannot name a base subobject, and Light has one, so the fields are set here.
 	Light l;
 	l.type = LightType::Directional;
 	l.position = Vector3::zero;

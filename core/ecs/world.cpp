@@ -48,6 +48,9 @@ const ValueTypeOps* keep(const ValueTypeOps& ops) {
 	return &kept->back();
 }
 
+// A delegate id no subscription has yet been given, which is also how the opt-in calls stay idempotent.
+constexpr auto no_delegate = static_cast<Delegate<std::string_view>::id_t>(-1);
+
 size_t align_up(size_t offset, size_t alignment) {
 	return (offset + alignment - 1) & ~(alignment - 1);
 }
@@ -145,15 +148,9 @@ StaticString World::_intern(std::string_view name) {
 	return StaticString(names->back());
 }
 
-World::World() : _impl(std::make_unique<Impl>()) {
-	_component_delegate = ClassDB::on_subclass_registered(
-		IComponent::get_class_static(),
-		[this](std::string_view class_name) { register_component(StaticString(class_name)); }
-);
-}
+World::World() : _impl(std::make_unique<Impl>()) {}
 
 World::~World() {
-	constexpr auto no_delegate = static_cast<ClassDB::subclass_delegate_t::id_t>(-1);
 	if (_component_delegate != no_delegate) {
 		ClassDB::unregister_subclass_delegate(IComponent::get_class_static(), _component_delegate);
 	}
@@ -178,6 +175,73 @@ float World::delta_time() const {
 
 void World::enable_rest_api() {
 	_impl->ecs.set<flecs::Rest>({});
+}
+
+// ---- Pipelines -------------------------------------------------------------
+
+EntityId World::phase(SystemPhase phase) const {
+	return EntityId(to_flecs_phase(phase));
+}
+
+EntityId World::create_phase(EntityId runs_after) {
+	ecs_world_t* world = _impl->ecs.c_ptr();
+	const ecs_entity_t created = ecs_new(world);
+	ecs_add_id(world, created, EcsPhase);
+	// The chain is what orders phases against each other; a phase depending on nothing runs unordered.
+	if (!runs_after.is_null()) {
+		ecs_add_id(world, created, ecs_make_pair(EcsDependsOn, runs_after.raw()));
+	}
+	return EntityId(created);
+}
+
+EntityId World::create_pipeline(const std::string& name, EntityId only_tagged) {
+	ecs_entity_desc_t entity_desc {};
+	entity_desc.name = name.empty() ? nullptr : name.c_str();
+
+	ecs_pipeline_desc_t desc {};
+	desc.entity = ecs_entity_init(_impl->ecs.c_ptr(), &entity_desc);
+
+	int32_t term = 0;
+	desc.query.terms[term].id = EcsSystem;
+	desc.query.terms[term].inout = EcsInOutNone;
+	++term;
+
+	if (!only_tagged.is_null()) {
+		desc.query.terms[term].id = only_tagged.raw();
+		desc.query.terms[term].inout = EcsInOutNone;
+		++term;
+	}
+
+	// Cascading over DependsOn is what walks the phase chain in order; without it the systems match but unsorted.
+	desc.query.terms[term].id = EcsPhase;
+	desc.query.terms[term].src.id = EcsUp | EcsCascade;
+	desc.query.terms[term].trav = EcsDependsOn;
+	desc.query.terms[term].inout = EcsInOutNone;
+	++term;
+
+	// A system sits the frame out when it, its phase, or a parent is disabled.
+	desc.query.terms[term].id = EcsDisabled;
+	desc.query.terms[term].src.id = EcsUp;
+	desc.query.terms[term].trav = EcsDependsOn;
+	desc.query.terms[term].oper = EcsNot;
+	desc.query.terms[term].inout = EcsInOutNone;
+	++term;
+
+	desc.query.terms[term].id = EcsDisabled;
+	desc.query.terms[term].src.id = EcsUp;
+	desc.query.terms[term].trav = EcsChildOf;
+	desc.query.terms[term].oper = EcsNot;
+	desc.query.terms[term].inout = EcsInOutNone;
+
+	return EntityId(ecs_pipeline_init(_impl->ecs.c_ptr(), &desc));
+}
+
+EntityId World::get_pipeline() const {
+	return EntityId(ecs_get_pipeline(_impl->ecs.c_ptr()));
+}
+
+void World::set_pipeline(EntityId pipeline) {
+	ecs_set_pipeline(_impl->ecs.c_ptr(), pipeline.raw());
 }
 
 // ---- Entities --------------------------------------------------------------
@@ -238,6 +302,19 @@ bool World::is_instance_of(EntityId entity, EntityId prefab) const {
 }
 
 // ---- Component types -------------------------------------------------------
+
+void World::register_classdb_components() {
+	if (_component_delegate != no_delegate) {
+		return;
+	}
+
+	// Subscribing replays what ClassDB already holds, so this covers the types registered before the world existed
+	// as well as the ones a project DLL adds later.
+	_component_delegate = ClassDB::on_subclass_registered(
+			IComponent::get_class_static(),
+			[this](std::string_view class_name) { register_component(StaticString(class_name)); }
+	);
+}
 
 EntityId World::register_component(StaticString class_name) {
 	if (auto it = _components.find(class_name); it != _components.end()) {
@@ -483,29 +560,45 @@ bool World::is_module_imported(StaticString class_name) const {
 	return _modules.contains(class_name);
 }
 
-void World::_import_module_by_name(StaticString class_name) {
-	if (is_module_imported(class_name)) {
-		return;
+EntityId World::import_module(StaticString class_name) {
+	if (auto it = _modules.find(class_name); it != _modules.end()) {
+		return it->second;
 	}
-	// The hook codegen emits for every EcsModule subclass; it calls back into import_module<T>, which is where the
-	// module scope is opened and the subclass constructed.
-	ClassDB::get_static_method(class_name, "_import_module").call(this);
+
+	// Abstract classes and ones with no factory reach create_object_unsafe as a null call, so they are refused here
+	// rather than there. EcsModule itself is the one that matters: it is a family, not a module.
+	const ClassInfo* info = ClassDB::get_class_info(class_name);
+	if (!info || !info->object_create_func) {
+		return {};
+	}
+
+	// ClassDB builds it, the same way it builds anything else registered by name. A module needs no generated hook:
+	// on_import is virtual, so the base class is all the world has to know about.
+	const std::unique_ptr<EcsModule> module = ClassDB::create_object<EcsModule>(class_name);
+	if (!module) {
+		return {};
+	}
+
+	EntityId module_entity;
+	const EntityId previous = _begin_module(class_name, module_entity);
+	// Recorded before on_import runs: a module importing another one from inside it must not start this one twice.
+	_modules[class_name] = module_entity;
+	module->on_import(*this);
+	_end_module(previous);
+	return module_entity;
 }
 
-void World::import_modules() {
-	if (_module_delegate != static_cast<Delegate<std::string_view>::id_t>(-1)) {
+void World::import_classdb_modules() {
+	if (_module_delegate != no_delegate) {
 		return;
 	}
 
-	// Subscribed before the sweep, so a module registering during another module's import is not missed.
+	// Subscribing replays the modules ClassDB already holds, so core's are imported here and a project DLL's when it
+	// registers them.
 	_module_delegate = ClassDB::on_subclass_registered(
 			EcsModule::get_class_static(),
-			[this](std::string_view class_name) { _import_module_by_name(StaticString(class_name)); }
+			[this](std::string_view class_name) { import_module(StaticString(class_name)); }
 	);
-
-	for (StaticString name : ClassDB::get_children_names(EcsModule::get_class_static())) {
-		_import_module_by_name(name);
-	}
 }
 
 // ---- Systems and queries ---------------------------------------------------
@@ -581,6 +674,12 @@ EntityId World::_register_system(SystemDesc&& desc) {
 
 	ecs_entity_desc_t entity_desc {};
 	entity_desc.name = desc.query.name.empty() ? nullptr : desc.query.name.c_str();
+	// The tag goes on the system entity itself, which is what a pipeline built around that tag matches.
+	// Zero-terminated, and it has to outlive the ecs_entity_init call below.
+	const ecs_id_t add_ids[] = { desc.pipeline_tag.raw(), 0 };
+	if (!desc.pipeline_tag.is_null()) {
+		entity_desc.add = add_ids;
+	}
 	system_desc.entity = ecs_entity_init(_impl->ecs.c_ptr(), &entity_desc);
 
 	auto* context = new SystemContext { this, desc.callback, desc.callback_ctx, desc.callback_ctx_free };
@@ -595,7 +694,7 @@ EntityId World::_register_system(SystemDesc&& desc) {
 		system_desc.callback_ctx_free = system_ctx_free;
 	}
 
-	system_desc.phase = to_flecs_phase(desc.phase);
+	system_desc.phase = desc.phase.raw();
 	system_desc.multi_threaded = desc.multi_threaded;
 	system_desc.tick_source = desc.tick_source.raw();
 

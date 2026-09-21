@@ -18,16 +18,8 @@
 
 namespace feather {
 
-// A container for one component instance living on one entity, reached by type name.
-//
-// Assigning one fetches the held component's ClassInfo, which is what makes it introspectable: the type's properties,
-// their Variant types and their access levels are all readable from get_class_info() without the caller ever naming
-// the C++ type. Reading and writing go through those same reflection accessors, so a type the engine was compiled
-// against and one a plugin described at runtime are handled identically.
-//
-// The ClassInfo and the component's id are resolved once, on assignment. The storage pointer deliberately is not:
-// adding or removing any component moves the entity to another archetype and relocates its storage, so a cached data
-// pointer would silently dangle. data() therefore re-resolves, which after the cached lookup is a single fetch.
+// A container for one component instance on one entity, introspectable through the ClassInfo it resolves on
+// assignment: get/set reach the fields through that type's reflection accessors, naming no C++ type.
 class FEATHER_API Component : public Reflected {
 	FCLASS();
 
@@ -56,7 +48,8 @@ public:
 	[[method]] bool is_valid() const;
 	[[method]] std::string get_type_name() const;
 
-	// Raw storage, for code that knows the layout. Writing through the mutable one marks the component changed.
+	// Raw storage, for code that knows the layout; the mutable one marks the component changed. Re-resolved per
+	// call: adding or removing a component relocates the entity's storage, so a held pointer would dangle.
 	[[nodiscard]] const void* data() const;
 	[[nodiscard]] void* mutable_data();
 

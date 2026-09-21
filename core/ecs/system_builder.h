@@ -11,16 +11,8 @@
 
 namespace feather {
 
-// Describes one system and registers it with the world.
-//
-// The component pack becomes the system's data terms, in order: a plain `T` is a required term the system writes, a
-// `const T` one it only reads, and a `T*` an optional term that is null on rows where the component is absent. Terms
-// added afterwards with with() are filters -- they constrain what matches but yield no data.
-//
-// Nothing here names a flecs type. The pack is reduced to component names and sizes (system_iterator.h), the callback
-// to a type-erased trampoline, and the whole description handed to World::_register_system, which is where flecs is.
-//
-// Construct one through EcsModule::system(): a system belongs to the module that declares it.
+// Describes one system and registers it. The pack becomes the data terms in order -- `T` required and written,
+// `const T` read-only, `T*` optional and null where absent; with() adds a filter term that yields no data.
 template <class... TComps>
 class SystemBuilder {
 	World* _world = nullptr;
@@ -30,10 +22,25 @@ public:
 	SystemBuilder(World& world, const char* name) : _world(&world) {
 		_desc.query.name = name ? name : "";
 		_desc.query.terms = ecs_detail::make_terms<TComps...>();
+		// The phase a system gets when it never names one, matching where flecs puts an unqualified system.
+		_desc.phase = world.phase(SystemPhase::OnUpdate);
 	}
 
+	// One of the phases the default pipeline runs.
 	SystemBuilder& phase(SystemPhase phase) {
+		_desc.phase = _world->phase(phase);
+		return *this;
+	}
+
+	// A phase of your own, from World::create_phase.
+	SystemBuilder& phase(EntityId phase) {
 		_desc.phase = phase;
+		return *this;
+	}
+
+	// Puts the system in the set a pipeline built around `tag` runs; see World::create_pipeline.
+	SystemBuilder& pipeline_tag(EntityId tag) {
+		_desc.pipeline_tag = tag;
 		return *this;
 	}
 
@@ -70,8 +77,8 @@ public:
 		return _world->_register_system(std::move(_desc));
 	}
 
-	// Runs `fn` once per system invocation, handed the whole batch. Unlike each(), this still fires when nothing
-	// matched, which is what a system with no terms is for.
+	// Runs `fn` once per invocation, handed the whole batch. Unlike each(), this still fires when nothing matched,
+	// which is what a system with no terms is for.
 	EntityId run(void (*fn)(SystemIterator&)) {
 		using RunFn = void (*)(SystemIterator&);
 
@@ -82,5 +89,10 @@ public:
 		return _world->_register_system(std::move(_desc));
 	}
 };
+
+template <class... TComps>
+SystemBuilder<TComps...> World::system(const char* name) {
+	return SystemBuilder<TComps...>(*this, name);
+}
 
 } //namespace feather

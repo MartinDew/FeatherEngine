@@ -18,12 +18,8 @@ namespace feather {
 
 class Component;
 
-// A handle to one entity in a World: the front door to the ECS.
-//
-// It owns nothing and costs a pointer and an id, so it is passed by value. The reflected half names components and
-// properties by string, which is what a script or an editor has; the templated half takes C++ types and is what engine
-// code uses. Both end up in the same place -- World's by-name layer -- so neither needs a flecs type, and a component
-// a plugin described at runtime is reachable exactly like one the engine was compiled against.
+// A handle to one entity in a World: a pointer and an id, passed by value. The reflected half names components by
+// string and the templated half by C++ type; both reduce to World's by-name layer, so neither needs flecs.
 class FEATHER_API Entity : public Reflected {
 	FCLASS();
 
@@ -66,8 +62,7 @@ public:
 	[[nodiscard]] Component component(std::string_view component) const;
 
 	// ---- Components, by type -----------------------------------------------
-	// Each one reduces to the by-name layer using the type's reflected class name, so none of these needs flecs --
-	// and none of them rebuilds an intermediate handle the way forwarding to flecs would.
+	// Each reduces to the by-name layer using the type's reflected class name, so none of them needs flecs.
 
 	template <typename T>
 	Entity& add();

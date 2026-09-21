@@ -10,11 +10,8 @@
 
 namespace feather {
 
-// One batch of entities handed to a running system or query.
-//
-// This is the firewall. Underneath it is a flecs `ecs_iter_t`, but every method here is non-template and defined in
-// system_iterator.cpp, so a header that iterates -- including the templates in system_builder.h -- never needs a flecs
-// symbol. `field<T>()` is the only template, and it does nothing but cast what the non-template `_field_ptr` returned.
+// One batch of entities handed to a running system or query, and the firewall around flecs: every method here is
+// non-template and defined in the .cpp, so a header that iterates never needs a flecs symbol.
 class FEATHER_API SystemIterator {
 	// ecs_iter_t*
 	void* _impl = nullptr;

@@ -19,19 +19,17 @@ struct Move : IComponent {
 	FSTRUCT();
 };
 
-// The demo scene's systems. A system must belong to a module, so the demo's spin system lives here rather than as a
-// loose function or lambda registered directly against the world.
-//
 // Imported like any other module, in every build, but matches nothing until something carries Move, which only
 // Engine::_setup_demo_scene ever adds.
 class FEATHER_API DemoEcsModule final : public EcsModule {
-	FCLASS(EcsModule);
+	FCLASS();
 
-	[[system]] static void _spin(Entity entity, const MeshInstance& mesh, Transform& transform);
+	static void _spin(Entity entity, const MeshInstance& mesh, Transform& transform);
 
 public:
 	DemoEcsModule() = default;
-	DemoEcsModule(World& world);
+
+	void on_import(World& world) override;
 };
 
 } //namespace feather

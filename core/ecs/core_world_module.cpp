@@ -1,14 +1,11 @@
-﻿#include "core_world_module.h"
+#include "core_world_module.h"
 
 #include "components/scene.h"
 
-#include <main/world_sim.h>
-
 namespace feather {
 
-// Scene/ActiveScene/InScene reach the ECS through World's ClassDB subscription the moment they are reflected, so
-// there is nothing left to do here.
-CoreEcsModule::CoreEcsModule(World& world) {
+// Scene/ActiveScene/InScene reach the ECS through World::register_classdb_components, so the module declares nothing.
+void CoreEcsModule::on_import(World& world) {
 }
 
 } //namespace feather
