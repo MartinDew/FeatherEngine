@@ -68,11 +68,14 @@ class DirEmission:
     """Extra content a modifier wants aggregated over an entire source
     directory, returned from Modifier.emit_dir(). Appended to
     register_<dir>_types.gen.{h,cpp} after the per-class content
-    generate_gen_header()/generate_register_cpp() already produce -- see
-    e.g. ecs.py's ComponentModifier, which has no per-class _bind_members
-    hook to attach to (world.component<T>() needs a live flecs::world&,
-    which _bind_members()/ClassDB never has) and instead emits one
-    aggregate register_<dir>_components(World&) function."""
+    generate_gen_header()/generate_register_cpp() already produce.
+
+    No shipped modifier uses this today. ecs.py's ComponentModifier did --
+    it emitted one register_<dir>_components(World&) per directory, because
+    registering a component needed a live world that _bind_members()/ClassDB
+    never has. Components are no longer generated at all: they derive from
+    IComponent and World registers them off ClassDB at runtime. The hook is
+    kept for a modifier that genuinely needs per-directory output."""
     header_includes: list = dc_field(default_factory=list)   # quoted, core-relative
     header_decls: list = dc_field(default_factory=list)      # raw lines, inside `namespace feather { ... }`
     cpp_includes: list = dc_field(default_factory=list)       # quoted, core-relative

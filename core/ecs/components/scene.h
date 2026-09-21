@@ -14,7 +14,7 @@
 namespace feather {
 
 struct Scene : IComponent {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	[[get, set]] int64_t _scene_id = -1;
 
@@ -28,13 +28,13 @@ struct Scene : IComponent {
 	bool operator==(const Scene& other) const;
 };
 
-// Relationship Tag
-struct ActiveScene {
-	FSTRUCT(Component);
+// Relationship Tag. Empty, so it registers as a zero-size tag rather than as a component with storage.
+struct ActiveScene : IComponent {
+	FSTRUCT();
 };
 
-struct InScene {
-	FSTRUCT(Component);
+struct InScene : IComponent {
+	FSTRUCT();
 };
 
 } //namespace feather

@@ -19,18 +19,19 @@ target("feather_public_api")
     -- Also direct-linked by binary targets: an object-kind dep's .o files
     -- don't propagate across a second headeronly hop either.
     add_deps("simplemath", {public = true})
-    -- flecs/sdl3 link normally on windows/mingw (real shared libs there),
-    -- headers-only elsewhere -- see below.
+    -- flecs is deliberately absent: the ECS is hidden behind core/ecs/{world,entity,component}.h and flecs is named
+    -- only in core/ecs/*.cpp, so nothing outside the engine binary needs its headers or its symbols. Putting it back
+    -- here would silently let a consumer -- or a core header -- depend on flecs again.
+    --
+    -- sdl3 links normally on windows/mingw (a real shared lib there), headers-only elsewhere -- see below.
     if is_plat("windows", "mingw") then
-        add_packages("flecs", {public = true})
         add_packages("sdl3", {public = true})
     else
-        add_packages("flecs", {public = true, links = {}})
         add_packages("sdl3", {public = true, links = {}})
     end
     add_packages("taywee_args", {public = true})
 target_end()
 
--- flecs/sdl3 own process-global state a DLL's own static copy would
--- duplicate uninitialized, so on Linux/macOS the archives are left out and
+-- sdl3 owns process-global state a DLL's own static copy would
+-- duplicate uninitialized, so on Linux/macOS the archive is left out and
 -- -rdynamic binds to the host exe's copy instead ({links = {}}, not false).

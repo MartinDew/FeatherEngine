@@ -1,20 +1,25 @@
 #include "world_sim.h"
 
-#include "ecs/ecs_module.h"
 #include "engine.h"
+
 #include <ecs/components/scene.h>
-#include <ecs/register_core_features.h>
+#include <ecs/ecs_module.h>
 #include <framework/static_string.hpp>
+
 
 namespace feather {
 
 FSINGLETON_INSTANCE(WorldSim);
 
-WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_time) } {
+WorldSim::WorldSim() : fixed_tick { _world.create_timer(Engine::simulation_time) } {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 #if BETA
-	_world.set<Ecs::Rest>({});
+	_world.enable_rest_api();
 #endif
+
+	// Component types need no registration pass here: World subscribes to ClassDB for IComponent's children when it is
+	// constructed, so everything reflected is already a component, and anything a project DLL registers later becomes
+	// one as it arrives.
 }
 
 WorldSim::~WorldSim() {
@@ -22,17 +27,14 @@ WorldSim::~WorldSim() {
 }
 
 void WorldSim::init() {
-	// Every reflected Component registers before any EcsModule imports
-	register_core_components(_world);
-
 	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
 	// Subscribed here, not in the ctor (which runs before index_project()):
-	// registering a class fires this immediately, so a DLL's EcsFeature would otherwise import reentrantly, before the
-	// world above exists.
+	// registering a class fires this immediately, so a DLL's EcsModule would otherwise import reentrantly, before the
+	// world content above exists.
 	_subclass_delegate_id = ClassDB::on_subclass_registered(
 			EcsModule::get_class_static(), [world_sim = this](std::string_view class_name) {
 				if (world_sim) {
@@ -50,43 +52,34 @@ void WorldSim::init() {
 }
 
 void WorldSim::update(double delta) {
-	// Ecs::query<Transform, MeshInstance, MaterialInstance> q
-
 	bool result = _world.progress(/*delta*/);
 }
 
-Entity WorldSim::create_scene(const std::string& name) const {
-	Scene s { { name } };
-	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
+Entity WorldSim::create_scene(const std::string& name) {
+	Scene s { StaticString(name) };
+	Entity scene = _world.create_entity(name);
+	return scene.is_a(_scene_prefab).set<Scene>(s);
 }
 
-Entity WorldSim::create_entity(const std::string& name) const {
-	return _world.entity(name.c_str());
+Entity WorldSim::create_entity(const std::string& name) {
+	return _world.create_entity(name);
 }
 
-Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) const {
-	return _world.entity(name.c_str()).child_of(parent_entity);
+Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) {
+	return _world.create_entity(parent_entity, name);
 }
 
-void WorldSim::add_to_scene(Entity entity) const {
+void WorldSim::add_to_scene(Entity entity) {
 	entity.child_of(_current_scene);
 }
 
-bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
-	flecs::entity current = e;
-	while (current.is_valid()) {
-		if (current == scene)
-			return true;
-		current = current.parent();
-	}
-	return false;
-}
-
 void WorldSim::set_active_scene(Entity scene) {
-	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
+	// Note this actually checks the prefab relationship now. The old spelling was `fassert(scene.is_a(_scene_prefab))`,
+	// which set the relationship and tested the returned handle rather than asking anything.
+	fassert(_world.is_instance_of(scene.id(), _scene_prefab.id()), "Given scene isn't a scene instance");
 
 	// Clear old active scene marker
-	_world.remove_all<ActiveScene>();
+	_world.remove_all(ActiveScene::get_class_static());
 
 	scene.add<ActiveScene>();
 	_current_scene = scene;
