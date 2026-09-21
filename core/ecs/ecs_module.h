@@ -16,7 +16,7 @@ namespace feather {
 class WorldSim;
 
 // A feature's worth of ECS content: the systems it runs, and any component type that has no C++ class of its own to
-// declare it. WorldSim finds every subclass through ClassDB and imports it (World::import_module), which constructs it
+// declare it. World finds every subclass through ClassDB and imports it (World::import_modules), which constructs it
 // with the world -- so a module's constructor is where it declares what it owns.
 //
 // Component types need nothing here: deriving from IComponent is enough, and World picks them up from ClassDB.

@@ -2,6 +2,7 @@
 
 #include "component.h"
 #include "components/component_interface.h"
+#include "ecs_module.h"
 #include "entity.h"
 #include "flecs_backend.h"
 #include "system_iterator.h"
@@ -149,8 +150,12 @@ World::World() : _impl(std::make_unique<Impl>()) {
 }
 
 World::~World() {
-	if (_component_delegate != static_cast<Delegate<std::string_view>::id_t>(-1)) {
+	constexpr auto no_delegate = static_cast<Delegate<std::string_view>::id_t>(-1);
+	if (_component_delegate != no_delegate) {
 		ClassDB::unregister_subclass_delegate(IComponent::get_class_static(), _component_delegate);
+	}
+	if (_module_delegate != no_delegate) {
+		ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _module_delegate);
 	}
 }
 
@@ -490,6 +495,31 @@ void World::_end_module(EntityId previous_scope) {
 
 bool World::is_module_imported(StaticString class_name) const {
 	return _modules.contains(class_name);
+}
+
+void World::_import_module_by_name(StaticString class_name) {
+	if (is_module_imported(class_name)) {
+		return;
+	}
+	// The hook codegen emits for every EcsModule subclass; it calls back into import_module<T>, which is where the
+	// module scope is opened and the subclass constructed.
+	ClassDB::get_static_method(class_name, "_import_module").call(this);
+}
+
+void World::import_modules() {
+	if (_module_delegate != static_cast<Delegate<std::string_view>::id_t>(-1)) {
+		return;
+	}
+
+	// Subscribed before the sweep, so a module registering during another module's import is not missed.
+	_module_delegate = ClassDB::on_subclass_registered(
+			EcsModule::get_class_static(),
+			[this](std::string_view class_name) { _import_module_by_name(StaticString(class_name)); }
+	);
+
+	for (StaticString name : ClassDB::get_children_names(EcsModule::get_class_static())) {
+		_import_module_by_name(name);
+	}
 }
 
 // ---- Systems and queries ---------------------------------------------------

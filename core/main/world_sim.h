@@ -7,7 +7,6 @@
 #include <ecs/entity.h>
 #include <ecs/query.h>
 #include <ecs/world.h>
-#include <framework/delegate.h>
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
 
@@ -17,6 +16,11 @@
 
 namespace feather {
 
+// Drives the simulation and owns its scenes.
+//
+// It owns the World but is not a front end for it: entities, component types, modules and queries are all World's
+// (ecs/world.h), reached through get_world(). What lives here is what World has no opinion about -- which scene is
+// active, what a scene is made of, and when the world is stepped.
 class FEATHER_API WorldSim final : public Simulation {
 	FCLASS(singleton);
 
@@ -26,34 +30,25 @@ class FEATHER_API WorldSim final : public Simulation {
 
 	std::vector<Entity> _scenes;
 
-	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
-
-protected:
-	template <std::derived_from<class EcsModule> T>
-	void _import_feature() {
-		_world.import_module<T>();
-	}
-
 public:
 	// A timer the world ticks on a fixed interval, for a system that should not run once per frame.
 	// Hand it to SystemBuilder::tick_source.
 	const EntityId fixed_tick;
 
 	WorldSim();
-	~WorldSim() override;
 
 	void init() override;
 
 	void update(double delta) override;
 
+	// The ECS itself. Entity creation, component types, modules and queries all live there.
+	[[nodiscard]] World* get_world() { return &_world; }
+
+	// ---- Scenes ------------------------------------------------------------
+
 	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
 
 	[[nodiscard]] Entity create_scene(const std::string& name);
-
-	[[nodiscard]] Entity create_entity(const std::string& name = "");
-	[[nodiscard]] Entity create_entity(const Entity& parent_entity, const std::string& name = "");
-
-	[[nodiscard]] World* get_world() { return &_world; }
 
 	void add_to_scene(Entity entity);
 
