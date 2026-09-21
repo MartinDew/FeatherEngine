@@ -15,8 +15,9 @@ WorldSim::WorldSim() : fixed_tick { _world.create_timer(Engine::simulation_time)
 	_world.enable_rest_api();
 #endif
 
-	// Component types need no registration pass here: World subscribes to ClassDB for IComponent's children itself,
-	// including ones a project DLL registers later.
+	// A World knows nothing of ClassDB on its own. This is the world the engine simulates, so it gets the reflected
+	// component types, and keeps getting them as a project DLL registers more.
+	_world.register_classdb_components();
 }
 
 void WorldSim::init() {
@@ -25,8 +26,9 @@ void WorldSim::init() {
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
-	// Only now: the world needs scene content for a module's systems to run against before any module imports.
-	_world.import_modules();
+	// Only now: a module's systems need the scene content to run against, and this is after index_project(), so a
+	// module from a project DLL is picked up by the same sweep as core's.
+	_world.import_classdb_modules();
 }
 
 void WorldSim::update(double delta) {

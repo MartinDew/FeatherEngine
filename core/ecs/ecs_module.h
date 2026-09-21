@@ -1,6 +1,5 @@
 #pragma once
 
-#include "system_builder.h"
 #include "world.h"
 
 #include <framework/export_defs.h>
@@ -15,11 +14,8 @@ namespace feather {
 
 class WorldSim;
 
-// A feature's worth of ECS content: the systems it runs, and any component type that has no C++ class of its own to
-// declare it. World finds every subclass through ClassDB and imports it (World::import_modules), which constructs it
-// with the world -- so a module's constructor is where it declares what it owns.
-//
-// Component types need nothing here: deriving from IComponent is enough, and World picks them up from ClassDB.
+// A feature's worth of ECS content: the systems it runs, and any component type with no C++ class to declare it.
+// Found through ClassDB the way a component is, built by it, and asked once for what it owns through on_import.
 class FEATHER_API EcsModule : public Reflected {
 	FCLASS();
 
@@ -28,12 +24,10 @@ protected:
 
 	static WorldSim* _get_world_sim();
 
-	// The only way to declare a system. Protected on purpose: a system belongs to the module that declares it, and
-	// the [[system]] attribute holds a method to the same rule (codegen rejects it elsewhere).
-	template <class... TComps>
-	static SystemBuilder<TComps...> system(World& world, const char* name) {
-		return SystemBuilder<TComps...>(world, name);
-	}
+public:
+	// Declares what the module owns. Called once per world, inside a module scope named after the class, so everything
+	// declared here is namespaced the way flecs expects.
+	virtual void on_import(World& world) = 0;
 };
 
 } //namespace feather

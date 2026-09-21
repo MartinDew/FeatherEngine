@@ -11,11 +11,8 @@
 
 namespace feather {
 
-// A reusable set of entities matching a list of terms -- the same description a system uses, without the schedule.
-// Build one with QueryBuilder and iterate it whenever you like, as opposed to a system, which the world runs for you.
-//
-// Owns its underlying flecs query, so it is move-only. Like everything else here, the pack is reduced to names and the
-// iteration goes through World's non-template layer, so no flecs type appears.
+// A reusable set of entities matching a list of terms -- a system's description without the schedule. Move-only:
+// it owns the underlying flecs query, which its destructor hands back to World.
 template <class... TComps>
 class Query {
 	World* _world = nullptr;

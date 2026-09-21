@@ -40,19 +40,19 @@ struct MaterialInstance : IComponent {
 	explicit MaterialInstance(std::shared_ptr<Material> material) : material(std::move(material)) {}
 };
 
-class FEATHER_API RenderingEcsModule : public EcsModule {
-	FCLASS(EcsModule);
+class FEATHER_API RenderingEcsModule final : public EcsModule {
+	FCLASS();
 
-	// [[system]] says these run against the world rather than against an instance, and holds them to it: static, and
-	// members of the module that declares them. Codegen rejects the attribute anywhere else.
-	[[system]] static void _begin_render_scene(SystemIterator& it);
-	[[system]] static void _update_meshes(Entity entity, Transform transform, MeshInstance& mesh, MaterialInstance* material);
-	[[system]] static void _fill_lights(Entity entity, const Light& light);
-	[[system]] static void _commit_render_scene(SystemIterator& it);
+	// Static because a system outlives the module object, which exists only for the duration of on_import.
+	static void _begin_render_scene(SystemIterator& it);
+	static void _update_meshes(Entity entity, Transform transform, MeshInstance& mesh, MaterialInstance* material);
+	static void _fill_lights(Entity entity, const Light& light);
+	static void _commit_render_scene(SystemIterator& it);
 
 public:
 	RenderingEcsModule() = default;
-	RenderingEcsModule(World& world);
+
+	void on_import(World& world) override;
 };
 
 } //namespace feather

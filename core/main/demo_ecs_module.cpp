@@ -1,5 +1,7 @@
 #include "demo_ecs_module.h"
 
+#include <ecs/system_builder.h>
+
 namespace feather {
 
 void DemoEcsModule::_spin(Entity entity, const MeshInstance& mesh, Transform& transform) {
@@ -7,8 +9,8 @@ void DemoEcsModule::_spin(Entity entity, const MeshInstance& mesh, Transform& tr
 	transform.rotation = transform.rotation * Quaternion::create_from_yaw_pitch_roll(Vector3 { 0, delta, 0 });
 }
 
-DemoEcsModule::DemoEcsModule(World& world) {
-	system<const MeshInstance, Transform>(world, "Spin").with<Move>().phase(SystemPhase::OnUpdate).each(&_spin);
+void DemoEcsModule::on_import(World& world) {
+	world.system<const MeshInstance, Transform>("Spin").with<Move>().phase(SystemPhase::OnUpdate).each(&_spin);
 }
 
 } //namespace feather

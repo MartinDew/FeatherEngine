@@ -2,6 +2,7 @@
 
 #include "components/scene.h"
 #include "entity.h"
+#include "system_builder.h"
 
 #include <rendering/rendering_server.h>
 #include <resources/mesh.h>
@@ -33,26 +34,24 @@ void RenderingEcsModule::_commit_render_scene(SystemIterator& it) {
 	RenderingServer::get()->commit_scene_frame();
 }
 
-RenderingEcsModule::RenderingEcsModule(World& world) {
-	std::println("importing module {} ", get_class_static());
-
+void RenderingEcsModule::on_import(World& world) {
 	// No terms, so run() rather than each(): the pass has nothing to match but must still fire once a frame.
-	system<>(world, "Begin Render Scene").phase(SystemPhase::PreStore).run(&_begin_render_scene);
+	world.system<>("Begin Render Scene").phase(SystemPhase::PreStore).run(&_begin_render_scene);
 
 	// ActiveScene sits on the scene entity, so the term is looked for up the hierarchy rather than on the entity
-	// itself -- which is what scopes this system to whichever scene is active.
-	system<Transform, MeshInstance, MaterialInstance*>(world, "Fill Render Scene")
+	// itself -- which is what scopes these systems to whichever scene is active.
+	world.system<Transform, MeshInstance, MaterialInstance*>("Fill Render Scene")
 			.with<ActiveScene>(TraverseFlag::Up)
 			.phase(SystemPhase::PreStore)
 			.multi_threaded(false)
 			.each(&_update_meshes);
 
-	system<const Light>(world, "Fill lights")
+	world.system<const Light>("Fill lights")
 			.with<ActiveScene>(TraverseFlag::Up)
 			.phase(SystemPhase::PreStore)
 			.each(&_fill_lights);
 
-	system<>(world, "Commit Render Scene").phase(SystemPhase::OnStore).run(&_commit_render_scene);
+	world.system<>("Commit Render Scene").phase(SystemPhase::OnStore).run(&_commit_render_scene);
 }
 
 } //namespace feather

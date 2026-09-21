@@ -16,11 +16,8 @@
 
 namespace feather {
 
-// Drives the simulation and owns its scenes.
-//
-// It owns the World but is not a front end for it: entities, component types, modules and queries are all World's
-// (ecs/world.h), reached through get_world(). What lives here is what World has no opinion about -- which scene is
-// active, what a scene is made of, and when the world is stepped.
+// Drives the simulation and owns its scenes. It owns the World but is not a front end for it: entities, component
+// types, modules and queries are all World's (ecs/world.h), reached through get_world().
 class FEATHER_API WorldSim final : public Simulation {
 	FCLASS(singleton);
 

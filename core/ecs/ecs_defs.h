@@ -11,11 +11,8 @@ namespace feather {
 
 class SystemIterator;
 
-// An entity's identity, and the only thing that crosses the ECS boundary in place of a flecs handle.
-//
-// Opaque on purpose: the underlying value is a flecs entity id, but nothing outside core/ecs/*.cpp may do anything
-// with it except pass it back. Deliberately not Variant-marshalable -- it is 64 bits and a Variant's integer is not --
-// so every reflected signature names components by string and entities by Entity instead.
+// An entity's identity: a flecs entity id that nothing outside core/ecs/*.cpp can do anything with but pass back.
+// Not Variant-marshalable, so a reflected signature names components by string and entities by Entity.
 class EntityId {
 	uint64_t _value = 0;
 
@@ -28,12 +25,11 @@ public:
 
 	constexpr bool operator==(const EntityId& other) const = default;
 
-	// The raw flecs id. Only core/ecs/*.cpp can do anything with it.
 	[[nodiscard]] constexpr uint64_t raw() const { return _value; }
 };
 
-// When a system runs within a frame. Mirrors the flecs pipeline phases, so that a module names a phase without
-// naming flecs -- the mapping lives in core/ecs/flecs_backend.h.
+// The phases the default pipeline runs, in this order -- the same set and order flecs' own default pipeline uses.
+// World::phase turns one into the entity a system depends on; World::create_phase makes one that is not on this list.
 enum class SystemPhase : uint8_t {
 	OnLoad,
 	PostLoad,
@@ -45,8 +41,7 @@ enum class SystemPhase : uint8_t {
 	OnStore,
 };
 
-// What a system does with a term's data. `None` is a filter: the term must match, but it yields no field, which is
-// what a tag like ActiveScene is for.
+// What a system does with a term's data. None is a filter: the term must match, but it yields no field.
 enum class TermAccess : uint8_t {
 	In,
 	InOut,
@@ -54,16 +49,15 @@ enum class TermAccess : uint8_t {
 	None,
 };
 
-// Where a term looks for its component. `Up` walks to a parent -- how a scene-scoped system finds the ActiveScene tag
-// on an ancestor rather than on the entity itself.
+// Where a term looks for its component. Up walks to an ancestor rather than reading the entity itself.
 enum class TraverseFlag : uint8_t {
 	Self,
 	Up,
 	Cascade,
 };
 
-// One constraint in a query. Components are carried by name, not by type: that is what lets the same description
-// serve a C++ type and one a plugin described at runtime.
+// One constraint in a query. Components are carried by name, which is what lets the same description serve a C++
+// type and one a plugin described at runtime.
 struct Term {
 	StaticString component = ""_ss;
 	TermAccess access = TermAccess::InOut;
@@ -76,23 +70,30 @@ struct QueryDesc {
 	std::vector<Term> terms;
 };
 
-// The type-erased shape every system callback is reduced to. The template that built it is long gone by the time
-// this runs: `ctx` holds the user's callable, and the trampoline in system_builder.h knows how to unpack it.
+// The shape every system callback is reduced to: `ctx` holds the user's callable, and the trampoline that wrapped it
+// is the only thing that still knows its type.
 using SystemCallback = void (*)(SystemIterator& it, void* ctx);
 using ContextDeleter = void (*)(void* ctx);
 
 struct SystemDesc {
 	QueryDesc query;
-	SystemPhase phase = SystemPhase::OnUpdate;
+
+	// The phase entity the system runs in. A null phase leaves it out of every pipeline, so nothing schedules it.
+	EntityId phase;
+
+	// Added to the system entity, so a pipeline built around that tag matches it. Null means the default pipeline.
+	EntityId pipeline_tag;
+
 	bool multi_threaded = false;
-	// Zero unless the system is driven by a timer rather than by every frame.
+
+	// Null unless the system is driven by a timer rather than by every frame.
 	EntityId tick_source;
 
 	SystemCallback callback = nullptr;
 	void* callback_ctx = nullptr;
 	ContextDeleter callback_ctx_free = nullptr;
 
-	// True: runs once per invocation regardless of matches, which is what a frame's begin/commit pass needs.
+	// True: runs once per invocation whether or not anything matched, which is what a begin/commit pass needs.
 	bool run_once = false;
 };
 
