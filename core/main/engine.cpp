@@ -57,30 +57,30 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	auto s = _world_sim.create_scene("Ni");
 	_world_sim.set_active_scene(s);
 
-	auto _ = _world_sim.create_entity(s, "Box1")
+	auto _ = w.create_entity(s, "Box1")
 					 .emplace<Transform>(t1)
 					 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					 .emplace<MaterialInstance>(material)
 					 .add<Move>();
 
-	_ = _world_sim.create_entity(s, "Box2")
+	_ = w.create_entity(s, "Box2")
 				.emplace<Transform>(t2)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
 				.add<Move>();
 
-	_world_sim.create_entity(s, "Box3")
+	w.create_entity(s, "Box3")
 			.emplace<Transform>(t3)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 			.emplace<MaterialInstance>(material)
 			.add<Move>();
 
-	_world_sim.create_entity("BoxChild")
+	w.create_entity("BoxChild")
 			.emplace<Transform>(t4)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 			.child_of(_);
 
-	_world_sim.create_entity(s, "Floor")
+	w.create_entity(s, "Floor")
 			.emplace<Transform>(
 					Vector3 { 0, -2, 0 },
 					Quaternion::create_from_yaw_pitch_roll({ 0, 0, 0 }),
@@ -97,7 +97,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	l.color = Color(1.0f, 1.0f, 1.0f, 1.0f);
 	l.intensity = 10.0f;
 	l.cast_shadows = true;
-	_world_sim.create_entity(s, "Directional").emplace<Light>(std::move(l));
+	w.create_entity(s, "Directional").emplace<Light>(std::move(l));
 
 	// The spin the demo used to declare inline now belongs to DemoEcsModule: a system has to be a static method of
 	// the module that owns it, so nothing can register one against the world from the outside.

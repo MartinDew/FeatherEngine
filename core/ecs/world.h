@@ -48,6 +48,7 @@ class FEATHER_API World : public Reflected {
 	std::unordered_map<StaticString, EntityId> _components;
 
 	Delegate<std::string_view>::id_t _component_delegate = -1;
+	Delegate<std::string_view>::id_t _module_delegate = -1;
 
 	// Modules already imported, by class name. WorldSim both sweeps ClassDB and subscribes to it, so the same module
 	// can be reached twice.
@@ -60,6 +61,9 @@ class FEATHER_API World : public Reflected {
 
 	// Registers whatever IComponent subclasses ClassDB already knows, then keeps listening.
 	void _watch_component_registrations();
+
+	// Imports one module by class name, through the static hook codegen gives every EcsModule subclass.
+	void _import_module_by_name(StaticString class_name);
 
 	// The half of register_component_type<T> that actually talks to flecs.
 	EntityId _register_component_raw(StaticString name, const ValueTypeOps& ops);
@@ -172,6 +176,13 @@ public:
 	EntityId import_module();
 
 	[[nodiscard]] bool is_module_imported(StaticString class_name) const;
+
+	// Imports every EcsModule subclass ClassDB knows, then keeps listening so one that arrives later -- from a project
+	// DLL loaded after startup -- is imported too. The same arrangement components get, and for the same reason.
+	//
+	// Deliberately not done in the constructor: registering a class fires the delegate immediately, so a module would
+	// import into a world that has no content yet. The owner calls this once it is ready (see WorldSim::init).
+	void import_modules();
 
 	// ---- Systems and queries ----------------------------------------------
 	// Non-template on purpose: the builders in system_builder.h and query.h describe what they want as plain data and

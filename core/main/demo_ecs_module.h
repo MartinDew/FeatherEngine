@@ -8,9 +8,6 @@
 #include <framework/export_defs.h>
 #include <math/transform.h>
 
-// See the note in rendering_world_module.h: the generated _import_module binding needs a complete WorldSim.
-#include <main/world_sim.h>
-
 #ifndef FEATHER_REFLECTION_PARSER
 #include "demo_ecs_module.gen.h"
 #endif

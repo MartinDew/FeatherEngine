@@ -18,32 +18,34 @@ from modifier_api import Modifier
 
 class EcsModuleModifier(Modifier):
     """FCLASS(EcsModule) on an EcsModule subclass. Generates the static
-    _import_module(WorldSim*) hook that WorldSim's constructor discovers via
+    _import_module(World*) hook that World::import_modules() discovers via
     ClassDB::get_children_names("EcsModule") + get_static_method(child,
-    "_import_module") (core/main/world_sim.cpp) — previously hand-written per
-    feature (see the old RenderingEcsModule::_load_module)."""
+    "_import_module") (core/ecs/world.cpp) — previously hand-written per
+    feature (see the old RenderingEcsModule::_load_module).
+
+    Takes the World rather than the WorldSim that owns it: importing a module is
+    the world's job, and a module header would otherwise need WorldSim complete
+    just so ClassDB::bind_static_method could resolve VariantCompatible."""
     name = "EcsModule"
     targets = frozenset({"class"})
     value_type = False
 
     def gen_body_lines(self, cls, ctx):
-        return [("protected", "static void _import_module(WorldSim* sim);")]
+        return [("protected", "static void _import_module(World* world);")]
 
     def bind_members_lines(self, cls, ctx):
         return [f'ClassDB::bind_static_method(&{cls.name}::_import_module, "_import_module", AccessLevel::Public);']
 
     def register_cpp_includes(self, cls, ctx):
-        # The definition below needs a complete WorldSim, but the class's own
-        # header only ever forward-declares it (see ecs_module.h) so that
-        # WorldSim doesn't have to be complete in every feature header that
-        # just wants to derive from EcsModule. Keeping the #include here,
-        # not in gen_body_lines' declaration, is what preserves that.
-        return ["main/world_sim.h"]
+        # Every module header already pulls in World through ecs_module.h, so
+        # this is belt-and-braces rather than load-bearing -- but the generated
+        # TU should not depend on that chain staying intact.
+        return ["ecs/world.h"]
 
     def register_cpp_definitions(self, cls, ctx):
         return [
-            f"void {cls.name}::_import_module(WorldSim* sim) {{",
-            f"\tsim->get_world()->import_module<{cls.name}>();",
+            f"void {cls.name}::_import_module(World* world) {{",
+            f"\tworld->import_module<{cls.name}>();",
             "}",
         ]
 

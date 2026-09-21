@@ -3,9 +3,7 @@
 #include "engine.h"
 
 #include <ecs/components/scene.h>
-#include <ecs/ecs_module.h>
 #include <framework/static_string.hpp>
-
 
 namespace feather {
 
@@ -22,51 +20,26 @@ WorldSim::WorldSim() : fixed_tick { _world.create_timer(Engine::simulation_time)
 	// one as it arrives.
 }
 
-WorldSim::~WorldSim() {
-	ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _subclass_delegate_id);
-}
-
 void WorldSim::init() {
 	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
-	// Subscribed here, not in the ctor (which runs before index_project()):
-	// registering a class fires this immediately, so a DLL's EcsModule would otherwise import reentrantly, before the
-	// world content above exists.
-	_subclass_delegate_id = ClassDB::on_subclass_registered(
-			EcsModule::get_class_static(), [world_sim = this](std::string_view class_name) {
-				if (world_sim) {
-					ClassDB::get_static_method(class_name, "_import_module").call(world_sim);
-				}
-			}
-	);
-
-	// Picks up EcsModule subclasses from core, from built-in modules, and --
-	// because this runs after index_project() -- from loaded project DLLs.
-	auto children = ClassDB::get_children_names(EcsModule::get_class_static());
-	for (auto& child : children) {
-		ClassDB::get_static_method(child, "_import_module").call(this);
-	}
+	// Only now, for two reasons: the world holds the scene content a module's systems will run against, and this runs
+	// after index_project(), so a module from a loaded project DLL is picked up by the same sweep as core's.
+	// The discovery itself belongs to World -- see World::import_modules.
+	_world.import_modules();
 }
 
 void WorldSim::update(double delta) {
-	bool result = _world.progress(/*delta*/);
+	_world.progress();
 }
 
 Entity WorldSim::create_scene(const std::string& name) {
 	Scene s { StaticString(name) };
 	Entity scene = _world.create_entity(name);
 	return scene.is_a(_scene_prefab).set<Scene>(s);
-}
-
-Entity WorldSim::create_entity(const std::string& name) {
-	return _world.create_entity(name);
-}
-
-Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) {
-	return _world.create_entity(parent_entity, name);
 }
 
 void WorldSim::add_to_scene(Entity entity) {

@@ -3,7 +3,6 @@
 #include "components/scene.h"
 #include "entity.h"
 
-#include <main/world_sim.h>
 #include <rendering/rendering_server.h>
 #include <resources/mesh.h>
 #include <resources/resource_loader.h>
