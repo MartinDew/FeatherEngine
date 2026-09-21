@@ -1,5 +1,6 @@
 #pragma once
 
+#include "component_interface.h"
 #include <framework/reflection_macros.h>
 #include <math/math_defs.h>
 #include <cstdint>
@@ -19,7 +20,7 @@ enum class LightType : uint8_t {
 	Spot
 };
 
-struct Light {
+struct Light : public IComponent {
 	FSTRUCT(Component);
 
 	[[get, set]] LightType type = LightType::Directional;

@@ -1,6 +1,8 @@
 ﻿#pragma once
+
+#include "component_interface.h"
+#include <ecs/ecs_defs.h>
 #include <framework/reflection_macros.h>
-#include <world/ecs_defs.h>
 #include <framework/static_string.hpp>
 
 #include <cstdint>
@@ -11,7 +13,7 @@
 
 namespace feather {
 
-struct Scene {
+struct Scene : IComponent {
 	FSTRUCT(Component);
 
 	[[get, set]] int64_t _scene_id = -1;

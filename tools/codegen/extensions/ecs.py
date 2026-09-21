@@ -18,7 +18,7 @@ class EcsModuleModifier(Modifier):
     _import_module(WorldSim*) hook that WorldSim's constructor discovers via
     ClassDB::get_children_names("EcsModule") + get_static_method(child,
     "_import_module") (core/main/world_sim.cpp) — previously hand-written per
-    feature (see the old RenderingWorldModule::_load_module)."""
+    feature (see the old RenderingEcsModule::_load_module)."""
     name = "EcsModule"
     targets = frozenset({"class"})
     value_type = False
@@ -64,9 +64,9 @@ class ComponentModifier(Modifier):
         cpp_lines += [f'\tworld.component<{c.name}>("{c.name}");' for c in members]
         cpp_lines += ["}", ""]
         return DirEmission(
-            header_includes=["world/ecs_defs.h"],
+            header_includes=["ecs/ecs_defs.h"],
             header_decls=[f"void {func}(World& world);", ""],
-            cpp_includes=["world/ecs_defs.h"],
+            cpp_includes=["ecs/ecs_defs.h"],
             cpp_lines=cpp_lines,
         )
 
