@@ -7,14 +7,12 @@ namespace feather {
 MathEcsModule::MathEcsModule() = default;
 
 MathEcsModule::MathEcsModule(World& world) {
-	// Transform is registered up front (with everyone else's Component types)
-	// by register_math_components(), called before any feature import -- see
-	// register_core_features.cpp. Vector3/Matrix/Color are DirectX::SimpleMath
-	// aliases, not FeatherEngine types, so they can't carry FSTRUCT(Component)
-	// and stay registered here instead.
-	world.component<Vector3>("Vector3");
-	world.component<Matrix>("Matrix");
-	world.component<Color>("Color");
+	// Transform derives from IComponent, so World registered it from ClassDB already. Vector3/Matrix/Color are
+	// DirectX::SimpleMath aliases, not FeatherEngine types, so they cannot carry FSTRUCT and never reach ClassDB --
+	// they are declared by C++ type here instead.
+	world.register_component_type<Vector3>("Vector3");
+	world.register_component_type<Matrix>("Matrix");
+	world.register_component_type<Color>("Color");
 }
 
 } //namespace feather

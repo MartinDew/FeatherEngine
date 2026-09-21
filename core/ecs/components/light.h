@@ -21,7 +21,7 @@ enum class LightType : uint8_t {
 };
 
 struct Light : public IComponent {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	[[get, set]] LightType type = LightType::Directional;
 	[[get, set]] Vector3 position = Vector3::zero;
