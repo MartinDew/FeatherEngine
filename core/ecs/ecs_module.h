@@ -28,9 +28,8 @@ protected:
 
 	static WorldSim* _get_world_sim();
 
-	// The only way to declare a system. Protected on purpose: a system belongs to the module that declares it, so a
-	// stray free function cannot register one. The [[system]] attribute holds a method to the same rule -- codegen
-	// rejects it on anything that is not a static member of an EcsModule subclass.
+	// The only way to declare a system. Protected on purpose: a system belongs to the module that declares it, and
+	// the [[system]] attribute holds a method to the same rule (codegen rejects it elsewhere).
 	template <class... TComps>
 	static SystemBuilder<TComps...> system(World& world, const char* name) {
 		return SystemBuilder<TComps...>(world, name);

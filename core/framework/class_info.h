@@ -18,9 +18,8 @@ enum class AccessLevel : uint8_t {
 	Private,
 };
 
-// How to store and move instances of a value type without naming it. ECS storage is raw memory the world constructs,
-// copies and destroys on the engine's behalf, so it needs these; capturing them where the C++ type is still known
-// (ClassDB::register_value_class) is what lets a component be registered later from nothing but its class name.
+// How to store and move instances of a value type without naming it, captured while the C++ type is still known
+// (ClassDB::register_value_class) so a component can be registered later from nothing but its class name.
 struct ValueTypeOps {
 	// Zero for an empty type, which is how a tag is spelled: it has no storage to get or set.
 	size_t size = 0;

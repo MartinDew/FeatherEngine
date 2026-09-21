@@ -57,16 +57,12 @@ public:
 	[[method]] std::string get_type_name() const;
 
 	// Raw storage, for code that knows the layout. Writing through the mutable one marks the component changed.
-	// Re-resolved per call; see the note on the class.
 	[[nodiscard]] const void* data() const;
 	[[nodiscard]] void* mutable_data();
 
 	// ---- Property access ---------------------------------------------------
 
-	// Not [[method]]-bound: a bound method's parameters have to be Variant-marshalable and Variant itself is not
-	// (VariantCompatible, framework/variant.h). Binding these would mean one overload per field type, which is a
-	// limitation of the binding layer rather than anything the ECS should carry -- so the reflected surface stops at
-	// identity, and reading fields by name is C++-side until Variant can cross that boundary.
+	// Not [[method]]-bound: a bound method's parameters must be Variant-marshalable, and Variant itself is not.
 	[[nodiscard]] Variant get(std::string_view property) const;
 	bool set(std::string_view property, const Variant& value);
 };

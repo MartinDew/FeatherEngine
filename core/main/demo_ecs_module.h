@@ -19,10 +19,10 @@ struct Move : IComponent {
 	FSTRUCT();
 };
 
-// The demo scene's systems. A system now has to belong to a module -- a loose function or a lambda registered against
-// the world is no longer possible -- so the spin the demo used to declare inline lives here.
+// The demo scene's systems. A system must belong to a module, so the demo's spin system lives here rather than as a
+// loose function or lambda registered directly against the world.
 //
-// It is imported like any other module, in every build, but matches nothing until something carries Move, which only
+// Imported like any other module, in every build, but matches nothing until something carries Move, which only
 // Engine::_setup_demo_scene ever adds.
 class FEATHER_API DemoEcsModule final : public EcsModule {
 	FCLASS(EcsModule);

@@ -774,9 +774,7 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
     if "ignore" in attrs:
         return
 
-    # [[system]] marks an ECS system. It binds nothing on its own -- a module declares
-    # its systems in its constructor, through EcsModule::system() -- but it says where a
-    # system is allowed to live, and that is checked here rather than left to a comment.
+    # [[system]] binds nothing on its own; it only constrains where a system is allowed to live.
     if "system" in attrs:
         line = _line_of(body, offset) + fclass_line - 1
         if not any(m.name == "EcsModule" for m, _ in cls.resolved_modifiers):

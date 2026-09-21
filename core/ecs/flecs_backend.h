@@ -47,8 +47,7 @@ inline int16_t to_flecs_inout(TermAccess access) {
 }
 
 // Which relationship a term walks when it does not find its component on the entity itself. ChildOf rather than
-// flecs' own default of IsA: Up here means "on an ancestor", which is how a scene-scoped term finds the ActiveScene
-// tag on the scene entity its matches are parented to.
+// flecs' own default of IsA: Up here means "on an ancestor", such as a scene entity.
 inline ecs_entity_t to_flecs_traversal_relationship(TraverseFlag traverse) {
 	return traverse == TraverseFlag::Self ? 0 : EcsChildOf;
 }

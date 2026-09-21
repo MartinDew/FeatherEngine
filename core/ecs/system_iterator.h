@@ -42,8 +42,7 @@ public:
 namespace ecs_detail {
 
 // How one element of a system's component pack is spelled, and how it is handed to the callback.
-// `T` is a required term yielding `T&`; `T*` is an optional term yielding `T*`, which is null on the rows where the
-// component is absent. Constness of the term is what tells the ECS whether the system reads or writes it.
+// `T` yields `T&`; `T*` is optional and yields `T*`, null where the component is absent.
 template <class T>
 struct TermTraits {
 	using Component = std::remove_const_t<T>;

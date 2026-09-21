@@ -151,10 +151,8 @@ public:
 	// knowing the type -- the ECS registers a component from its ClassInfo alone (ecs/world.cpp).
 	static const ClassInfo* get_class_info(std::string_view class_name);
 
-	// Registration for a value class with no C++ type at all: one described at runtime by a script or plugin.
-	// Needs no T -- a value type has no factory, and ClassInfo::Property is already type-erased -- so the caller
-	// supplies the storage layout it laid out itself. Returns false if the name is taken.
-	// The name and every property name must outlive the registration (StaticString is a non-owning view).
+	// Registration for a value class with no C++ type at all: one described at runtime by a script or plugin, which
+	// supplies the storage layout itself. Returns false if the name is taken; every name must outlive registration.
 	static bool register_scripted_value_class(
 			StaticString name,
 			std::vector<ClassInfo::Property> properties,

@@ -117,9 +117,8 @@ public:
 
 	// ---- Component types, by reflection ------------------------------------
 
-	// Registers `class_name` with the ECS, using the storage its ClassInfo describes. Idempotent: a name already
-	// registered returns the id it got the first time. Returns a null id when the class is unknown, is not a value
-	// type, or has no storage to give.
+	// Registers `class_name` with the ECS, using the storage its ClassInfo describes. Idempotent, and returns a null
+	// id when the class is unknown or is not a value type.
 	EntityId register_component(StaticString class_name);
 
 	// The id a class name was registered under, or a null id.
@@ -132,9 +131,7 @@ public:
 	};
 
 	// Registers a component whose fields are described at runtime rather than by a C++ type, laying its storage out
-	// here. Returns a null id with *error set on a bad description -- a normal outcome, since the description comes
-	// from outside the engine. Field types are limited to the trivially-copyable Variant types, because the storage
-	// has to be memcpy-able.
+	// here. Returns a null id with *error set on a bad description, since that comes from outside the engine.
 	EntityId register_component(
 			const std::string& name,
 			std::span<const FieldDesc> fields,
@@ -167,18 +164,14 @@ public:
 	// ---- Modules -----------------------------------------------------------
 
 	// Constructs an EcsModule subclass with this world, once, under a module scope named after it so everything it
-	// declares is namespaced the way flecs expects. Feather's own import rather than flecs's, because a module is
-	// handed this World, not the flecs one.
+	// declares is namespaced the way flecs expects.
 	template <typename T>
 	EntityId import_module();
 
 	[[nodiscard]] bool is_module_imported(StaticString class_name) const;
 
-	// Imports every EcsModule subclass ClassDB knows, then keeps listening so one that arrives later -- from a project
-	// DLL loaded after startup -- is imported too. The same arrangement components get, and for the same reason.
-	//
-	// Deliberately not done in the constructor: registering a class fires the delegate immediately, so a module would
-	// import into a world that has no content yet. The owner calls this once it is ready (see WorldSim::init).
+	// Imports every EcsModule subclass ClassDB knows, then keeps listening so one that arrives later is imported too.
+	// Deliberately not done in the constructor: the owner calls this once the world has content (see WorldSim::init).
 	void import_modules();
 
 	// ---- Systems and queries ----------------------------------------------
