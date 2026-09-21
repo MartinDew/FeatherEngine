@@ -925,6 +925,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
     if helper_blocks:
         lines[helper_insert_at:helper_insert_at] = helper_blocks
 
+    lines.append('#include <framework/reflection_macros.h>\n')
+
     return "\n".join(lines) + "\n"
 
 

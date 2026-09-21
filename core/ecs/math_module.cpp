@@ -4,9 +4,9 @@
 
 namespace feather {
 
-MathWorldModule::MathWorldModule() = default;
+MathEcsModule::MathEcsModule() = default;
 
-MathWorldModule::MathWorldModule(World& world) {
+MathEcsModule::MathEcsModule(World& world) {
 	// Transform is registered up front (with everyone else's Component types)
 	// by register_math_components(), called before any feature import -- see
 	// register_core_features.cpp. Vector3/Matrix/Color are DirectX::SimpleMath

@@ -2,11 +2,11 @@
 
 #include "simulation.h"
 
+#include <ecs/components/scene.h>
+#include <ecs/ecs_defs.h>
 #include <framework/delegate.h>
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
-#include <world/components/scene.h>
-#include <world/ecs_defs.h>
 
 #include <flecs.h>
 #include <flecs/addons/cpp/world.hpp>

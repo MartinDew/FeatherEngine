@@ -4,17 +4,17 @@
 #include <framework/export_defs.h>
 
 #ifndef FEATHER_REFLECTION_PARSER
-#include "core_world_module.gen.h"
+#include "math_module.gen.h"
 #endif
 
 namespace feather {
 
-class FEATHER_API CoreWorldModule : public EcsModule {
+class FEATHER_API MathEcsModule final : public EcsModule {
 	FCLASS(EcsModule);
 
 public:
-	CoreWorldModule() = default;
-	CoreWorldModule(World world);
+	MathEcsModule();
+	MathEcsModule(World& world);
 };
 
 } //namespace feather

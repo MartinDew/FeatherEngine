@@ -1,11 +1,11 @@
 #include "rendering_world_module.h"
 
 #include "components/scene.h"
+#include <ecs/components/light.h>
 #include <main/world_sim.h>
 #include <rendering/rendering_server.h>
 #include <resources/mesh.h>
 #include <resources/resource_loader.h>
-#include <world/components/light.h>
 
 namespace feather {
 
@@ -20,7 +20,7 @@ inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, Ma
 	RenderingServer::get()->add_entity({ transform, mesh.mesh->get_mesh_data(), mat ? mat->material : nullptr });
 }
 
-RenderingWorldModule::RenderingWorldModule(World world) {
+RenderingEcsModule::RenderingEcsModule(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
 

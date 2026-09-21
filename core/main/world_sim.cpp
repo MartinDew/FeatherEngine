@@ -1,9 +1,9 @@
 #include "world_sim.h"
 
+#include "ecs/ecs_module.h"
 #include "engine.h"
-#include "world/ecs_module.h"
-#include <world/components/scene.h>
-#include <world/register_core_features.h>
+#include <ecs/components/scene.h>
+#include <ecs/register_core_features.h>
 #include <framework/static_string.hpp>
 
 namespace feather {

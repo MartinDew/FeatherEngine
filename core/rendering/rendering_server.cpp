@@ -5,11 +5,11 @@
 #include <main/notification.h>
 #include <resources/shader.h>
 
+#include <ecs/components/light.h>
 #include <framework/assert.h>
 #include <framework/variant.h>
 #include <main/class_db.h>
 #include <main/launch_settings.h>
-#include <world/components/light.h>
 #include <framework/static_string.hpp>
 
 #include <string_view>

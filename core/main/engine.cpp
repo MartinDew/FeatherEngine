@@ -1,7 +1,7 @@
 #include "engine.h"
+#include "ecs/components/light.h"
+#include "ecs/rendering_world_module.h"
 #include "launch_settings.h"
-#include "world/components/light.h"
-#include "world/rendering_world_module.h"
 
 #include <framework/assert.h>
 #include <resources/resource_loader.h>

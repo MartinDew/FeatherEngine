@@ -1,6 +1,8 @@
 #include "vex_renderer.h"
 
+#include <SDL3/SDL_video.h>
 #include <Vex/Texture.h>
+#include <core/ecs/components/light.h>
 #include <core/main/engine.h>
 #include <core/main/engine_settings.h>
 #include <core/main/window.h>
@@ -9,10 +11,8 @@
 #include <core/resources/material.h>
 #include <core/resources/shader.h>
 #include <core/resources/texture.h>
-#include <core/world/components/light.h>
 #include <framework/assert.h>
 #include <framework/bytes.h>
-#include <SDL3/SDL_video.h>
 
 #include <raw_resources/shaders/depth_prepass.slang.gen.h>
 #include <raw_resources/shaders/pbr_forward.slang.gen.h>
