@@ -15,9 +15,8 @@ WorldSim::WorldSim() : fixed_tick { _world.create_timer(Engine::simulation_time)
 	_world.enable_rest_api();
 #endif
 
-	// Component types need no registration pass here: World subscribes to ClassDB for IComponent's children when it is
-	// constructed, so everything reflected is already a component, and anything a project DLL registers later becomes
-	// one as it arrives.
+	// Component types need no registration pass here: World subscribes to ClassDB for IComponent's children itself,
+	// including ones a project DLL registers later.
 }
 
 void WorldSim::init() {
@@ -26,9 +25,7 @@ void WorldSim::init() {
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
-	// Only now, for two reasons: the world holds the scene content a module's systems will run against, and this runs
-	// after index_project(), so a module from a loaded project DLL is picked up by the same sweep as core's.
-	// The discovery itself belongs to World -- see World::import_modules.
+	// Only now: the world needs scene content for a module's systems to run against before any module imports.
 	_world.import_modules();
 }
 
@@ -47,8 +44,6 @@ void WorldSim::add_to_scene(Entity entity) {
 }
 
 void WorldSim::set_active_scene(Entity scene) {
-	// Note this actually checks the prefab relationship now. The old spelling was `fassert(scene.is_a(_scene_prefab))`,
-	// which set the relationship and tested the returned handle rather than asking anything.
 	fassert(_world.is_instance_of(scene.id(), _scene_prefab.id()), "Given scene isn't a scene instance");
 
 	// Clear old active scene marker

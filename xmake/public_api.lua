@@ -19,10 +19,7 @@ target("feather_public_api")
     -- Also direct-linked by binary targets: an object-kind dep's .o files
     -- don't propagate across a second headeronly hop either.
     add_deps("simplemath", {public = true})
-    -- flecs is deliberately absent: the ECS is hidden behind core/ecs/{world,entity,component}.h and flecs is named
-    -- only in core/ecs/*.cpp, so nothing outside the engine binary needs its headers or its symbols. Putting it back
-    -- here would silently let a consumer -- or a core header -- depend on flecs again.
-    --
+    -- flecs is deliberately absent: it is named only in core/ecs/*.cpp, so no consumer needs its headers or symbols.
     -- sdl3 links normally on windows/mingw (a real shared lib there), headers-only elsewhere -- see below.
     if is_plat("windows", "mingw") then
         add_packages("sdl3", {public = true})

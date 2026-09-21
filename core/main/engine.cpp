@@ -99,9 +99,6 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	l.cast_shadows = true;
 	w.create_entity(s, "Directional").emplace<Light>(std::move(l));
 
-	// The spin the demo used to declare inline now belongs to DemoEcsModule: a system has to be a static method of
-	// the module that owns it, so nothing can register one against the world from the outside.
-
 	auto q = _world_sim.scene_query<Transform, MeshInstance, MaterialInstance*>("Test");
 	q.each([](Entity e, Transform& t, MeshInstance& mi, MaterialInstance* mat) {
 		std::cout << e.get_name() << std::endl;

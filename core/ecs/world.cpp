@@ -292,8 +292,7 @@ EntityId World::_register_component_raw(StaticString name, const ValueTypeOps& o
 	desc.type.hooks.binding_ctx = const_cast<ValueTypeOps*>(kept_ops);
 
 	// Only the hooks the type actually needs; a null one tells flecs the operation is trivial and whole runs can be
-	// moved with memcpy. The ctor is the exception -- a component with no ctor hook is still zero-initialised on add,
-	// so a reader sees defined values before anything has written.
+	// moved with memcpy. The ctor is the exception: flecs zero-initializes on add when it is left null.
 	desc.type.hooks.ctor = kept_ops->default_construct ? hook_ctor : flecs_default_ctor;
 	desc.type.hooks.dtor = kept_ops->destruct ? hook_dtor : nullptr;
 	desc.type.hooks.copy = kept_ops->copy ? hook_copy : nullptr;
@@ -451,9 +450,8 @@ bool World::_set_component_raw(EntityId entity, StaticString class_name, const v
 		return false;
 	}
 
-	// ecs_ensure_id hands back storage that has already been constructed, so this is an assignment, not a
-	// construction: a type with a copy hook (anything holding a shared_ptr, say) must go through it rather than have
-	// its bytes overwritten.
+	// ecs_ensure_id hands back storage that has already been constructed, so this is an assignment: a type with a
+	// copy hook must go through it rather than have its bytes overwritten.
 	const auto* ops = static_cast<const ValueTypeOps*>(type_info->hooks.binding_ctx);
 	if (ops && ops->copy) {
 		ops->copy(destination, value, 1);
@@ -538,10 +536,8 @@ void system_trampoline(ecs_iter_t* it) {
 	context->callback(iterator, context->user_ctx);
 }
 
-// A run action is handed the whole iteration and is invoked once whether or not anything matched, which is the entire
-// reason run() exists. It takes its context from run_ctx rather than callback_ctx, and clears EcsIterIsValid instead
-// of finalising the iterator -- flecs' own C++ run path (run_delegate in addons/cpp/delegate.hpp) does exactly this.
-// Calling ecs_iter_fini here instead leaves the pipeline wedged on the next system.
+// Takes its context from run_ctx rather than callback_ctx, and clears EcsIterIsValid instead of calling ecs_iter_fini
+// (which would leave the pipeline wedged on the next system) -- matching flecs' own C++ run path.
 void system_run_trampoline(ecs_iter_t* it) {
 	auto* context = static_cast<SystemContext*>(it->run_ctx);
 	it->flags &= ~EcsIterIsValid;

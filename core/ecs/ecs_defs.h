@@ -92,9 +92,7 @@ struct SystemDesc {
 	void* callback_ctx = nullptr;
 	ContextDeleter callback_ctx_free = nullptr;
 
-	// False: `callback` runs once per matching batch of entities, which is what each() wants.
-	// True: it runs once per system invocation whether or not anything matched, which is what a system with no terms
-	// needs -- a frame's begin/commit pass has nothing to match but must still fire.
+	// True: runs once per invocation regardless of matches, which is what a frame's begin/commit pass needs.
 	bool run_once = false;
 };
 
