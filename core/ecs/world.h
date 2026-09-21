@@ -42,8 +42,7 @@ concept ClassDbNamed = requires {
 // An ECS world: flecs underneath, Feather's own vocabulary on top, and no flecs type in this header.
 // It knows nothing of ClassDB until register_classdb_components or import_classdb_modules is called.
 class FEATHER_API World : public Reflected {
-	// abstract: reflected so its API is reachable by name, never built through ClassDB -- a world has one owner.
-	FCLASS(abstract);
+	FCLASS();
 
 	// Companion classes, split out for file organization only; these grant the access that split would otherwise cost.
 	friend class Entity;
