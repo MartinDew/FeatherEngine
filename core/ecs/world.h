@@ -25,6 +25,12 @@ namespace feather {
 class Entity;
 class Component;
 
+template <class... TComps>
+class Query;
+
+template <class... TComps>
+class SystemBuilder;
+
 // The engine's ECS world: flecs underneath, Feather's own vocabulary on top.
 //
 // What it adds over flecs is registration by reflection. A component type is an IComponent subclass, so it is described
@@ -40,6 +46,14 @@ class Component;
 class FEATHER_API World : public Reflected {
 	FCLASS(abstract);
 
+	// Entity, Query and SystemBuilder are companion classes rather than members only for file organization -- these
+	// grant them the access that split would otherwise cost.
+	friend class Entity;
+	template <class... TComps>
+	friend class Query;
+	template <class... TComps>
+	friend class SystemBuilder;
+
 	struct Impl;
 	std::unique_ptr<Impl> _impl;
 
@@ -54,6 +68,10 @@ class FEATHER_API World : public Reflected {
 	// can be reached twice.
 	std::unordered_map<StaticString, EntityId> _modules;
 
+	// A name kept alive for the life of the process. flecs keeps the `const char*` it is handed and StaticString is a
+	// non-owning view, so a name that came from a std::string needs somewhere permanent to point.
+	static StaticString _intern(std::string_view name);
+
 	// Opens a module scope named after `class_name`, returning the scope to restore.
 	// Shared by import_module<T> so the template stays thin -- and flecs-free.
 	EntityId _begin_module(StaticString class_name, EntityId& out_module);
@@ -65,6 +83,22 @@ class FEATHER_API World : public Reflected {
 	// The half of register_component_type<T> that actually talks to flecs.
 	EntityId _register_component_raw(StaticString name, const ValueTypeOps& ops);
 
+	// Copies `size` bytes into the component's storage, adding it if absent. What Entity::set<T> reduces to.
+	bool _set_component_raw(EntityId entity, StaticString class_name, const void* value, size_t size);
+
+	// ---- Systems and queries -------------------------------------------------------------------------------------
+	// Non-template on purpose: the builders in system_builder.h and query.h describe what they want as plain data and
+	// hand it over here, which is what keeps flecs out of their headers.
+
+	EntityId _register_system(SystemDesc&& desc);
+
+	// Returns an opaque ecs_query_t*, owned by the caller -- Query's destructor hands it back to _destroy_query.
+	[[nodiscard]] void* _create_query(QueryDesc&& desc);
+	void _destroy_query(void* query) const;
+
+	// Runs `callback` once per matching batch. Synchronous, so `ctx` need only outlive the call.
+	void _query_each(void* query, SystemCallback callback, void* ctx);
+
 public:
 	World();
 	~World() override;
@@ -75,10 +109,6 @@ public:
 	World& operator=(const World&) = delete;
 	World(World&&) = delete;
 	World& operator=(World&&) = delete;
-
-	// A name kept alive for the life of the process. flecs keeps the `const char*` it is handed and StaticString is a
-	// non-owning view, so a name that came from a std::string needs somewhere permanent to point.
-	static StaticString _intern(std::string_view name);
 
 	// ---- Simulation --------------------------------------------------------
 
@@ -158,9 +188,6 @@ public:
 	// Named property access lives on Component (ecs/component.h), which caches the ClassInfo and the component id
 	// rather than re-resolving both on every field touch. There is deliberately no by-name property pair here.
 
-	// Copies `size` bytes into the component's storage, adding it if absent. What Entity::set<T> reduces to.
-	bool _set_component_raw(EntityId entity, StaticString class_name, const void* value, size_t size);
-
 	// ---- Modules -----------------------------------------------------------
 
 	// Constructs an EcsModule subclass with this world, once, under a module scope named after it so everything it
@@ -173,19 +200,6 @@ public:
 	// Imports every EcsModule subclass ClassDB knows, then keeps listening so one that arrives later is imported too.
 	// Deliberately not done in the constructor: the owner calls this once the world has content (see WorldSim::init).
 	void import_modules();
-
-	// ---- Systems and queries ----------------------------------------------
-	// Non-template on purpose: the builders in system_builder.h and query.h describe what they want as plain data and
-	// hand it over here, which is what keeps flecs out of their headers.
-
-	EntityId _register_system(SystemDesc&& desc);
-
-	// Returns an opaque ecs_query_t*, owned by the caller -- Query's destructor hands it back to _destroy_query.
-	[[nodiscard]] void* _create_query(QueryDesc&& desc);
-	void _destroy_query(void* query) const;
-
-	// Runs `callback` once per matching batch. Synchronous, so `ctx` need only outlive the call.
-	void _query_each(void* query, SystemCallback callback, void* ctx);
 
 	// ---- Reflected surface -------------------------------------------------
 	// Names, never ids: an EntityId is not Variant-marshalable, so anything taking one stays C++-only and a script
