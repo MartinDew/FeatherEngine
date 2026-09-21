@@ -8,8 +8,10 @@
 #include <framework/variant.h>
 
 #include <concepts>
+#include <new>
 #include <print>
 #include <type_traits>
+#include <utility>
 
 namespace feather {
 
@@ -22,6 +24,47 @@ template <typename T>
 concept has_bind_method_v = requires(T t) {
 	{ has_bind_method(t) };
 };
+
+// The lifecycle of T as plain function pointers. A hook is left null wherever T is trivial in that respect, which is what
+// tells the ECS it can move whole arrays with memcpy instead of calling back per element.
+template <class T>
+ValueTypeOps make_value_type_ops() {
+	ValueTypeOps ops;
+	// An empty type gets size 0 rather than the 1 byte C++ gives it, which is how a tag is spelled: no storage at all.
+	// sizeof is only ever 1 here because C++ forbids a zero-sized object, not because there is anything to store.
+	ops.size = std::is_empty_v<T> ? 0 : sizeof(T);
+	ops.alignment = alignof(T);
+
+	if constexpr (!std::is_trivially_default_constructible_v<T> && std::is_default_constructible_v<T>) {
+		ops.default_construct = [](void* ptr, size_t count) {
+			for (size_t i = 0; i < count; ++i) {
+				new (static_cast<T*>(ptr) + i) T();
+			}
+		};
+	}
+	if constexpr (!std::is_trivially_destructible_v<T>) {
+		ops.destruct = [](void* ptr, size_t count) {
+			for (size_t i = 0; i < count; ++i) {
+				(static_cast<T*>(ptr) + i)->~T();
+			}
+		};
+	}
+	if constexpr (!std::is_trivially_copyable_v<T> && std::is_copy_assignable_v<T>) {
+		ops.copy = [](void* dst, const void* src, size_t count) {
+			for (size_t i = 0; i < count; ++i) {
+				static_cast<T*>(dst)[i] = static_cast<const T*>(src)[i];
+			}
+		};
+	}
+	if constexpr (!std::is_trivially_copyable_v<T> && std::is_move_assignable_v<T>) {
+		ops.move = [](void* dst, void* src, size_t count) {
+			for (size_t i = 0; i < count; ++i) {
+				static_cast<T*>(dst)[i] = std::move(static_cast<T*>(src)[i]);
+			}
+		};
+	}
+	return ops;
+}
 
 template <is_reflected_class_type T>
 void ClassDB::register_class() {
@@ -131,6 +174,9 @@ void ClassDB::register_value_class() {
 	// No Reflected base means no polymorphic factory -- Variant's pointer path
 	// requires std::is_base_of_v<Reflected, T>, which a value type never satisfies.
 	info.object_create_func = nullptr;
+	// Captured while T is still known: a component is registered with the world
+	// later, from its name alone (World::register_component).
+	info.value_ops = make_value_type_ops<T>();
 
 	instance._current_info = &info;
 

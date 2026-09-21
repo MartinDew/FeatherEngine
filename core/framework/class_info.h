@@ -18,6 +18,21 @@ enum class AccessLevel : uint8_t {
 	Private,
 };
 
+// How to store and move instances of a value type without naming it, captured while the C++ type is still known
+// (ClassDB::register_value_class) so a component can be registered later from nothing but its class name.
+struct ValueTypeOps {
+	// Zero for an empty type, which is how a tag is spelled: it has no storage to get or set.
+	size_t size = 0;
+	size_t alignment = 1;
+
+	// Null for a type that is trivial in that respect, which is also how the
+	// ECS spells "no hook needed" -- whole runs can then be moved with memcpy.
+	void (*default_construct)(void* ptr, size_t count) = nullptr;
+	void (*destruct)(void* ptr, size_t count) = nullptr;
+	void (*copy)(void* dst, const void* src, size_t count) = nullptr;
+	void (*move)(void* dst, void* src, size_t count) = nullptr;
+};
+
 struct ClassInfo {
 	StaticString name = ""_ss;
 	StaticString parent = ""_ss;
@@ -56,6 +71,10 @@ struct ClassInfo {
 	std::vector<Method> methods;
 
 	std::function<Variant()> object_create_func;
+
+	// Set for a value type only (is_value_type), and only when one was supplied:
+	// a class described at runtime lays its own storage out instead.
+	ValueTypeOps value_ops;
 };
 
 } //namespace feather

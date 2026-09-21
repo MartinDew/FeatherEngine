@@ -28,6 +28,7 @@ for _, p in ipairs({
     "core/main/window.cpp",
     "core/main/simulation.cpp",
     "core/main/world_sim.cpp",
+    "core/main/demo_ecs_module.cpp",
     "core/math/math_defs.cpp",
     "core/math/projection.cpp",
     "core/math/transform.cpp",
@@ -48,12 +49,15 @@ for _, p in ipairs({
     "core/resources/texture_format_loader.cpp",
     "core/resources/extension.cpp",
     "core/resources/extension_format_loader.cpp",
-    "core/world/ecs_module.cpp",
-    "core/world/rendering_world_module.cpp",
-    "core/world/math_module.cpp",
-    "core/world/register_core_features.cpp",
-    "core/world/core_world_module.cpp",
-    "core/world/components/scene.cpp",
+    "core/ecs/world.cpp",
+    "core/ecs/entity.cpp",
+    "core/ecs/component.cpp",
+    "core/ecs/system_iterator.cpp",
+    "core/ecs/ecs_module.cpp",
+    "core/ecs/rendering_world_module.cpp",
+    "core/ecs/math_module.cpp",
+    "core/ecs/core_world_module.cpp",
+    "core/ecs/components/scene.cpp",
 }) do
     table.insert(CORE_SOURCES, core_path(p))
 end
@@ -66,7 +70,7 @@ for _, p in ipairs({
     "core/math/register_math_types.gen.cpp",
     "core/rendering/register_rendering_types.gen.cpp",
     "core/resources/register_resources_types.gen.cpp",
-    "core/world/register_world_types.gen.cpp",
+    "core/ecs/register_ecs_types.gen.cpp",
     -- Embedded resources are header-only (raw_resources/*.gen.h), so no .cpp here.
 }) do
     table.insert(GENERATED_SOURCE, core_path(p))

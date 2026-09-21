@@ -773,6 +773,7 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
     attrs = info["attrs"]
     if "ignore" in attrs:
         return
+
     # Opt-in: only [[method]] (or [[method(name)]] to rebind) binds a method.
     forced = "method" in attrs
     if not forced:
@@ -924,6 +925,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
 
     if helper_blocks:
         lines[helper_insert_at:helper_insert_at] = helper_blocks
+
+    lines.append('#include <framework/reflection_macros.h>\n')
 
     return "\n".join(lines) + "\n"
 

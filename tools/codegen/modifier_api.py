@@ -1,9 +1,9 @@
 """
 modifier_api.py — extension API for FCLASS(...)/FSTRUCT(...) modifiers.
 
-Lets a game project add its own cross-cutting FCLASS concern (e.g. an ECS
-`Component`/`EcsModule` pair; see tools/codegen/extensions/ecs.py) without
-forking generate_reflection.py, which used to hardcode modifiers directly.
+Lets a game project add its own cross-cutting FCLASS concern without forking
+generate_reflection.py. core_modifiers.py ships `singleton`/`abstract`/`novtable`;
+extensions/ is where a project adds more.
 
 A Modifier is a plain object with one method per emission site the generator
 already has, mirroring generate_gen_header/_bind_members_body/
@@ -68,11 +68,10 @@ class DirEmission:
     """Extra content a modifier wants aggregated over an entire source
     directory, returned from Modifier.emit_dir(). Appended to
     register_<dir>_types.gen.{h,cpp} after the per-class content
-    generate_gen_header()/generate_register_cpp() already produce -- see
-    e.g. ecs.py's ComponentModifier, which has no per-class _bind_members
-    hook to attach to (world.component<T>() needs a live flecs::world&,
-    which _bind_members()/ClassDB never has) and instead emits one
-    aggregate register_<dir>_components(World&) function."""
+    generate_gen_header()/generate_register_cpp() already produce.
+
+    No shipped modifier uses this today; it is kept for one that needs output
+    aggregated across a whole directory rather than per class."""
     header_includes: list = dc_field(default_factory=list)   # quoted, core-relative
     header_decls: list = dc_field(default_factory=list)      # raw lines, inside `namespace feather { ... }`
     cpp_includes: list = dc_field(default_factory=list)       # quoted, core-relative
@@ -81,11 +80,11 @@ class DirEmission:
 
 class Modifier:
     """Base class for a modifier plugged into an FCLASS(...)/FSTRUCT(...)
-    token list, e.g. `FCLASS(singleton)` or `FSTRUCT(Component)`. Subclass
+    token list, e.g. `FCLASS(singleton)` or `FCLASS(abstract)`. Subclass
     and override only the hooks that apply; everything else defaults to
     "contributes nothing" (see the no-op bodies below).
 
-    name        the literal token, e.g. "singleton", "EcsModule".
+    name        the literal token, e.g. "singleton", "abstract".
     targets     which declaration kinds this modifier can be attached to.
                 Only {"class"} is consumed by generate_reflection.py today --
                 bind_property_lines/bind_method_lines exist as documented
@@ -109,8 +108,8 @@ class Modifier:
 
     def validate(self, cls, ctx: EmitContext):
         """Raise ModifierError for anything not already covered by `targets`/
-        `value_type` (e.g. Component rejecting a class that also carries some
-        other incompatible modifier)."""
+        `value_type` (e.g. rejecting a class that also carries some other
+        incompatible modifier)."""
 
     def gen_header_includes(self, cls, ctx: EmitContext) -> list:
         """Extra #include lines (quoted, core-relative, e.g.
@@ -145,9 +144,8 @@ class Modifier:
 
     def register_cpp_definitions(self, cls, ctx: EmitContext) -> list:
         """Raw lines defining out-of-line member(s) this modifier declared in
-        gen_body_lines (e.g. EcsModule's `T::_import_module` body) -- placed
-        in register_<dir>_types.gen.cpp, not the per-header .gen.h, so a
-        heavier dependency (e.g. a complete WorldSim) doesn't leak into every
+        gen_body_lines -- placed in register_<dir>_types.gen.cpp, not the
+        per-header .gen.h, so a heavier dependency does not leak into every
         header that includes the FCLASS'd type."""
         return []
 

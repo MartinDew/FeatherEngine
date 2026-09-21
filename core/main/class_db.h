@@ -147,6 +147,18 @@ public:
 			AccessLevel access = AccessLevel::Public
 	);
 
+	// The registered description of a class, or nullptr. Exposed for code that has to read a type's members without
+	// knowing the type -- the ECS registers a component from its ClassInfo alone (ecs/world.cpp).
+	static const ClassInfo* get_class_info(std::string_view class_name);
+
+	// Registration for a value class with no C++ type at all: one described at runtime by a script or plugin, which
+	// supplies the storage layout itself. Returns false if the name is taken; every name must outlive registration.
+	static bool register_scripted_value_class(
+			StaticString name,
+			std::vector<ClassInfo::Property> properties,
+			ValueTypeOps ops
+	);
+
 	// Returns an unmanaged raw pointer to a reflected object
 	static Reflected* create_object_unsafe(std::string_view object_name);
 
@@ -158,7 +170,8 @@ public:
 		return ptr;
 	}
 
-	static Delegate<std::string_view>::id_t on_subclass_registered(
+	// Allows executing a callback when a subtype of a base class is registered. Will immediately execute it on registration to catch up with previous types
+	static subclass_delegate_t::id_t on_subclass_registered(
 			std::string_view base_class_name,
 			const Delegate<std::string_view>::DelegateFuncType& callback
 	);

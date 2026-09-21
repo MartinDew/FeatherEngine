@@ -1,5 +1,6 @@
 #pragma once
 
+#include "component_interface.h"
 #include <framework/reflection_macros.h>
 #include <math/math_defs.h>
 #include <cstdint>
@@ -10,17 +11,16 @@
 
 namespace feather {
 
-// Free enum, not nested in Light: FSTRUCT's generated accessors are emitted at
-// the top of the class body, before a nested type declared later would be
-// visible to name lookup -- same reason Vector3/Color aren't nested either.
+// Free rather than nested in Light: FSTRUCT's generated accessors are emitted at the top of the class body, before
+// a nested type declared later would be visible to name lookup.
 enum class LightType : uint8_t {
 	Directional,
 	Point,
 	Spot
 };
 
-struct Light {
-	FSTRUCT(Component);
+struct Light : public IComponent {
+	FSTRUCT();
 
 	[[get, set]] LightType type = LightType::Directional;
 	[[get, set]] Vector3 position = Vector3::zero;
