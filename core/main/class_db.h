@@ -172,8 +172,8 @@ public:
 		return ptr;
 	}
 
-	// Allows executing a callback when a subtype of base class is registered.
-	static Delegate<std::string_view>::id_t on_subclass_registered(
+	// Allows executing a callback when a subtype of a base class is registered. Will immediately execute it on registration to catch up with previous types
+	static subclass_delegate_t::id_t on_subclass_registered(
 			std::string_view base_class_name,
 			const Delegate<std::string_view>::DelegateFuncType& callback
 	);

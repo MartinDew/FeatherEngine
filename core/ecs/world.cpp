@@ -146,32 +146,20 @@ StaticString World::_intern(std::string_view name) {
 }
 
 World::World() : _impl(std::make_unique<Impl>()) {
-	_watch_component_registrations();
+	_component_delegate = ClassDB::on_subclass_registered(
+		IComponent::get_class_static(),
+		[this](std::string_view class_name) { register_component(StaticString(class_name)); }
+);
 }
 
 World::~World() {
-	constexpr auto no_delegate = static_cast<Delegate<std::string_view>::id_t>(-1);
+	constexpr auto no_delegate = static_cast<ClassDB::subclass_delegate_t::id_t>(-1);
 	if (_component_delegate != no_delegate) {
 		ClassDB::unregister_subclass_delegate(IComponent::get_class_static(), _component_delegate);
 	}
 	if (_module_delegate != no_delegate) {
 		ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _module_delegate);
 	}
-}
-
-void World::_watch_component_registrations() {
-	// Everything already registered, then everything that registers later. Both halves matter: core's components are
-	// in ClassDB before any world exists, while a project DLL's arrive when it loads, long after.
-	for (StaticString name : ClassDB::get_children_names(IComponent::get_class_static())) {
-		register_component(name);
-	}
-
-	// Note that this can fire while progress() is running, if a DLL is loaded mid-frame: registering a component type
-	// is additive and does not touch existing storage, but it is not synchronised either.
-	_component_delegate = ClassDB::on_subclass_registered(
-			IComponent::get_class_static(),
-			[this](std::string_view class_name) { register_component(StaticString(class_name)); }
-	);
 }
 
 // ---- Simulation ------------------------------------------------------------
