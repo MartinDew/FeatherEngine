@@ -7,9 +7,10 @@ local FEATHER_ROOT = path.directory(os.scriptdir())
 -- vex_renderer.deploy_runtime) -- rules stack across a target, closures don't.
 rule("feather.deploy_shaders")
     after_build(function(target)
-        os.cp(
-            path.join(FEATHER_ROOT, "raw_resources", "shaders"),
-            path.join(target:targetdir(), "shaders"))
+        -- "dir/*" copies the contents; copying the dir itself nests it inside an existing "shaders" dir
+        local dst = path.join(target:targetdir(), "shaders")
+        os.mkdir(dst)
+        os.cp(path.join(FEATHER_ROOT, "raw_resources", "shaders", "*"), dst)
     end)
 rule_end()
 
