@@ -2,14 +2,13 @@
 
 #include "simulation.h"
 
-#include <framework/delegate.h>
+#include <ecs/components/scene.h>
+#include <ecs/ecs_defs.h>
+#include <ecs/entity.h>
+#include <ecs/query.h>
+#include <ecs/world.h>
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
-#include <world/components/scene.h>
-#include <world/ecs_defs.h>
-
-#include <flecs.h>
-#include <flecs/addons/cpp/world.hpp>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "world_sim.gen.h"
@@ -17,6 +16,8 @@
 
 namespace feather {
 
+// Drives the simulation and owns its scenes. It owns the World but is not a front end for it: entities, component
+// types, modules and queries are all World's (ecs/world.h), reached through get_world().
 class FEATHER_API WorldSim final : public Simulation {
 	FCLASS(singleton);
 
@@ -26,64 +27,38 @@ class FEATHER_API WorldSim final : public Simulation {
 
 	std::vector<Entity> _scenes;
 
-	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
-
-	// In world_sim.h, private section:
-	bool _is_in_scene(flecs::entity e, Entity scene) const;
-
-	template <class... TComps, class TFunc>
-	void _iterate_tree(flecs::entity e, TFunc func) {
-		// Todo
-	}
-
-protected:
-	template <std::derived_from<class EcsModule> T>
-	void _import_feature() {
-		_world.import <T>();
-	}
-
 public:
-	const EcsTimer fixed_tick;
+	// A timer the world ticks on a fixed interval, for a system that should not run once per frame.
+	// Hand it to SystemBuilder::tick_source.
+	const EntityId fixed_tick;
 
 	WorldSim();
-	~WorldSim() override;
 
 	void init() override;
 
 	void update(double delta) override;
 
-	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
-
-	[[nodiscard]]
-	Entity create_scene(const std::string& name) const;
-
-	[[nodiscard]]
-	Entity create_entity(const std::string& name = "") const;
-	[[nodiscard]]
-	Entity create_entity(const Entity& parent_entity, const std::string& name = "") const;
-
-	// get low level world impl
+	// The ECS itself. Entity creation, component types, modules and queries all live there.
 	[[nodiscard]] World* get_world() { return &_world; }
 
-	void add_to_scene(Entity entity) const;
+	// ---- Scenes ------------------------------------------------------------
 
-	template <class... T>
-	Ecs::system_builder<T...>& execute_fixed(Ecs::system_builder<T...>& system) {
-		return system.tick_source(fixed_tick);
-	}
+	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
+
+	[[nodiscard]] Entity create_scene(const std::string& name);
+
+	void add_to_scene(Entity entity);
 
 	void set_active_scene(Entity scene);
 
-	// Build a query scoped to the active scene
+	// A query restricted to whatever scene is active: ActiveScene sits on the scene entity, so the term is looked for
+	// up the hierarchy rather than on the matched entity itself.
 	template <class... TComps>
-	auto scene_query() {
-		return _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
+	[[nodiscard]] Query<TComps...> scene_query(const char* name = "") {
+		QueryBuilder<TComps...> builder(_world, name);
+		builder.template with<ActiveScene>(TraverseFlag::Up);
+		return builder.build();
 	}
-
-	template <class... TComps>
-	auto scene_system() {
-
-	};
 };
 
 } //namespace feather

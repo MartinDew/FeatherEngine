@@ -48,6 +48,42 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 	return children;
 }
 
+const ClassInfo* ClassDB::get_class_info(std::string_view class_name) {
+	return _get_class_info_internal(class_name);
+}
+
+bool ClassDB::register_scripted_value_class(
+		StaticString name,
+		std::vector<ClassInfo::Property> properties,
+		ValueTypeOps ops
+) {
+	ClassDB& instance = *get();
+
+	if (instance._class_infos.contains(name)) {
+		std::println("ClassDB: '{}' is already registered; ignoring the scripted definition", name.str());
+		return false;
+	}
+
+	std::println("Registering class '{}' as {} object", name.str(), "scripted value type");
+
+	ClassInfo& info = instance._class_infos[name];
+	info.name = name;
+	// Deliberately parentless: a scripted value type derives from nothing, so it never reaches World's
+	// IComponent-children delegate -- see World::register_component(name, fields).
+	info.parent = ""_ss;
+	info.is_abstract = false;
+	info.is_singleton = false;
+	info.is_value_type = true;
+	info.object_create_func = nullptr;
+	info.properties = std::move(properties);
+	info.value_ops = ops;
+
+	// No _current_info dance: that exists so a generated _bind_members() can
+	// find the entry it is populating. Here the members arrive with the call.
+	_fire_subclass_delegates(name);
+	return true;
+}
+
 ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
 	if (auto it = get()->_class_infos.find(name); it != get()->_class_infos.end()) {
 		return &it->second;
@@ -73,10 +109,15 @@ std::string ClassDB::get_children_names_string(StaticString object_name, bool ex
 	return children_str;
 }
 
-Delegate<std::string_view>::id_t ClassDB::on_subclass_registered(
+ClassDB::subclass_delegate_t::id_t ClassDB::on_subclass_registered(
 		std::string_view base_class_name,
 		const Delegate<std::string_view>::DelegateFuncType& callback
 ) {
+	// Immediate run so that the class learns about previously registered type
+	for (StaticString name : get_children_names(base_class_name, false)) {
+		callback(name);
+	}
+
 	return get()->_subclass_delegates[StaticString(base_class_name)].subscribe(callback);
 }
 

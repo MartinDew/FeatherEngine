@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math_defs.h"
+#include <ecs/components/component_interface.h>
 #include <framework/reflection_macros.h>
 
 #ifndef FEATHER_REFLECTION_PARSER
@@ -9,8 +10,8 @@
 
 namespace feather {
 
-struct Transform {
-	FSTRUCT(Component);
+struct Transform : IComponent {
+	FSTRUCT();
 
 	// Feather uses right-handed coordinates
 	// up = Y
