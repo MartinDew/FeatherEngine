@@ -48,6 +48,16 @@ package("vex")
             end
         end
 
+        -- GCC rejects `inline constexpr Handle X;` (no initializer) for the debug-bitfield handle types
+        for _, header in ipairs(os.files(path.join("src", "**.h"))) do
+            local content = io.readfile(header)
+            local patched, n = content:gsub("(inline constexpr [%w_:]+ GInvalid[%w_]+);", "%1{};")
+            if n > 0 then
+                cprint("${cyan}[vex]${reset} Patched %s: value-initialized GInvalid* constants", path.filename(header))
+                io.writefile(header, patched)
+            end
+        end
+
         local function ensure_include(relpath, header)
             if not os.isfile(relpath) then
                 return
@@ -223,6 +233,13 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
                     os.cp(so, runtimedir)
                 end
             end
+        end
+
+        -- Vex's install(DIRECTORY src/) only matches *.h, so InlineVector.h's .hpp dependency is left behind
+        for _, hpp in ipairs(os.files(path.join("src", "Vex", "Containers", "**.hpp"))) do
+            local dst = path.join(package:installdir("include"), path.directory(path.relative(hpp, "src")))
+            os.mkdir(dst)
+            os.cp(hpp, dst)
         end
 
         if os.isdir("shaders") then

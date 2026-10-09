@@ -65,7 +65,10 @@ if has_config("enable_vex_renderer") then
 
             local shaders_src = path.join(root, "shaders")
             if os.isdir(shaders_src) then
-                os.cp(path.join(shaders_src, "*"), tdir)
+                -- The renderer's shader include dir is <cwd>/shaders, which is where `import Vex` resolves.
+                local shaders_dst = path.join(target:targetdir(), "shaders")
+                os.mkdir(shaders_dst)
+                os.cp(path.join(shaders_src, "*"), shaders_dst)
             end
         end)
     rule_end()

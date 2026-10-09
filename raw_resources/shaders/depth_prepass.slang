@@ -3,10 +3,10 @@
 import Vex;
 import feather;
 
-struct VSInput {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;
+struct MeshVertex {
+    float3 position;
+    float3 normal;
+    float2 uv;
 };
 
 struct VSOutput {
@@ -15,6 +15,7 @@ struct VSOutput {
 
 struct Uniforms
 {
+	uint vertex_buffer_handle;
 	uint camera_handle;
 };
 
@@ -25,12 +26,15 @@ static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniform
 
 [shader("vertex")]
 VSOutput Vertex(
-	VSInput input
+	uint vertex_id : SV_VertexID
 ) {
 	VSOutput output;
 
+    let vertices = GetBindlessResource<StructuredBuffer<MeshVertex>>(uniforms.vertex_buffer_handle);
+    let vertex = vertices[vertex_id];
+
     let cam = *camera_desc;
-	output.clipPos = mul(cam.viewProj, float4(input.position, 1.0));
+	output.clipPos = mul(cam.viewProj, float4(vertex.position, 1.0));
     return output;
 }
 

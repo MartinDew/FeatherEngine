@@ -300,39 +300,6 @@ void VexRenderer::_compile_engine_shaders() {
 }
 
 void VexRenderer::_build_draw_descs() {
-	vex::VertexInputLayout pbrVertexLayout {
-		.attributes = {
-			{
-				.semanticName = "POSITION",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RGB32_FLOAT,
-				.offset = 0,
-			},
-			{
-				.semanticName = "NORMAL",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RGB32_FLOAT,
-				.offset = sizeof(float) * 3,
-			},
-			{
-				.semanticName = "TEXCOORD",
-				.semanticIndex = 0,
-				.binding = 0,
-				.format = vex::TextureFormat::RG32_FLOAT,
-				.offset = sizeof(float) * 6,
-			},
-		},
-		.bindings = {
-			{
-				.binding = 0,
-				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
-				.inputRate = vex::VertexInputLayout::InputRate::PerVertex,
-			},
-		},
-	};
-
 	vex::DepthStencilState depthStencilState {
 		.depthTestEnabled = true,
 		.depthWriteEnabled = true,
@@ -353,7 +320,6 @@ void VexRenderer::_build_draw_descs() {
 	_depth_pre_pass_desc = vex::DrawDesc {
 		.vertexShader = get_view(_depth_prepass_path, "Vertex", vex::ShaderType::VertexShader),
 		.pixelShader = get_view(_depth_prepass_path, "Pixel", vex::ShaderType::PixelShader),
-		.vertexInputLayout = pbrVertexLayout,
 		.rasterizerState = {},
 		.depthStencilState = depthStencilState,
 	};
@@ -361,7 +327,6 @@ void VexRenderer::_build_draw_descs() {
 	_pbr_draw_desc = vex::DrawDesc {
 		.vertexShader = get_view(_pbr_forward_path, "VSMain", vex::ShaderType::VertexShader),
 		.pixelShader  = get_view(_pbr_forward_path, "PSMain", vex::ShaderType::PixelShader),
-		.vertexInputLayout = pbrVertexLayout,
 		.rasterizerState = {
 			.cullMode = vex::CullMode::Back,
 			.depthBiasEnabled = true,
@@ -374,7 +339,6 @@ void VexRenderer::_build_draw_descs() {
 	_shadow_draw_desc = vex::DrawDesc {
 		.vertexShader = get_view(_shadow_depth_path, "VSMain", vex::ShaderType::VertexShader),
 		.pixelShader = get_view(_shadow_depth_path, "PSMain", vex::ShaderType::PixelShader),
-		.vertexInputLayout = pbrVertexLayout,
 		.depthStencilState = depthStencilState,
 	};
 }
@@ -409,6 +373,9 @@ void VexRenderer::_compile_shader(Shader& shader) {
 	compile(shader.get_pixel_entry(), ShaderType::PixelShader);
 }
 
+// TODO: ShaderMaterial shaders still assume input-assembler vertex attributes (POSITION/NORMAL/TEXCOORD).
+// Vex no longer binds vertex buffers, so they must fetch MeshVertex via SV_VertexID from the bindless
+// vertex buffer handle (first push constant, see pbr_forward.slang) before they work again.
 vex::DrawDesc& VexRenderer::_get_or_build_shader_draw_desc(Shader& shader) {
 	auto it = _shader_draw_desc_cache.find(&shader);
 	if (it != _shader_draw_desc_cache.end())
@@ -438,21 +405,19 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 
-	std::array<ResourceBinding, 1> bindings {
-		BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::UniformBuffer },
-	};
-
-	auto handles = graphics.GetBindlessHandles(bindings);
-	ConstantBinding constant_bindings { std::span(handles) };
-
 	const auto& entities = capture.get_entities();
 	for (const auto& entity : entities) {
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
 
-		vex::BufferBinding vertexBufferBinding {
-			.buffer = meshBuffers.vertex_buffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
+		std::array<ResourceBinding, 2> bindings {
+			_vertex_buffer_binding(meshBuffers),
+			BufferBinding { .buffer = _camera_uniform_buffer, .usage = BufferBindingUsage::UniformBuffer },
 		};
+
+		std::array<BindlessHandle, 2> handles;
+		graphics.GetBindlessHandles(bindings, handles);
+		ConstantBinding constant_bindings { std::span(handles) };
+
 		vex::BufferBinding indexBufferBinding {
 			.buffer = meshBuffers.index_buffer,
 			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
@@ -461,7 +426,6 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 		ctx.DrawIndexed(_depth_pre_pass_desc,
 						{
 								.depthStencil = vex::TextureBinding(depthTexture),
-								.vertexBuffers = { &vertexBufferBinding, 1 },
 								.indexBuffer = indexBufferBinding,
 						},
 						constant_bindings,
@@ -528,23 +492,29 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 			Matrix mvp = model * lightVP;
 
 			// Draw
-			vex::BufferBinding vertexBufferBinding {
-				.buffer = meshBuffers.vertex_buffer,
-				.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
-			};
 			vex::BufferBinding indexBufferBinding {
 				.buffer = meshBuffers.index_buffer,
 				.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
 			};
 
+			struct ShadowUniforms {
+				Matrix mvp;
+				vex::BindlessHandle vertex_buffer_handle;
+			};
+			const vex::BufferBinding vertex_binding = _vertex_buffer_binding(meshBuffers);
+			std::array<ResourceBinding, 1> bindings { vertex_binding };
+			ShadowUniforms shadow_uniforms {
+				.mvp = mvp,
+				.vertex_buffer_handle = graphics.GetBindlessHandle(vertex_binding),
+			};
+
 			ctx.DrawIndexed(_shadow_draw_desc,
 							{
 									.depthStencil = TextureBinding { shadow_map },
-									.vertexBuffers = { &vertexBufferBinding, 1 },
 									.indexBuffer = indexBufferBinding,
 							},
-							vex::ConstantBinding(mvp),
-							{},
+							vex::ConstantBinding(shadow_uniforms),
+							bindings,
 							meshBuffers.index_count);
 		}
 	}
@@ -612,10 +582,6 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 		}
 
 		// Draw
-		BufferBinding vertexBufferBinding {
-			.buffer = meshBuffers.vertex_buffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)),
-		};
 		vex::BufferBinding indexBufferBinding {
 			.buffer = meshBuffers.index_buffer,
 			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
@@ -625,7 +591,8 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 
 		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entity_uniforms));
 
-		std::array<ResourceBinding, 4> bindings { BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
+		std::array<ResourceBinding, 5> bindings { _vertex_buffer_binding(meshBuffers),
+												  BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
 												  BufferBinding::CreateConstantBuffer(_per_entity_uniform_buffer),
 												  BufferBinding::CreateConstantBuffer(_material_buffer),
 												  BufferBinding::CreateStructuredBuffer(_lights_structured_buffer,
@@ -633,7 +600,8 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 																						0,
 																						capture.get_light_count()) };
 
-		std::vector<BindlessHandle> handles = graphics.GetBindlessHandles(bindings);
+		std::array<BindlessHandle, 5> handles;
+		graphics.GetBindlessHandles(bindings, handles);
 		tracked_bindings.append_range(bindings);
 		std::vector<uint32_t> push_data(handles.size());
 		std::copy_n(reinterpret_cast<uint32_t*>(handles.data()), handles.size(), push_data.begin());
@@ -644,7 +612,6 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 						{
 								.renderTargets = renderTargets,
 								.depthStencil = vex::TextureBinding(depthTexture),
-								.vertexBuffers = { &vertexBufferBinding, 1 },
 								.indexBuffer = indexBufferBinding,
 						},
 						constant_bindings,
@@ -709,6 +676,12 @@ void VexRenderer::_upload_lights_buffer(const RenderScene& capture, vex::Command
 
 		ctx.EnqueueDataUpload(_lights_structured_buffer, bytes);
 	}
+}
+
+vex::BufferBinding VexRenderer::_vertex_buffer_binding(const MeshBuffers& mesh) {
+	return vex::BufferBinding { .buffer = mesh.vertex_buffer,
+								.usage = vex::BufferBindingUsage::StructuredBuffer,
+								.strideByteSize = static_cast<uint32_t>(sizeof(Vertex)) };
 }
 
 VexRenderer::MeshBuffers& VexRenderer::_get_or_create_mesh_buffers(const std::shared_ptr<MeshData>& mesh,
