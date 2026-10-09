@@ -17,9 +17,6 @@ import Vex;
 
 export namespace feather {
 
-class Texture;
-class MeshData;
-
 class VexRenderer : public Renderer {
 	FCLASS();
 

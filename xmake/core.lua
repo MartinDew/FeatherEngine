@@ -11,9 +11,11 @@ target("feather_core")
     set_kind("object")
     add_files(root("core/**.cppm"), {public = true})
     add_files(root("core/**.cpp"))
-    -- Codegen output only exists after the first build, one per core subfolder.
+    -- Codegen output only exists after the first build, one pair per core subfolder.
     for _, dir in ipairs(os.dirs(root("core/*"))) do
-        add_files(path.join(dir, "register_" .. path.filename(dir) .. "_types.gen.cpp"), {always_added = true})
+        local register = path.join(dir, "register_" .. path.filename(dir) .. "_types.gen")
+        add_files(register .. ".cppm", {always_added = true, public = true})
+        add_files(register .. ".cpp", {always_added = true})
     end
 
     -- Public: BMIs are rebuilt in each dependent, and a mismatch is an ODR bug.
@@ -31,7 +33,7 @@ target("feather_core")
     else
         add_packages("flecs", "sdl3", {public = true, links = {}})
     end
-    add_packages("assimp")
+    add_packages("assimp", {public = true}) -- its Importer is part of a public partition
 
     -- import() only exists inside the hook's own closure.
     on_config(function (target)

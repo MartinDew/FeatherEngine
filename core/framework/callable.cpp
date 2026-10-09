@@ -4,6 +4,8 @@ module;
 #include <iostream>
 #include <format>
 
+#include <functional>
+
 module feather.core;
 
 using namespace std::literals;

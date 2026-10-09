@@ -12,7 +12,10 @@ module;
 #include <span>
 #include <string>
 
+#include <VexMacros.h>
+#include <ShaderCompiler/ShaderCompilerSettings.h>
 #include <rendering/render_data_macros.h>
+#include <SimpleMath.h>
 
 module feather.vex_renderer;
 
@@ -179,7 +182,7 @@ VexRenderer::VexRenderer()
 
 	// Initialize shader compiler with the shader directory on the include path
 	// (needed for Slang import resolution even when compiling from embedded source)
-	_shader_compiler = vex::ShaderCompiler(vex::ShaderCompilerSettings {
+	_shader_compiler = vex::ShaderCompiler(vex::sc::ShaderCompilerSettings {
 			.shaderIncludeDirectories = { shader_path },
 	});
 	_compile_engine_shaders();

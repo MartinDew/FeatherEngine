@@ -79,6 +79,7 @@ if has_config("enable_vex_renderer") then
         add_files("*.cppm", {public = true})
         add_files("register_module.cpp", "vex_renderer.cpp")
         -- Produced by generate_reflection.py (see run_codegen in xmake/engine.lua); absent before the first build.
+        add_files("register_vex_renderer_types.gen.cppm", {always_added = true, public = true})
         add_files("register_vex_renderer_types.gen.cpp", {always_added = true})
         add_packages("vex", {public = true})
 

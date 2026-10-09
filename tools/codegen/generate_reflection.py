@@ -998,17 +998,24 @@ def _module_of(header: Path) -> str:
     return m.group(1)
 
 
-def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_emissions: list) -> str:
+def _owner_module(dir_path: Path, classes: list):
+    """The module a directory's generated register code belongs to, or None for plain headers."""
+    if dir_path.resolve() == _CORE_PATH or _CORE_PATH in dir_path.resolve().parents:
+        return "feather.core"
+    owners = {_module_of(c.header) for c in classes if c.header.suffix == ".cppm"}
+    if len(owners) > 1:
+        raise ParseError(f"{dir_path}: classes span several modules: {sorted(owners)}")
+    return next(iter(owners), None)
+
+
+def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_emissions: list,
+                          owner) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
     ctx = EmitContext(dir_name=subfolder)
 
     # Classes declared in a module are defined by an implementation unit of that module;
     # their own sources are never #included.
-    owners = {_module_of(c.header) for c in ordered if c.header.suffix == ".cppm"}
-    if len(owners) > 1:
-        raise ParseError(f"register_{subfolder}_types: classes span several modules: {sorted(owners)}")
-    owner = next(iter(owners), None)
 
     includes, seen = [], set()
     for c in ordered:
@@ -1033,14 +1040,12 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
     # Headers that are partitions of feather.core arrive through the module import instead.
     includes = [inc for inc in includes if not _is_core_module_header(inc)]
     if owner:
-        # The register header goes in the purview because it names World, which only a module provides.
         lines = [GENERATED_NOTICE, "module;", ""]
         for inc in includes:
             lines.append(f'#include "{inc}"')
         lines += ["", f"module {owner};", ""]
         if owner != "feather.core":
-            lines += ["import feather.core;", ""]
-        lines.append(f'#include "register_{subfolder}_types.gen.h"')
+            lines.append("import feather.core;")
     else:
         lines = [GENERATED_NOTICE, f'#include "register_{subfolder}_types.gen.h"', ""]
         for inc in includes:
@@ -1087,7 +1092,7 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
     return "\n".join(lines) + "\n"
 
 
-def generate_register_header(subfolder: str, dir_emissions: list) -> str:
+def generate_register_header(subfolder: str, dir_emissions: list, owner) -> str:
     func = f"register_{subfolder}_types"
 
     extra_includes, seen = [], set()
@@ -1097,12 +1102,19 @@ def generate_register_header(subfolder: str, dir_emissions: list) -> str:
                 seen.add(inc)
                 extra_includes.append(inc)
 
-    lines = [GENERATED_NOTICE, "#pragma once", ""]
-    for inc in extra_includes:
-        lines.append(f'#include "{inc}"')
-    if extra_includes:
-        lines.append("")
-    lines += ["namespace feather {", "", f"void {func}();", ""]
+    if owner:
+        # A partition of the owning module; World comes from feather.core's ECS definitions.
+        world = "import :world.ecs_defs;" if owner == "feather.core" else "import feather.core;"
+        lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", "", world, "",
+                 "export namespace feather {"]
+    else:
+        lines = [GENERATED_NOTICE, "#pragma once", ""]
+        for inc in extra_includes:
+            lines.append(f'#include "{inc}"')
+        if extra_includes:
+            lines.append("")
+        lines.append("namespace feather {")
+    lines += ["", f"void {func}();", ""]
     for de in dir_emissions:
         lines.extend(de.header_decls)
     lines += ["} // namespace feather", ""]
@@ -1276,12 +1288,14 @@ def process_source_dir(dir_path: Path, name: str, include_base: Path, project_ro
             print(f"  [{name}] updated {gen_h.name}")
 
     # register_<name>_types.gen.{h,cpp} (always emitted so the caller has the symbol)
-    out_h = dir_path / f"register_{name}_types.gen.h"
+    owner = _owner_module(dir_path, all_classes)
+    out_h = dir_path / f"register_{name}_types.gen.{'cppm' if owner else 'h'}"
+    (dir_path / f"register_{name}_types.gen.{'h' if owner else 'cppm'}").unlink(missing_ok=True)
     out_cpp = dir_path / f"register_{name}_types.gen.cpp"
-    if write_if_changed(out_h, generate_register_header(name, dir_emissions)):
+    if write_if_changed(out_h, generate_register_header(name, dir_emissions, owner)):
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
-    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, include_base, dir_emissions)):
+    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, include_base, dir_emissions, owner)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed
@@ -1346,7 +1360,7 @@ def main():
 
     core_path = args.core_path.resolve()
     global _CORE_PATH
-    _CORE_PATH = core_path
+    _CORE_PATH = core_path.resolve()
     project_root = args.project_root.resolve()
     extra_extensions = [_parse_extension_arg(raw) for raw in args.extensions]
 

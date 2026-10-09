@@ -1,5 +1,6 @@
 module;
 #include <print>
+#include <flecs.h>
 
 module feather.core;
 

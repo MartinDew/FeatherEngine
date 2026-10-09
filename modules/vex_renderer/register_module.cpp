@@ -1,7 +1,5 @@
 module;
 
-#include "register_vex_renderer_types.gen.h"
-
 module feather.vex_renderer;
 
 namespace feather {

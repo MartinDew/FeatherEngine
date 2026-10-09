@@ -4,13 +4,6 @@ module;
 
 module feather.core;
 
-#include <framework/register_framework_types.gen.h>
-#include <main/register_main_types.gen.h>
-#include <math/register_math_types.gen.h>
-#include <rendering/register_rendering_types.gen.h>
-#include <resources/register_resources_types.gen.h>
-#include <world/register_world_types.gen.h>
-
 namespace feather {
 
 struct Main {

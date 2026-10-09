@@ -1,5 +1,6 @@
 module;
 #include <xutility>
+#include <SimpleMath.h>
 
 module feather.core;
 

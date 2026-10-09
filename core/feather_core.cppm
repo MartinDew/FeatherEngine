@@ -56,3 +56,10 @@ export import :world.ecs_module;
 export import :world.math_module;
 export import :world.register_core_features;
 export import :world.rendering_world_module;
+
+export import :register_framework_types;
+export import :register_main_types;
+export import :register_math_types;
+export import :register_rendering_types;
+export import :register_resources_types;
+export import :register_world_types;

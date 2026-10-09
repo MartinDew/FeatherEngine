@@ -1,5 +1,6 @@
 module;
 
+#include <assimp/Importer.hpp>
 #include <framework/export_defs.h>
 
 #include <framework/reflection_macros.h>
@@ -11,10 +12,6 @@ export module feather.core:resources.mesh_format_loader;
 
 import :resources.resource_format_loader;
 import :main.class_db;
-
-namespace Assimp {
-class Importer;
-};
 
 export namespace feather {
 

@@ -3,6 +3,8 @@ module;
 #include <chrono>
 #include <csignal>
 #include <iostream>
+#include <SimpleMath.h>
+#include <flecs.h>
 
 module feather.core;
 

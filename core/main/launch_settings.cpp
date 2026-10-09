@@ -5,6 +5,7 @@ module;
 #include <stdexcept>
 #include <iostream>
 #include <exception>
+#include <args.hxx>
 
 module feather.core;
 

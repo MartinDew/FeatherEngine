@@ -2,9 +2,6 @@ module;
 
 module feather.core;
 
-#include "register_world_types.gen.h"
-#include <math/register_math_types.gen.h>
-
 namespace feather {
 
 void register_core_components(World& world) {

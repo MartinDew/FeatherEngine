@@ -5,6 +5,7 @@ module;
 #include <numbers>
 #include <cstdlib>
 #include <utility>
+#include <SimpleMath.h>
 
 module feather.core;
 

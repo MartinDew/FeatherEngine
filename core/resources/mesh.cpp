@@ -3,6 +3,7 @@ module;
 #include <framework/reflection_macros.h>
 #include <set>
 #include <vector>
+#include <SimpleMath.h>
 
 module feather.core;
 

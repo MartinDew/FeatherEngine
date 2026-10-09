@@ -1,4 +1,5 @@
 module;
+#include <string_view>
 
 module feather.core;
 
