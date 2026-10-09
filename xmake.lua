@@ -2,6 +2,8 @@ set_xmakever("2.9.0")
 set_project("feather")
 set_version("1.0.0")
 set_languages("cxx23", "clatest")
+-- Nothing uses `import std;`, and clang-cl cannot build MSVC's std.ixx.
+set_policy("build.c++.modules.std", false)
 
 -- Custom import()-able modules (xmake/modules/*.lua), e.g. feather_codegen --
 -- registered before anything that might import() from a script-scope closure.
@@ -47,14 +49,8 @@ end
 -- ---- Third-party packages and local targets -----------------------------
 includes("thirdparty/xmake.lua")
 
--- ---- feather_public_api -------------------------------------------------
--- Headeronly umbrella target: engine include dirs + PUBLIC thirdparty
--- headers, without a module -> executable circular dep. Also the source of
--- truth for downstream consumers via tools/SDK/FeatherSDK.lua.
-includes("xmake/public_api.lua")
-
 -- ---- Engine targets -------------------------------------------------------
--- The feather executable, its core sources, codegen wiring, and modules.
--- Split out so it can be includes()'d cross-repo without dragging along
--- set_project()/set_version()/etc, which only make sense at this top level.
+-- feather_core is shared with tools/SDK/FeatherSDK.lua, so both files are kept
+-- free of set_project()/set_version() and the like.
+includes("xmake/core.lua")
 includes("xmake/engine.lua")

@@ -6,6 +6,7 @@ module;
 
 export module feather.core:framework.bytes;
 
+export {
 using Byte = std::byte;
 
 template <class T>
@@ -56,4 +57,5 @@ std::span<Byte, sizeof(T) * N> to_bytes(T (&arr)[N]) {
 	static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable for Byte conversion");
 
 	return std::span<Byte, sizeof(T) * N>(reinterpret_cast<Byte*>(arr), sizeof(T) * N);
+}
 }

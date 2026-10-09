@@ -1,6 +1,8 @@
+-- DEPRECATED: not updated for feather.core being a C++ module; a plugin cannot
+-- consume the module yet, so projects using this do not build.
 -- FeatherSDK.lua: replaces tools/generate_export.cmake. Usage: see
 -- tools/templates/consumer_xmake_template.lua. Public API surface comes
--- entirely from feather_public_api via add_deps().
+-- entirely from feather_core via add_deps().
 local FEATHER_ROOT = path.directory(path.directory(os.scriptdir()))
 
 -- Lets a consumer import() feather_codegen/feather_flags from its own project.
@@ -17,11 +19,11 @@ if has_config("production") or has_config("static_cpp") then
 end
 
 includes(path.join(FEATHER_ROOT, "thirdparty", "xmake.lua"))
-includes(path.join(FEATHER_ROOT, "xmake", "public_api.lua"))
+includes(path.join(FEATHER_ROOT, "xmake", "core.lua"))
 
 -- This DLL must be built in the same xmake configure as the engine binary
 -- it's loading into, so EDITOR_BUILD matches the already-built binary's
--- value (see xmake/public_api.lua).
+-- value (see xmake/core.lua).
 --
 -- opts.codegen_dirs: dirs to run reflection codegen over (default {"src"}); pass {} to opt out.
 -- opts.codegen_extensions: project modifier extensions, scoped to codegen_dirs.
@@ -36,8 +38,8 @@ function feather_sdk_setup(target_name, opts)
     local codegen_extensions = opts.codegen_extensions
 
     target(target_name)
-        add_deps("feather_public_api")
-        -- Direct, not just via feather_public_api: see xmake/public_api.lua.
+        add_deps("feather_core")
+        -- Direct: object-kind deps don't propagate across a second hop.
         add_deps("simplemath")
 
         -- Every consumer needs its own compiled copy of the global operator
@@ -53,15 +55,6 @@ function feather_sdk_setup(target_name, opts)
         -- consumer's own xmake.lua, which can leave it on the default runtime.
         if has_config("production") or has_config("static_cpp") then
             set_runtimes(is_mode("debug") and "MTd" or "MT")
-        end
-
-        -- Must mirror root xmake.lua's per-mode defines, or engine headers
-        -- compiled into both the exe and this DLL disagree on #if BETA/PRODUCTION.
-        if is_mode("debug", "releasedbg") then
-            add_defines("BETA")
-        end
-        if is_mode("release") then
-            add_defines("PRODUCTION")
         end
 
         for _, entry in ipairs(codegen_dirs) do

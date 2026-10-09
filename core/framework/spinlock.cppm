@@ -12,6 +12,7 @@ module;
 
 export module feather.core:framework.spinlock;
 
+export {
 inline void Pause() {
 #if defined(_MSC_VER) || defined(__SSE2__)
 	_mm_pause();
@@ -49,3 +50,4 @@ struct spinlock {
 
 	void unlock() noexcept { lock_.store(false, std::memory_order_release); }
 };
+}

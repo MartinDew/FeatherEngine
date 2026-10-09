@@ -10,7 +10,6 @@ module feather.core;
 #include <rendering/register_rendering_types.gen.h>
 #include <resources/register_resources_types.gen.h>
 #include <world/register_world_types.gen.h>
-#include <modules/modules.cppm>
 
 namespace feather {
 
@@ -20,12 +19,15 @@ struct Main {
 	ProjectSettings _project_settings;
 	ResourceLoader _resource_loader;
 
-	Main(int argc, char* argv[]);
+	ModuleHooks _hooks;
+
+	Main(int argc, char* argv[], ModuleHooks hooks);
 	~Main();
-	static void setup_db();
+	void setup_db();
 };
 
-Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(argc), std::move(argv)) {
+Main::Main(int argc, char* argv[], ModuleHooks hooks)
+		: _class_db(), _launch_settings(std::move(argc), std::move(argv)), _hooks(hooks) {
 	if (!_project_settings.init() && !_launch_settings.demo_mode.Get())
 		return;
 
@@ -35,7 +37,7 @@ Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(arg
 
 	engine.run();
 
-	unregister_modules();
+	_hooks.unregister_modules();
 }
 
 Main::~Main() {
@@ -51,11 +53,12 @@ void Main::setup_db() {
 	register_main_types();
 
 	// then register module types
-	register_modules();
+	_hooks.register_modules();
+}
+
+int run(int argc, char* argv[], ModuleHooks hooks) {
+	Main fmain(argc, argv, hooks);
+	return 0;
 }
 
 } //namespace feather
-
-int main(int argc, char* argv[]) {
-	feather::Main fmain(std::move(argc), std::move(argv));
-}

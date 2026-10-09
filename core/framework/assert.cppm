@@ -10,6 +10,7 @@ module;
 
 export module feather.core:framework.assert;
 
+export {
 inline void fassert(bool condition, std::string message, std::source_location loc = std::source_location::current()) {
 	if (!condition) {
 		std::println(std::cerr, "Assertion failed ({}:{}) : {}", loc.file_name(), loc.line(), message);
@@ -22,4 +23,5 @@ inline void fassert(bool condition, std::source_location loc = std::source_locat
 		std::println(std::cerr, "Assertion failed ({}:{})", loc.file_name(), loc.line());
 		std::terminate();
 	}
+}
 }

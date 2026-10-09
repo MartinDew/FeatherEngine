@@ -19,6 +19,7 @@ export import :framework.variant_array;
 export import :main.class_db;
 export import :main.engine;
 export import :main.engine_settings;
+export import :main.feather_main;
 export import :main.launch_settings;
 export import :main.notification;
 export import :main.project_settings;

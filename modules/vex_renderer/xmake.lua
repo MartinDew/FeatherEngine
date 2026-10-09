@@ -76,12 +76,11 @@ if has_config("enable_vex_renderer") then
     target("vex_renderer")
         set_kind("object")
         add_rules("feather.module")
-        add_files("register_module.cppm", {public = true})
-        add_files("*.cppm")
+        add_files("*.cppm", {public = true})
         add_files("register_module.cpp", "vex_renderer.cpp")
         -- Produced by generate_reflection.py (see run_codegen in xmake/engine.lua); absent before the first build.
         add_files("register_vex_renderer_types.gen.cpp", {always_added = true})
-        add_packages("vex", {public = false})
+        add_packages("vex", {public = true})
 
         -- The package ships Vex's module interface (`import Vex;`); it is compiled as part of this target.
         on_load(function(target)
@@ -89,7 +88,7 @@ if has_config("enable_vex_renderer") then
             if not vex then return end
             local vex_module = path.join(vex:installdir(), "modules", "Vex.cppm")
             assert(os.isfile(vex_module), "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
-            target:add("files", vex_module)
+            target:add("files", vex_module, {public = true})
         end)
 
         before_build(function(target)
@@ -98,11 +97,11 @@ if has_config("enable_vex_renderer") then
         end)
 
         if is_mode("debug") then
-            add_defines("VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0")
+            add_defines("VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0", {public = true})
         elseif is_mode("releasedbg") then
-            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0")
+            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0", {public = true})
         elseif is_mode("release") then
-            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1")
+            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1", {public = true})
         end
     target_end()
 end

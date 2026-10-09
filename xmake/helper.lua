@@ -35,7 +35,7 @@ rule("feather.deploy_shared_deps")
 rule_end()
 
 -- A feather module is a library linked into the executable automatically
--- (see the on_load in xmake/engine.lua). Its sources live next to its xmake.lua.
+-- (see xmake/engine.lua). Its sources live next to its xmake.lua.
 rule("feather.module")
     on_load(function (target)
         local kind = target:kind()
@@ -46,13 +46,7 @@ rule("feather.module")
         target:set("group", "modules")
 
         target:add("defines", target:name() .. "_ENABLED", {public = true})
-        -- Not public: a consumer must never see this define.
-        target:add("defines", "FEATHER_BUILDING_ENGINE")
-        if is_mode("debug", "releasedbg") then
-            target:add("defines", "BETA")
-        end
-
         target:add("includedirs", target:scriptdir())
-        target:add("deps", "feather_public_api")
+        target:add("deps", "feather_core")
     end)
 rule_end()
