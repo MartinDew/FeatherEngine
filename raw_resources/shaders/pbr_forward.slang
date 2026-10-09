@@ -9,6 +9,7 @@ __include pbr.pbr_lighting;
 // __include pbr.shadow_mapping;
 
 struct Uniforms {
+uint vertex_buffer_handle;
 uint camera_handle;
 uint instance_handle;
 uint material_handle;
@@ -18,11 +19,11 @@ uint num_lights;
 
 [vk::push_constant] uniform Uniforms uniforms;
 
-// Vertex input (matches Vertex struct in C++)
-struct VSInput {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD;  // Optional UVs for texturing (not used in this example)
+// Matches Vertex struct in C++
+struct MeshVertex {
+    float3 position;
+    float3 normal;
+    float2 uv;
 };
 
 // Vertex shader output
@@ -38,14 +39,17 @@ static let camera_desc = GetBindlessResource<ConstantBuffer<CameraData>>(uniform
 // Vertex shader
 [shader("vertex")]
 VSOutput VSMain(
-    VSInput input
+    uint vertex_id : SV_VertexID
 ) {
     VSOutput output;
+
+    let vertices = GetBindlessResource<StructuredBuffer<MeshVertex>>(uniforms.vertex_buffer_handle);
+    let vertex = vertices[vertex_id];
 
     let entity = *entity_desc;
     let camera = *camera_desc;
     // Transform position to world space
-    float4 worldPos = mul(entity->model, float4(input.position, 1.0));
+    float4 worldPos = mul(entity->model, float4(vertex.position, 1.0));
     output.worldPos = worldPos.xyz;
 
     // Transform position to clip space
@@ -53,7 +57,7 @@ VSOutput VSMain(
 
     // Transform normal to world space
     // Use normalMatrix for non-uniform scaling support
-    output.worldNormal = normalize(mul(entity->normalMatrix, float4(input.normal, 0.0)).xyz);
+    output.worldNormal = normalize(mul(entity->normalMatrix, float4(vertex.normal, 0.0)).xyz);
 
     return output;
 }

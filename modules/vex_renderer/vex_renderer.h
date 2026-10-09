@@ -87,6 +87,7 @@ class VexRenderer : public Renderer {
 	void _render_forward_pass(const RenderScene& capture, vex::CommandContext& ctx);
 	void _upload_camera_uniforms(const RenderScene& capture, vex::CommandContext& ctx) const;
 	void _upload_lights_buffer(const RenderScene& capture, vex::CommandContext& ctx);
+	static vex::BufferBinding _vertex_buffer_binding(const MeshBuffers& mesh);
 	MeshBuffers& _get_or_create_mesh_buffers(const std::shared_ptr<MeshData>& mesh, vex::CommandContext& ctx);
 	TextureGPUData& _get_or_create_texture(const Texture* texture, vex::CommandContext& ctx);
 	vex::BindlessHandle
