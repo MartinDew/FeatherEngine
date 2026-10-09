@@ -827,7 +827,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
 
     lines = [GENERATED_NOTICE, "#pragma once", "",
              "#include <framework/static_string.hpp>",
-             "#include <utility>"]
+             "#include <utility>",
+             "#include <framework/reflection_macros.h>"]
     for inc in extra_includes:
         lines.append(f"#include <{inc}>")
     lines += ["",
@@ -988,14 +989,31 @@ def topological_sort(classes: list) -> list:
     return result
 
 
-def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_emissions: list,
-                          core_module: bool = False) -> str:
+def _module_of(header: Path) -> str:
+    """The primary module name declared by a .cppm (`export module a.b:part;` -> "a.b")."""
+    text = header.read_text(encoding="utf-8-sig", errors="replace")
+    m = re.search(r"^\s*export\s+module\s+([\w.]+)\s*(?::[\w.]+)?\s*;", text, re.M)
+    if not m:
+        raise ParseError(f"{header}: no `export module` declaration")
+    return m.group(1)
+
+
+def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_emissions: list) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
     ctx = EmitContext(dir_name=subfolder)
 
+    # Classes declared in a module are defined by an implementation unit of that module;
+    # their own sources are never #included.
+    owners = {_module_of(c.header) for c in ordered if c.header.suffix == ".cppm"}
+    if len(owners) > 1:
+        raise ParseError(f"register_{subfolder}_types: classes span several modules: {sorted(owners)}")
+    owner = next(iter(owners), None)
+
     includes, seen = [], set()
     for c in ordered:
+        if c.header.suffix == ".cppm":
+            continue
         rel = _relative_include(c.header, core_path)
         if rel not in seen:
             seen.add(rel)
@@ -1014,13 +1032,15 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
 
     # Headers that are partitions of feather.core arrive through the module import instead.
     includes = [inc for inc in includes if not _is_core_module_header(inc)]
-    if core_module:
-        # An implementation unit of feather.core: the register header goes in the
-        # purview because it names World, which only the module provides.
+    if owner:
+        # The register header goes in the purview because it names World, which only a module provides.
         lines = [GENERATED_NOTICE, "module;", ""]
         for inc in includes:
             lines.append(f'#include "{inc}"')
-        lines += ["", "module feather.core;", "", f'#include "register_{subfolder}_types.gen.h"']
+        lines += ["", f"module {owner};", ""]
+        if owner != "feather.core":
+            lines += ["import feather.core;", ""]
+        lines.append(f'#include "register_{subfolder}_types.gen.h"')
     else:
         lines = [GENERATED_NOTICE, f'#include "register_{subfolder}_types.gen.h"', ""]
         for inc in includes:
@@ -1209,7 +1229,7 @@ def build_registry(dir_path: Path, extra_extensions: list) -> Registry:
 
 
 def process_source_dir(dir_path: Path, name: str, include_base: Path, project_root: Path,
-                        extra_extensions: list, core_module: bool = False) -> int:
+                        extra_extensions: list) -> int:
     """Scan dir_path recursively for FCLASS headers, emit each header's .gen.h,
     and emit dir_path/register_<name>_types.gen.{h,cpp}. Shared by the core-
     subfolder loop and the --module-path loop in main() -- a module dir is
@@ -1261,7 +1281,7 @@ def process_source_dir(dir_path: Path, name: str, include_base: Path, project_ro
     if write_if_changed(out_h, generate_register_header(name, dir_emissions)):
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
-    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, include_base, dir_emissions, core_module)):
+    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, include_base, dir_emissions)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed
@@ -1339,7 +1359,7 @@ def main():
         subfolders = [e.name for e in sorted(core_path.iterdir()) if e.is_dir()]
         for sub in subfolders:
             folder = core_path / sub
-            total_changed += process_source_dir(folder, sub, core_path, project_root, extra_extensions, True)
+            total_changed += process_source_dir(folder, sub, core_path, project_root, extra_extensions)
 
     for mp in args.module_paths:
         mod_path, mod_name = _parse_module_path_arg(mp)

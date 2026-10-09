@@ -1,21 +1,21 @@
-#pragma once
+module;
 
-#include <core/framework/reflection_macros.h>
-#include <core/math/math_defs.h>
-#include <core/rendering/render_scene.h>
-#include <core/rendering/renderer.h>
 #include <array>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <Vex.h>
+#include "vex_renderer.gen.h"
+export module feather.vex_renderer:renderer;
+
+import feather.core;
+import Vex;
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "vex_renderer.gen.h"
 #endif
 
-namespace feather {
+export namespace feather {
 
 class Texture;
 class MeshData;

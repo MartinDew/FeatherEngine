@@ -73,22 +73,25 @@ if has_config("enable_vex_renderer") then
         end)
     rule_end()
 
-    feather_module_target("vex_renderer", os.scriptdir(), {
-        "register_module.cpp",
-        "vex_renderer.cpp",
-    }, {
-        -- Pull vex onto the executable so target:pkg("vex") resolves in
-        -- vex_renderer.deploy_runtime's hooks (xmake dedupes the link).
-        exe_packages = {"vex"},
-        exe_packages_windows = {"directx12-agility"},
-        exe_rules = {"vex_renderer.deploy_runtime"},
-        -- The module's _bind_members() definitions, produced by
-        -- generate_reflection.py --module-path (see run_codegen in xmake/engine.lua).
-        generated_files = {"register_vex_renderer_types.gen.cpp"},
-    })
-
     target("vex_renderer")
+        set_kind("object")
+        add_rules("feather.module")
+        add_files("register_module.cppm", {public = true})
+        add_files("*.cppm")
+        add_files("register_module.cpp", "vex_renderer.cpp")
+        -- Produced by generate_reflection.py (see run_codegen in xmake/engine.lua); absent before the first build.
+        add_files("register_vex_renderer_types.gen.cpp", {always_added = true})
         add_packages("vex", {public = false})
+
+        -- The package ships Vex's module interface (`import Vex;`); it is compiled as part of this target.
+        on_load(function(target)
+            local vex = target:pkg("vex")
+            if not vex then return end
+            local vex_module = path.join(vex:installdir(), "modules", "Vex.cppm")
+            assert(os.isfile(vex_module), "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
+            target:add("files", vex_module)
+        end)
+
         before_build(function(target)
             import("feather_codegen")
             feather_codegen.run_module_codegen(os.scriptdir())

@@ -1,17 +1,5 @@
-#include "vex_renderer.h"
+module;
 
-#include <Vex/Texture.h>
-#include <core/main/engine.h>
-#include <core/main/engine_settings.h>
-#include <core/main/window.h>
-#include <core/math/math_defs.h>
-#include <core/rendering/render_data.h>
-#include <core/resources/material.h>
-#include <core/resources/shader.h>
-#include <core/resources/texture.h>
-#include <core/world/components/light.h>
-#include <framework/assert.h>
-#include <framework/bytes.h>
 #include <SDL3/SDL_video.h>
 
 #include <raw_resources/shaders/depth_prepass.slang.gen.h>
@@ -23,6 +11,13 @@
 #include <filesystem>
 #include <span>
 #include <string>
+
+#include <rendering/render_data_macros.h>
+
+module feather.vex_renderer;
+
+import feather.core;
+import Vex;
 
 namespace feather {
 

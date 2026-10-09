@@ -1,6 +1,6 @@
-#pragma once
+export module feather.modules;
 
-namespace feather {
+export namespace feather {
 
 void register_modules();
 

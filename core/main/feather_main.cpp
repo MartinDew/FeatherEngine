@@ -10,7 +10,7 @@ module feather.core;
 #include <rendering/register_rendering_types.gen.h>
 #include <resources/register_resources_types.gen.h>
 #include <world/register_world_types.gen.h>
-#include <modules/modules.gen.h>
+#include <modules/modules.cppm>
 
 namespace feather {
 

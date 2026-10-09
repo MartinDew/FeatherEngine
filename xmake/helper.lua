@@ -34,55 +34,25 @@ rule("feather.deploy_shared_deps")
     end)
 rule_end()
 
--- feather_module_target(name, module_dir, files, opts)
---
--- Creates a {name} static lib and re-opens the feather target to link it in.
--- Module-specific build/deploy logic belongs in a rule (opts.exe_rules).
---
--- opts:
---   exe_packages         : packages added to the executable
---   exe_packages_windows : same, Windows-only
---   exe_rules             : rule names attached to the executable
---   generated_files       : like `files`, but for codegen output that
---                           doesn't exist on disk until the first before_build.
-
-function feather_module_target(name, module_dir, files, opts)
-    opts = opts or {}
-
-    target(name)
-        set_kind("static")
-        set_warnings("none")
-        set_group("modules")
-        for _, f in ipairs(files or {}) do
-            add_files(path.join(module_dir, f))
+-- A feather module is a library linked into the executable automatically
+-- (see the on_load in xmake/engine.lua). Its sources live next to its xmake.lua.
+rule("feather.module")
+    on_load(function (target)
+        local kind = target:kind()
+        if kind ~= "static" and kind ~= "shared" and kind ~= "object" then
+            raise("A feather module can only be a library type. Target '%s' is a '%s'.", target:name(), kind)
         end
-        for _, f in ipairs(opts.generated_files or {}) do
-            add_files(path.join(module_dir, f), {always_added = true})
-        end
-        add_defines(name .. "_ENABLED", {public = true})
-        -- Not {public=true}: a consumer must never see this define.
-        add_defines("FEATHER_BUILDING_ENGINE")
+
+        target:set("group", "modules")
+
+        target:add("defines", target:name() .. "_ENABLED", {public = true})
+        -- Not public: a consumer must never see this define.
+        target:add("defines", "FEATHER_BUILDING_ENGINE")
         if is_mode("debug", "releasedbg") then
-            add_defines("BETA")
+            target:add("defines", "BETA")
         end
-        add_includedirs(FEATHER_ROOT, {public = true})
-        add_includedirs(path.join(FEATHER_ROOT, "core"), {public = true})
-        add_includedirs(module_dir, {public = false})
-        add_deps("feather_public_api")
-    target_end()
 
-    target("feather")
-        add_deps(name)
-        for _, pkg in ipairs(opts.exe_packages or {}) do
-            add_packages(pkg)
-        end
-        if is_plat("windows") then
-            for _, pkg in ipairs(opts.exe_packages_windows or {}) do
-                add_packages(pkg)
-            end
-        end
-        for _, rulename in ipairs(opts.exe_rules or {}) do
-            add_rules(rulename)
-        end
-    target_end()
-end
+        target:add("includedirs", target:scriptdir())
+        target:add("deps", "feather_public_api")
+    end)
+rule_end()

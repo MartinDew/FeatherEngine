@@ -7,7 +7,7 @@
 local FEATHER_ROOT = path.directory(os.scriptdir())
 
 target("feather_public_api")
-    set_kind("headeronly")
+    set_kind("object")
     -- {public = true}: EDITOR_BUILD is transitively visible in a public core
     -- header, so a mismatch between targets would be an ODR bug.
     add_defines("EDITOR_BUILD=" .. (has_config("editor_build") and "1" or "0"), {public = true})
@@ -29,6 +29,10 @@ target("feather_public_api")
         add_packages("sdl3", {public = true, links = {}})
     end
     add_packages("taywee_args", {public = true})
+
+    add_files(path.join(FEATHER_ROOT, "core/**.cppm"), {public = true})
+    add_files(path.join(FEATHER_ROOT, "modules/*.cppm"), {public = true})
+
 target_end()
 
 -- flecs/sdl3 own process-global state a DLL's own static copy would
