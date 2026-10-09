@@ -1,6 +1,5 @@
-#include "project_settings.h"
+module;
 
-#include "launch_settings.h"
 #include <filesystem>
 #include <iostream>
 
@@ -11,6 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
+#include <framework/singleton_helpers.h>
+
+module feather.core;
 
 namespace feather {
 

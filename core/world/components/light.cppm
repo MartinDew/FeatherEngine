@@ -1,0 +1,39 @@
+module;
+
+#include <framework/reflection_macros.h>
+#include <cstdint>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "light.gen.h"
+#endif
+
+export module feather.core:world.components.light;
+
+import :math.math_defs;
+import :main.class_db;
+
+export namespace feather {
+
+// Free enum, not nested in Light: FSTRUCT's generated accessors are emitted at
+// the top of the class body, before a nested type declared later would be
+// visible to name lookup -- same reason Vector3/Color aren't nested either.
+enum class LightType : uint8_t {
+	Directional,
+	Point,
+	Spot
+};
+
+struct Light {
+	FSTRUCT(Component);
+
+	[[get, set]] LightType type = LightType::Directional;
+	[[get, set]] Vector3 position = Vector3::zero;
+	[[get, set]] Vector3 direction = Vector3::forward;
+	[[get, set]] Color color = Color(1.0f, 1.0f, 1.0f, 1.0f);
+	[[get, set]] float intensity = 1.0f;
+	[[get, set]] float range = 100.0f; // For point/spot lights
+	[[get, set]] float spot_angle = 45.0f; // For spot lights (in degrees)
+	[[get, set]] bool cast_shadows = true;
+};
+
+} //namespace feather

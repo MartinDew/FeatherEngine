@@ -1,4 +1,8 @@
-﻿#include "scene.h"
+module;
+
+#include <framework/static_string.hpp>
+
+module feather.core;
 
 namespace feather {
 

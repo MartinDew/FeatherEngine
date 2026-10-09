@@ -1,10 +1,15 @@
-#include "class_db.h"
-#include "framework/reflected.h"
+module;
+
 #include <algorithm>
 #include <memory>
 #include <ranges>
 
 #include <print>
+
+#include <framework/static_string.hpp>
+#include <framework/singleton_helpers.h>
+
+module feather.core;
 
 namespace feather {
 

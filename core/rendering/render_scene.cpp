@@ -1,7 +1,7 @@
-﻿#include "render_scene.h"
-#include <world/components/scene.h>
+module;
+#include <xutility>
 
-#include <world/components/light.h>
+module feather.core;
 
 namespace feather {
 

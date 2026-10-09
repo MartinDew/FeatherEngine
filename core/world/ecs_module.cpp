@@ -1,6 +1,6 @@
-﻿#include "ecs_module.h"
+module;
 
-#include "main/world_sim.h"
+module feather.core;
 
 namespace feather {
 

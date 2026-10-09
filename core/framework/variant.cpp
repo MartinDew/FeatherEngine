@@ -1,8 +1,10 @@
-#include "variant.h"
+module;
 
-#include "assert.h"
-#include "framework/reflected.h"
-#include <main/class_db.h>
+#include <framework/static_string.hpp>
+#include <variant>
+#include <span>
+
+module feather.core;
 
 namespace feather {
 

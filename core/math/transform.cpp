@@ -1,8 +1,12 @@
-#include "transform.h"
+module;
 
 #include <DirectXMath.h>
 
 #include <numbers>
+#include <cstdlib>
+#include <utility>
+
+module feather.core;
 
 namespace {
 

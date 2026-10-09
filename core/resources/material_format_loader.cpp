@@ -1,5 +1,8 @@
-#include "material_format_loader.h"
-#include "material.h"
+module;
+#include <xstring>
+#include <memory>
+
+module feather.core;
 
 namespace feather {
 

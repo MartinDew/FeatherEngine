@@ -1,4 +1,8 @@
-#include "engine_settings.h"
+module;
+#include <memory>
+#include <type_traits>
+
+module feather.core;
 
 namespace feather {
 

@@ -1,6 +1,8 @@
-﻿#include "shader.h"
+module;
 
 #include <framework/reflection_macros.h>
+
+module feather.core;
 
 namespace feather {
 

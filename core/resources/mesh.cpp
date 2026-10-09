@@ -1,14 +1,10 @@
-#include "mesh.h"
+module;
 
-#include "framework/container_utils.h"
-#include "framework/variant_array.h"
-#include "math/math_defs.h"
-#include "rendering/mesh_data.h"
-#include <core/framework/variant.h>
-#include <core/main/class_db.h>
 #include <framework/reflection_macros.h>
 #include <set>
 #include <vector>
+
+module feather.core;
 
 namespace feather {
 

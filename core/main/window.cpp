@@ -1,7 +1,4 @@
-#include "window.h"
-
-#include "engine.h"
-#include "notification.h"
+module;
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -11,6 +8,9 @@
 
 #include <cassert>
 #include <iostream>
+#include <functional>
+
+module feather.core;
 
 namespace feather {
 

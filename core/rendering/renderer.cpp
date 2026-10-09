@@ -1,11 +1,8 @@
-#include "renderer.h"
+module;
 
-#include "framework/functions.h"
 #include "framework/reflection_macros.h"
-#include "main/class_db.h"
-#include "main/engine.h"
-#include "main/window.h"
-#include "rendering/mesh_data.h"
+
+module feather.core;
 
 namespace feather {
 

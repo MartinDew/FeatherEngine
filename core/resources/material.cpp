@@ -1,9 +1,7 @@
-﻿#include "material.h"
+module;
+#include <memory>
 
-#include "shader.h"
-#include "texture.h"
-#include <framework/variant.h>
-#include <main/class_db.h>
+module feather.core;
 
 namespace feather {
 

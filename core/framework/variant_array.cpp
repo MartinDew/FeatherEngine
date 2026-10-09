@@ -1,7 +1,9 @@
-#include "variant_array.h"
-#include "cow_vector.h"
-#include "variant.h"
+module;
+
 #include <stdexcept>
+#include <memory>
+
+module feather.core;
 
 namespace feather {
 

@@ -1,10 +1,12 @@
-#include "launch_settings.h"
-
-#include "class_db.h"
-#include "framework/assert.h"
-#include "rendering/renderer.h"
+module;
 
 #include <numeric>
+#include <format>
+#include <stdexcept>
+#include <iostream>
+#include <exception>
+
+module feather.core;
 
 namespace feather {
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "main/class_db.inl"
 #include "static_string.hpp"
 
 template <class T>

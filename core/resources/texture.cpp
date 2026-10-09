@@ -1,9 +1,12 @@
-#include "texture.h"
-#include <core/framework/variant.h>
-#include <main/class_db.h>
+module;
 
 // TODO: Add image loading
 // For now, basic implementation without actual file loading
+#include <xstring>
+#include <vector>
+#include <stdint.h>
+
+module feather.core;
 
 namespace feather {
 

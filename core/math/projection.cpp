@@ -1,9 +1,12 @@
-﻿#include "projection.h"
+module;
+
 #include "DirectXMath.h"
-#include "math_defs.h"
 
 #include <array>
 #include <numbers>
+#include <cmath>
+
+module feather.core;
 
 namespace feather {
 

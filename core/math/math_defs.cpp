@@ -1,6 +1,8 @@
-#include "math_defs.h"
+module;
 
 #include <numbers>
+
+module feather.core;
 
 namespace feather {
 

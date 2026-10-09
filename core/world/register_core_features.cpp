@@ -1,4 +1,6 @@
-﻿#include "register_core_features.h"
+module;
+
+module feather.core;
 
 #include "register_world_types.gen.h"
 #include <math/register_math_types.gen.h>

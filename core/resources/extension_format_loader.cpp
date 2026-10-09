@@ -1,7 +1,8 @@
-#include "extension_format_loader.h"
-#include "extension.h"
-#include <framework/shared_library.h>
+module;
+
 #include <iostream>
+
+module feather.core;
 
 namespace feather {
 

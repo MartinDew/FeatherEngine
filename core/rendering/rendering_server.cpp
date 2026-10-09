@@ -1,18 +1,12 @@
-#include "rendering_server.h"
-#include "null_renderer.h"
-#include "renderer.h"
-#include <main/engine.h>
-#include <main/notification.h>
-#include <resources/shader.h>
+module;
 
-#include <framework/assert.h>
-#include <framework/variant.h>
-#include <main/class_db.h>
-#include <main/launch_settings.h>
-#include <world/components/light.h>
 #include <framework/static_string.hpp>
 
 #include <string_view>
+#include <thread>
+#include <mutex>
+
+module feather.core;
 
 namespace feather {
 

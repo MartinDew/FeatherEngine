@@ -1,11 +1,11 @@
-﻿#include "mesh_format_loader.h"
-
-#include "mesh.h"
+module;
 
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <iostream>
+
+module feather.core;
 
 namespace feather {
 

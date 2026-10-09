@@ -1,7 +1,8 @@
-#include "engine.h"
-#include "launch_settings.h"
-#include "project_settings.h"
-#include "resources/resource_loader.h"
+module;
+#include <type_traits>
+#include <utility>
+
+module feather.core;
 
 #include <framework/register_framework_types.gen.h>
 #include <main/register_main_types.gen.h>
@@ -9,7 +10,6 @@
 #include <rendering/register_rendering_types.gen.h>
 #include <resources/register_resources_types.gen.h>
 #include <world/register_world_types.gen.h>
-
 #include <modules/modules.gen.h>
 
 namespace feather {

@@ -1,4 +1,6 @@
-﻿#include "rid.h"
+module;
+
+module feather.core;
 
 namespace feather {
 

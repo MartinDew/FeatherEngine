@@ -1,10 +1,12 @@
-#include "resource_loader.h"
+module;
 
-#include <core/main/class_db.h>
-#include <main/project_settings.h>
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+#include <framework/singleton_helpers.h>
+
+module feather.core;
 
 namespace feather {
 
