@@ -10,6 +10,10 @@ Feather is an ECS-based game engine in C++23, built with xmake (not raw CMake/Ma
 
 Comment blocks are at most two lines except for file headers. A comment explains how the system works — an invariant, a non-obvious reason something is the way it is — never what a change did or why it was made. No "fixed X", no "this used to be Y", no narrating the diff.
 
+## Authoring
+
+LLMs never commit as themselves. Commits use the user's configured git identity as author and committer, with no `Co-Authored-By` trailer naming an LLM and no "generated with" line in commit messages or pull request descriptions.
+
 ## Build
 
 Configure once per toolchain/option change, then build:
