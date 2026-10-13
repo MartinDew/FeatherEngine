@@ -94,10 +94,14 @@ if has_config("enable_vex_renderer") then
             end
         end)
 
-        before_build(function(target)
+        -- Runs before module dependency scanning, which would otherwise fail with a less helpful error.
+        on_config(function(target)
             local vex = target:pkg("vex")
             assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
                    "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
+        end)
+
+        before_build(function(target)
             import("feather_codegen")
             feather_codegen.run_module_codegen(os.scriptdir())
         end)
