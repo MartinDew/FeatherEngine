@@ -95,7 +95,10 @@ if has_config("enable_vex_renderer") then
         end)
 
         -- Runs before module dependency scanning, which would otherwise fail with a less helpful error.
+        -- Skipped under `xmake require` (it runs config with require=false), which must stay usable to repair a stale install.
         on_config(function(target)
+            import("core.base.option")
+            if option.get("require") == false then return end
             local vex = target:pkg("vex")
             assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
                    "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
