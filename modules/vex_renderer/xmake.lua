@@ -84,15 +84,20 @@ if has_config("enable_vex_renderer") then
         add_packages("vex", {public = true})
 
         -- The package ships Vex's module interface (`import Vex;`); it is compiled as part of this target.
+        -- Not asserted at load: that would also block `xmake require --force vex`, the fix for a stale install.
         on_load(function(target)
             local vex = target:pkg("vex")
             if not vex then return end
             local vex_module = path.join(vex:installdir(), "modules", "Vex.cppm")
-            assert(os.isfile(vex_module), "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
-            target:add("files", vex_module, {public = true})
+            if os.isfile(vex_module) then
+                target:add("files", vex_module, {public = true})
+            end
         end)
 
         before_build(function(target)
+            local vex = target:pkg("vex")
+            assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
+                   "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
             import("feather_codegen")
             feather_codegen.run_module_codegen(os.scriptdir())
         end)
