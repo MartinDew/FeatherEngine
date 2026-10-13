@@ -15,6 +15,10 @@ WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_t
 #if BETA
 	_world.set<Ecs::Rest>({});
 #endif
+
+	// Declared here rather than in init(), because registering a component type is pure declaration (world.component<T>("Name"),
+	// no instances or dependencies): an extension or script loaded during project indexing, long before init(), can already query Transform or define a system over it.
+	register_core_components(_world);
 }
 
 WorldSim::~WorldSim() {
@@ -22,17 +26,15 @@ WorldSim::~WorldSim() {
 }
 
 void WorldSim::init() {
-	// Every reflected Component registers before any EcsModule imports
-	register_core_components(_world);
-
+	// Component types were declared with the world itself (see the constructor), so anything loaded from the project could
+	// already query them. What is left is world content and modules.
 	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
-	// Subscribed here, not in the ctor (which runs before index_project()):
-	// registering a class fires this immediately, so a DLL's EcsFeature would otherwise import reentrantly, before the
-	// world above exists.
+	// Subscribed here, not in the ctor (which runs before index_project()): registering a class fires this immediately, so a
+	// DLL's EcsFeature would otherwise import reentrantly, before the world above exists.
 	_subclass_delegate_id = ClassDB::on_subclass_registered(
 			EcsModule::get_class_static(), [world_sim = this](std::string_view class_name) {
 				if (world_sim) {

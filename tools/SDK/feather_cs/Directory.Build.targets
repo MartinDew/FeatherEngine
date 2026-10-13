@@ -1,0 +1,14 @@
+<!-- Imported automatically by MSBuild from beside the xmake-generated .csproj
+     (feather.plugin.cs copies it there before "dotnet publish"). It carries the
+     two ItemGroups that xmake's csproj generator has no hook for: the glob over
+     the SDK-generated C# bindings (FeatherCsharpDir is passed on the publish
+     command line), and the trimmer root that keeps this plugin's
+     reflection-discovered [FeatherComponent] / [FeatherSystem] types through the
+     NativeAOT trim. A .targets file, not .props: it is imported after the SDK,
+     so $(AssemblyName) is already resolved. -->
+<Project>
+  <ItemGroup>
+    <Compile Include="$(FeatherCsharpDir)/**/*.cs" />
+    <TrimmerRootAssembly Include="$(AssemblyName)" />
+  </ItemGroup>
+</Project>

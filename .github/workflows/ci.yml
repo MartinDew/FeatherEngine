@@ -33,6 +33,9 @@ jobs:
           - name: Windows LLVM
             os: windows-latest
             toolchain_flag: "--toolchain=clang-cl"
+            # --toolchain=clang-cl alone leaves the platform to autodetection, which picks mingw over windows on this runner unless -m is also given --
+            # found when a consumer-smoke step used the same toolchain flag without -m and built mrbind_generators against a mismatched toolchain.
+            plat_flag: "--plat=windows"
 
     steps:
       # ── Checkout ──────────────────────────────────────────────────────────
@@ -47,9 +50,33 @@ jobs:
         with:
           python-version: "3.12"
 
+      # ── .NET (only for the C# plugin template's consumer smoke test) ───────
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
       # ── Install xmake ─────────────────────────────────────────────────────
+      # Package cache: Linux only. Bindings pull in mrbind, built from source -- too slow uncached on Linux.
+      # Off on Windows: enabling it once coincided with thirdparty installs going red there, and master is green without it.
       - name: Install xmake
         uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          package-cache: ${{ runner.os == 'Linux' }}
+          package-cache-key: ${{ matrix.config.name }}-${{ matrix.mode }}
+          project-path: "."
+
+      # Scoped to the two packages actually built from source here, not the
+      # action's own broad package-cache (caching every package went red before).
+      - name: Cache mrbind builds (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/.xmake/packages/**/m/mrbind
+            ~/AppData/Local/.xmake/packages/**/m/mrbind_generators
+          key: mrbind-${{ matrix.mode }}-${{ hashFiles('thirdparty/packages/mrbind.lua', 'tools/SDK/packages/mrbind_generators.lua', 'tools/SDK/feather_cpp/gen_cpp/**') }}
+          restore-keys: mrbind-${{ matrix.mode }}-
 
       # ── CMake/Ninja ───────────────────────────────────────────────────────
       - name: Setup cmake
@@ -104,6 +131,12 @@ jobs:
           libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev  \
           libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
 
+      # MRBind is a Clang tool needing Clang plus LLVM/Clang's CMake config packages (find_package(Clang) does its own find_package(LLVM)).
+      # Without them it builds LLVM from source instead, 20+ minutes; the runtime llvm-20 package carries neither config, so both -dev packages are needed.
+      - name: Install Clang/LLVM development packages for MRBind (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y clang-20 llvm-20-dev libclang-20-dev
+
       - name: Install LLVM Gold Plugin (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -133,6 +166,13 @@ jobs:
           echo "PATH=$env:PATH" >> $env:GITHUB_ENV
         shell: pwsh
 
+      # Filtering PATH isn't enough: assimp's CMakeLists finds ccache via find_program (searches beyond this job's PATH) and sets it as a
+      # compiler launcher, and Strawberry Perl's ccache mangles clang-cl's command line, taking sdl3/vex down with it. Deleting it sidesteps the search.
+      - name: Remove stray Strawberry Perl ccache.exe (Windows)
+        if: runner.os == 'Windows'
+        run: Remove-Item -Path "C:\Strawberry\c\bin\ccache.exe" -ErrorAction SilentlyContinue
+        shell: pwsh
+
       - name: Set UTF-8 Code Page (Windows)
         if: runner.os == 'Windows'
         run: chcp 65001
@@ -143,16 +183,189 @@ jobs:
 
       # ── Dump failed package install logs (helps diagnose cmake build errors) ─
       - name: Dump failed package logs
-        if: failure() && runner.os == 'Linux'
+        if: failure()
+        shell: bash
         run: |
-          find ~/.xmake/cache/packages -name "install.txt" -path "*/installdir.failed/*" 2>/dev/null | while read f; do
-            echo "========== $f =========="
-            tail -300 "$f"
+          # Windows keeps xmake's cache under AppData rather than ~/.xmake, so one of these two never exists.
+          # `|| true`: the step runs under `set -e -o pipefail`, where find's non-zero exit for a missing directory would abort it.
+          for root in ~/.xmake/cache/packages ~/AppData/Local/.xmake/cache/packages; do
+            [ -d "$root" ] || continue
+            find "$root" -name "install.txt" -path "*/installdir.failed/*" 2>/dev/null | while read f; do
+              echo "========== $f =========="
+              tail -300 "$f"
+            done || true
           done
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
         run: xmake build -v
+
+      # ── Bindings ───────────────────────────────────────────────────────────
+      # Everything a consumer needs is supposed to land under build/bindings; a silently empty directory would be easy to miss, since
+      # generation failing doesn't necessarily fail the engine's own build.
+      - name: Check bindings output
+        shell: bash
+        run: |
+          set -e
+          check() {
+            if [ ! -e "$1" ]; then echo "missing: $1"; exit 1; fi
+            echo "ok: $1"
+          }
+          check build/bindings/api.json
+          check build/bindings/c/include
+          check build/bindings/c/desc.json
+          check build/bindings/csharp
+          # The generated C headers a plugin includes through.
+          check build/bindings/c/include/feather_c
+          # The C++ wrappers, and the hand-written headers shipped beside them.
+          check build/bindings/cpp/feather_cpp/feather.hpp
+          check build/bindings/cpp/feather_cpp/math.hpp
+          check build/bindings/cpp/feather_cpp/plugin.hpp
+          check build/bindings/cpp/feather_cpp/scripted_abi.hpp
+
+      # The C bindings are compiled into the engine and exported from it, what a C/C# plugin resolves imports against -- a build that generated
+      # the sources but dropped them from the link would still pass every check above. Also checks scripted_abi.h's 9 flat entry points (a NativeAOT C# assembly's route around the std::function/std::vector C++ API).
+      - name: Check the engine exports the C bindings
+        if: runner.os != 'Windows'
+        run: |
+          set -e
+          exported=$(nm -D --defined-only build/bin/feather | grep -c ' T Feather_' || true)
+          if [ "$exported" -lt 100 ]; then
+            echo "engine exports $exported Feather_* symbols; expected the generated bindings"
+            exit 1
+          fi
+          echo "ok: engine exports $exported Feather_* symbols"
+
+          script_abi=$(nm -D --defined-only build/bin/feather | grep -c ' T feather_script_' || true)
+          if [ "$script_abi" -ne 9 ]; then
+            echo "engine exports $script_abi feather_script_* symbols; expected 9 (see scripted_abi.h)"
+            exit 1
+          fi
+          echo "ok: engine exports the scripted-registration ABI"
+
+      # ── The plugin-facing contract ─────────────────────────────────────────
+      # A plugin builds from the exported API alone -- no engine checkout, no LLVM, no Windows library the engine had to publish -- through
+      # the SDK and its templates, not a hand-rolled equivalent, so a regression in the SDK itself fails here too.
+      - name: Export the API description
+        run: xmake export-api
+
+      # Builds plugin_c_template as a real, separate xmake project (SDK + exported API only) under runner.temp, not build/ (nested there it
+      # folds into the *engine's* own config instead -- found by this once rebuilding the engine under another name). On Windows the only CI step that actually invokes lib.exe/dlltool the way a plugin author's build does.
+      - name: Build the C plugin template (consumer smoke test)
+        if: matrix.mode == 'debug'
+        shell: bash
+        run: |
+          set -e
+          smoke="${{ runner.temp }}/consumer-smoke-c"
+          rm -rf "$smoke"
+          mkdir -p "$smoke/sdk" "$smoke/api"
+          cp -r tools/templates/plugin_c_template/* "$smoke/"
+          cp tools/SDK/FeatherPluginSDK.lua tools/SDK/feather_plugin_rules.lua "$smoke/sdk/"
+          cp -r tools/SDK/modules tools/SDK/packages "$smoke/sdk/"
+          cp build/bindings/dist/feather_api.json "$smoke/api/"
+          cd "$smoke"
+          # A failed package build (mrbind_generators, no engine-repo cache to fall back on) reports only "expected build output missing" by default.
+          # The actual compiler error is in the package's own install log, dumped here instead.
+          if ! xmake f -v -D -m ${{ matrix.mode }} ${{ matrix.config.toolchain_flag }} ${{ matrix.config.plat_flag }} -y; then
+            echo "---- xmake f failed; dumping failed package install logs ----"
+            for root in ~/.xmake/cache/packages ~/AppData/Local/.xmake/cache/packages; do
+              [ -d "$root" ] || continue
+              find "$root" -name "install.txt" -path "*/installdir.failed/*" 2>/dev/null | while read -r f; do
+                echo "========== $f =========="
+                tail -300 "$f"
+              done
+              # Reaching this without cmake.build() throwing means the build reported success, so the binary landed somewhere other than where
+              # mrbind_generators.lua expected (a multi-config generator nesting output under Debug/RelWithDebInfo/ would do this).
+              find "$root" -path "*mrbind_generators*.cmake_build*" \( -name "mrbind_gen_c*" -o -name "*.exe" \) 2>/dev/null | while read -r f; do
+                echo "found binary: $f"
+              done
+            done
+            exit 1
+          fi
+          xmake build
+
+      # Same, for plugin_cpp_template -- proves a C++ plugin needs no engine checkout: it compiles the generated wrappers plus the SDK's
+      # vendored SimpleMath, and links nothing.
+      - name: Build the C++ plugin template (consumer smoke test)
+        if: matrix.mode == 'debug'
+        shell: bash
+        run: |
+          set -e
+          smoke="${{ runner.temp }}/consumer-smoke-cpp"
+          rm -rf "$smoke"
+          mkdir -p "$smoke/sdk" "$smoke/api"
+          cp -r tools/templates/plugin_cpp_template/* "$smoke/"
+          cp tools/SDK/FeatherPluginSDK.lua tools/SDK/feather_plugin_rules.lua "$smoke/sdk/"
+          cp -r tools/SDK/modules tools/SDK/packages tools/SDK/feather_cpp "$smoke/sdk/"
+          cp build/bindings/dist/feather_api.json "$smoke/api/"
+          cd "$smoke"
+          if ! xmake f -v -D -m ${{ matrix.mode }} ${{ matrix.config.toolchain_flag }} ${{ matrix.config.plat_flag }} -y; then
+            echo "---- xmake f failed; dumping failed package install logs ----"
+            for root in ~/.xmake/cache/packages ~/AppData/Local/.xmake/cache/packages; do
+              [ -d "$root" ] || continue
+              find "$root" -name "install.txt" -path "*/installdir.failed/*" 2>/dev/null | while read -r f; do
+                echo "========== $f =========="
+                tail -300 "$f"
+              done
+            done
+            exit 1
+          fi
+          xmake build
+
+      # The property the whole plugin design rests on: a built plugin needs nothing from the engine but flat C symbols.
+      # A mangled feather symbol here means a C++ ABI crept back in, which links fine on ELF and only fails with a different compiler.
+      - name: Check plugins need only the C ABI
+        if: matrix.mode == 'debug' && runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -e
+          for smoke in consumer-smoke-c consumer-smoke-cpp; do
+            lib=$(find "${{ runner.temp }}/$smoke/bin" -name "*.so" | head -1)
+            if [ -z "$lib" ]; then echo "no plugin built for $smoke"; exit 1; fi
+            if nm -D --undefined-only "$lib" | grep -qE "_ZN7feather|_ZN5flecs"; then
+              echo "$smoke: needs C++ symbols from the engine"
+              nm -D --undefined-only "$lib" | grep -E "_ZN7feather|_ZN5flecs" | head
+              exit 1
+            fi
+            if readelf -d "$lib" | grep -qE "NEEDED.*feather|RUNPATH.*Feather"; then
+              echo "$smoke: links or points into an engine build tree"
+              exit 1
+            fi
+            echo "ok: $(basename "$lib") needs only the flat C ABI"
+          done
+
+      # Same, for plugin_cs_template. Needs the .NET SDK (installed below); NativeAOT itself needs no separate workload, just the
+      # platform's own native toolchain, which this job already has.
+      - name: Build the C# plugin template (consumer smoke test)
+        if: matrix.mode == 'debug'
+        shell: bash
+        run: |
+          set -e
+          smoke="${{ runner.temp }}/consumer-smoke-cs"
+          rm -rf "$smoke"
+          mkdir -p "$smoke/sdk" "$smoke/api"
+          cp -r tools/templates/plugin_cs_template/* "$smoke/"
+          cp tools/SDK/FeatherPluginSDK.lua tools/SDK/feather_plugin_rules.lua "$smoke/sdk/"
+          cp -r tools/SDK/modules tools/SDK/packages tools/SDK/feather_cs "$smoke/sdk/"
+          cp build/bindings/dist/feather_api.json "$smoke/api/"
+          cd "$smoke"
+          if ! xmake f -v -D -m ${{ matrix.mode }} ${{ matrix.config.toolchain_flag }} ${{ matrix.config.plat_flag }} -y; then
+            echo "---- xmake f failed; dumping failed package install logs ----"
+            for root in ~/.xmake/cache/packages ~/AppData/Local/.xmake/cache/packages; do
+              [ -d "$root" ] || continue
+              find "$root" -name "install.txt" -path "*/installdir.failed/*" 2>/dev/null | while read -r f; do
+                echo "========== $f =========="
+                tail -300 "$f"
+              done
+              # Reaching this without cmake.build() throwing means the build reported success, so the binary landed somewhere other than where
+              # mrbind_generators.lua expected (a multi-config generator nesting output under Debug/RelWithDebInfo/ would do this).
+              find "$root" -path "*mrbind_generators*.cmake_build*" \( -name "mrbind_gen_c*" -o -name "*.exe" \) 2>/dev/null | while read -r f; do
+                echo "found binary: $f"
+              done
+            done
+            exit 1
+          fi
+          xmake build
 
       # ── Upload artifacts ───────────────────────────────────────────────────
       - name: Upload binaries
@@ -160,5 +373,13 @@ jobs:
         with:
           name: feather-${{ matrix.config.name }}-${{ matrix.mode }}
           path: build/bin/*
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.config.name }}-${{ matrix.mode }}
+          path: build/bindings/*
           if-no-files-found: warn
           retention-days: 7
