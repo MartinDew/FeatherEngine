@@ -1,12 +1,10 @@
 module;
 
 #include <SDL3/SDL_events.h>
-#include <array>
-#include <utility>
-#include <functional>
 
 export module feather.core:main.window;
 
+import std;
 import :framework.delegate;
 import :main.notification;
 

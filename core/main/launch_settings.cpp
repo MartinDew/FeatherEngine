@@ -1,13 +1,10 @@
 module;
 
-#include <numeric>
-#include <format>
-#include <stdexcept>
-#include <iostream>
-#include <exception>
 #include <args.hxx>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

@@ -1,14 +1,5 @@
 module;
 
-#include <utility>
-
-#include <algorithm>
-#include <cstdlib>
-#include <initializer_list>
-#include <memory>
-#include <span>
-#include <stdexcept>
-
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>
 #define aligned_alloc(align, size) _aligned_malloc(size, align)
@@ -21,6 +12,8 @@ module;
 #endif
 
 export module feather.core:framework.cow_vector;
+
+import std.compat;
 
 export namespace feather {
 

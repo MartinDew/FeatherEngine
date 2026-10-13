@@ -1,8 +1,5 @@
 module;
 
-#include <memory>
-#include <string>
-
 #include <assimp/Importer.hpp>
 #include <framework/export_defs.h>
 
@@ -13,6 +10,7 @@ module;
 
 export module feather.core:resources.mesh_format_loader;
 
+import std;
 import :resources.resource_format_loader;
 import :main.class_db;
 

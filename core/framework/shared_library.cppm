@@ -1,11 +1,10 @@
 module;
 
 #include <SDL3/SDL_loadso.h>
-#include <memory>
-#include <string>
 
 export module feather.core:framework.shared_library;
 
+import std;
 import :framework.callable;
 
 export namespace feather {

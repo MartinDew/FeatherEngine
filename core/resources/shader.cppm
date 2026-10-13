@@ -1,14 +1,6 @@
 module;
 
-#include <string_view>
-
-#include <string>
-
-#include <cstdint>
-
 #include <framework/export_defs.h>
-
-#include <filesystem>
 
 #include <framework/reflection_macros.h>
 #ifndef FEATHER_REFLECTION_PARSER
@@ -17,6 +9,7 @@ module;
 
 export module feather.core:resources.shader;
 
+import std.compat;
 import :resources.resource;
 import :main.class_db;
 

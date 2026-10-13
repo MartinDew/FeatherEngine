@@ -1,16 +1,6 @@
-module;
-
-#include <string_view>
-
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <memory>
-#include <mutex>
-#include <thread>
-
 export module feather.core:rendering.rendering_server;
 
+import std;
 import :framework.spinlock;
 import :main.launch_settings;
 import :rendering.render_scene;

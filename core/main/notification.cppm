@@ -1,9 +1,6 @@
-module;
-
-#include <cstdint>
-#include <map>
-
 export module feather.core:main.notification;
+
+import std.compat;
 
 export namespace feather {
 

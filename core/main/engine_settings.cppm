@@ -1,7 +1,5 @@
 module;
 
-#include <utility>
-
 // Example usage:
 /*
 #include <memory>
@@ -60,15 +58,10 @@ void game_loop() {
 */
 
 #include <framework/static_string.hpp>
-#include <functional>
-#include <memory>
-#include <stdexcept>
-#include <string_view>
-#include <type_traits>
-#include <unordered_map>
 
 export module feather.core:main.engine_settings;
 
+import std.compat;
 import :framework.assert;
 
 export namespace feather {

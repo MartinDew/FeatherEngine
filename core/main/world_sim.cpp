@@ -1,14 +1,13 @@
 module;
 
-#include <string>
-
 #include <framework/static_string.hpp>
 
 #include <framework/singleton_helpers.h>
-#include <source_location>
 #include <flecs.h>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

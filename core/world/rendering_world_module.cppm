@@ -1,7 +1,5 @@
 module;
 
-#include <memory>
-
 #include <framework/export_defs.h>
 
 // WorldSim must be a complete type here (not just the forward decl from
@@ -16,6 +14,7 @@ module;
 
 export module feather.core:world.rendering_world_module;
 
+import std;
 import :world.ecs_defs;
 import :world.ecs_module;
 import :main.world_sim;

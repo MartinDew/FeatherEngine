@@ -1,9 +1,10 @@
 module;
 
 #include <SDL3/SDL_loadso.h>
-#include <string>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

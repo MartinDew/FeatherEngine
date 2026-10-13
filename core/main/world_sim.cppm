@@ -1,8 +1,5 @@
 module;
 
-#include <string>
-#include <vector>
-
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
 
@@ -16,6 +13,7 @@ module;
 
 export module feather.core:main.world_sim;
 
+import std;
 import :main.simulation;
 import :framework.delegate;
 import :world.components.scene;

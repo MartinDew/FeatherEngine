@@ -1,17 +1,9 @@
 module;
 
-#include <memory>
-
-#include <cstdint>
-
-#include <array>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "vex_renderer.gen.h"
 export module feather.vex_renderer:renderer;
 
+import std.compat;
 import feather.core;
 import Vex;
 

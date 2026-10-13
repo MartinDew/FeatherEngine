@@ -1,21 +1,11 @@
 module;
 
-#include <string_view>
-#include <utility>
-
-#include <string>
-#include <vector>
-
-#include <algorithm>
-#include <memory>
-#include <ranges>
-
-#include <print>
-
 #include <framework/static_string.hpp>
 #include <framework/singleton_helpers.h>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

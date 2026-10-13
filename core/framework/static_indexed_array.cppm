@@ -1,16 +1,6 @@
-module;
-
-#include <utility>
-
-#include <cstdint>
-
-#include <deque>
-#include <optional>
-#include <vector>
-#include <stdexcept>
-
 export module feather.core:framework.static_indexed_array;
 
+import std.compat;
 import :framework.assert;
 
 export namespace feather {

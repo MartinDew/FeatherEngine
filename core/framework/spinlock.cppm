@@ -8,9 +8,9 @@ module;
 #include <arm_acle.h>
 #endif
 
-#include <atomic>
-
 export module feather.core:framework.spinlock;
+
+import std;
 
 export {
 inline void Pause() {

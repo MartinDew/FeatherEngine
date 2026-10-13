@@ -1,15 +1,6 @@
-module;
-
-#include <utility>
-
-#include <cstdint>
-#include <functional>
-#include <span>
-#include <tuple>
-#include <type_traits>
-
 export module feather.core:framework.callable;
 
+import std.compat;
 import :framework.assert;
 import :framework.variant;
 

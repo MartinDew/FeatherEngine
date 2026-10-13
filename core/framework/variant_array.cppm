@@ -1,14 +1,12 @@
 module;
 
 #include "export_defs.h"
-#include <cstddef>
-#include <initializer_list>
-#include <memory>
 
 #include <framework/export_defs.h>
 
 export module feather.core:framework.variant_array;
 
+import std.compat;
 import :framework.container_utils;
 
 export namespace feather {

@@ -1,9 +1,5 @@
 module;
 
-#include <memory>
-
-#include <cstdint>
-
 #include "framework/export_defs.h"
 
 #include <framework/reflection_macros.h>
@@ -13,6 +9,7 @@ module;
 
 export module feather.core:rendering.render_scene;
 
+import std.compat;
 import :framework.cow_vector;
 import :math.projection;
 import :math.transform;

@@ -1,7 +1,6 @@
-module;
-#include <vector>
-
 module feather.core;
+
+import std;
 
 namespace feather {
 

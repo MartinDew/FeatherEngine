@@ -1,14 +1,10 @@
 module;
 
-#include <memory>
-
 #include <framework/static_string.hpp>
 
-#include <string_view>
-#include <thread>
-#include <mutex>
-
 module feather.core;
+
+import std;
 
 namespace feather {
 

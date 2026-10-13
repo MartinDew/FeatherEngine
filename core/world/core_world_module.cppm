@@ -9,6 +9,7 @@ module;
 
 export module feather.core:world.core_world_module;
 
+import std;
 import :world.ecs_defs;
 import :world.ecs_module;
 import :main.class_db;

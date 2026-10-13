@@ -1,10 +1,5 @@
 module;
 
-#include <string>
-
-#include <filesystem>
-#include <iostream>
-
 #if defined(_WIN32) || defined(_WIN64)
 #include <shlobj.h>
 #elif defined(__APPLE__) || defined(__linux__)
@@ -16,6 +11,8 @@ module;
 #include <framework/singleton_helpers.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

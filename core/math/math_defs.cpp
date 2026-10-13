@@ -1,11 +1,10 @@
 module;
 
-#include <cstdint>
-
-#include <numbers>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

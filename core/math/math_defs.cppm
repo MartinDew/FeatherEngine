@@ -1,17 +1,11 @@
 module;
 
-#include <array>
-
-#include <cstdint>
-
-#include <format>
-#include <type_traits>
-#include <utility>
-
 #include <DirectXMath.h>
 #include <SimpleMath.h>
 
 export module feather.core:math.math_defs;
+
+import std.compat;
 
 export namespace feather {
 

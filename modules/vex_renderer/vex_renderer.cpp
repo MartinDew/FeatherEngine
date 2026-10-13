@@ -1,20 +1,10 @@
 module;
 
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include <SDL3/SDL_video.h>
 
 #include <raw_resources/shaders/depth_prepass.slang.gen.h>
 #include <raw_resources/shaders/pbr_forward.slang.gen.h>
 #include <raw_resources/shaders/shadow_depth.slang.gen.h>
-
-#include <array>
-#include <cstdint>
-#include <filesystem>
-#include <span>
-#include <string>
 
 #include <VexMacros.h>
 #include <ShaderCompiler/ShaderCompilerSettings.h>
@@ -28,6 +18,7 @@ module;
 
 module feather.vex_renderer;
 
+import std.compat;
 import feather.core;
 import Vex;
 

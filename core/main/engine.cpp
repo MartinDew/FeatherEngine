@@ -1,16 +1,12 @@
 module;
 
-#include <memory>
-#include <string>
-#include <utility>
-
-#include <chrono>
 #include <csignal>
-#include <iostream>
 #include <SimpleMath.h>
 #include <flecs.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

@@ -1,10 +1,6 @@
-module;
-
-#include <ranges>
-#include <utility>
-#include <vector>
-
 export module feather.core:framework.container_utils;
+
+import std.compat;
 
 export namespace feather {
 

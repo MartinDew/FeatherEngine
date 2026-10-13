@@ -1,9 +1,6 @@
-module;
-
-#include <chrono>
-
 export module feather.core:main.engine;
 
+import std;
 import :main.window;
 import :main.world_sim;
 import :rendering.rendering_server;

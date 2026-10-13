@@ -1,7 +1,6 @@
-module;
-#include <string_view>
-
 module feather.core;
+
+import std;
 
 namespace feather {
 

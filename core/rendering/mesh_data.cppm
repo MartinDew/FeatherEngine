@@ -1,13 +1,6 @@
-module;
-
-#include <cstdint>
-
-#include <array>
-#include <typeinfo>
-#include <vector>
-
 export module feather.core:rendering.mesh_data;
 
+import std.compat;
 import :framework.cow_vector;
 import :math.math_defs;
 

@@ -1,10 +1,6 @@
-module;
-
-#include <cstddef>
-#include <iomanip>
-#include <type_traits>
-
 export module feather.core:resources.rid;
+
+import std.compat;
 
 export namespace feather {
 

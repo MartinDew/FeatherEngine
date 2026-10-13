@@ -2,12 +2,11 @@ module;
 
 #include "DirectXMath.h"
 
-#include <array>
-#include <numbers>
-#include <cmath>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

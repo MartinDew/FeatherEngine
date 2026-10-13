@@ -1,16 +1,12 @@
 module;
 
-#include <cmath>
-#include <type_traits>
-
 #include <DirectXMath.h>
 
-#include <numbers>
-#include <cstdlib>
-#include <utility>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace {
 

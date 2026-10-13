@@ -1,25 +1,12 @@
 module;
 
-#include <string_view>
-
-#include <string>
-#include <utility>
-
 #include <framework/export_defs.h>
 #include <framework/singleton_helpers.h>
 #include <framework/static_string.hpp>
 
-#include <concepts>
-#include <cstddef>
-#include <functional>
-#include <map>
-#include <memory>
-#include <print>
-#include <type_traits>
-#include <vector>
-
 export module feather.core:main.class_db;
 
+import std.compat;
 import :framework.callable;
 import :framework.class_info;
 import :framework.reflection_utils;

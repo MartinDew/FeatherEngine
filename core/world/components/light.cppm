@@ -1,7 +1,6 @@
 module;
 
 #include <framework/reflection_macros.h>
-#include <cstdint>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "light.gen.h"
@@ -9,6 +8,7 @@ module;
 
 export module feather.core:world.components.light;
 
+import std.compat;
 import :math.math_defs;
 import :main.class_db;
 

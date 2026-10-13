@@ -1,8 +1,5 @@
 module;
 
-#include <memory>
-#include <string>
-
 #include <framework/export_defs.h>
 
 #include <framework/reflection_macros.h>
@@ -12,6 +9,7 @@ module;
 
 export module feather.core:resources.texture_format_loader;
 
+import std;
 import :resources.resource_format_loader;
 import :main.class_db;
 

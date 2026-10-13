@@ -1,16 +1,6 @@
-module;
-
-#include <string>
-
-#include <cstdlib>
-#include <exception>
-#include <format>
-#include <iostream>
-#include <print>
-#include <source_location>
-#include <stdexcept>
-
 export module feather.core:framework.assert;
+
+import std;
 
 export {
 inline void fassert(bool condition, std::string message, std::source_location loc = std::source_location::current()) {

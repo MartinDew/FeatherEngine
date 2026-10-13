@@ -1,8 +1,6 @@
-module;
-#include <type_traits>
-#include <utility>
-
 module feather.core;
+
+import std;
 
 namespace feather {
 

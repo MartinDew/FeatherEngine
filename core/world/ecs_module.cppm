@@ -9,6 +9,7 @@ module;
 
 export module feather.core:world.ecs_module;
 
+import std;
 import :framework.reflected;
 import :main.class_db;
 

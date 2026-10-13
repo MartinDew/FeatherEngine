@@ -8,6 +8,7 @@ module;
 
 export module feather.core:math.transform;
 
+import std;
 import :math.math_defs;
 import :main.class_db;
 

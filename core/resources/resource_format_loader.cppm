@@ -1,11 +1,7 @@
 module;
 
-#include <memory>
-
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
-
-#include <string>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "resource_format_loader.gen.h"
@@ -13,6 +9,7 @@ module;
 
 export module feather.core:resources.resource_format_loader;
 
+import std;
 import :resources.resource;
 import :framework.path;
 import :framework.reflected;

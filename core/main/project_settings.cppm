@@ -1,7 +1,5 @@
 module;
 
-#include <string>
-
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
 
@@ -12,6 +10,7 @@ module;
 
 export module feather.core:main.project_settings;
 
+import std;
 import :framework.path;
 import :framework.reflected;
 import :framework.assert;

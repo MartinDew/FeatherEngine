@@ -9,6 +9,7 @@ module;
 
 export module feather.core:resources.resource;
 
+import std;
 import :resources.rid;
 import :framework.reflected;
 import :main.class_db;

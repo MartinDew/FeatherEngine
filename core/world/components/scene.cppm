@@ -3,14 +3,13 @@ module;
 #include <framework/reflection_macros.h>
 #include <framework/static_string.hpp>
 
-#include <cstdint>
-
 #ifndef FEATHER_REFLECTION_PARSER
 #include "scene.gen.h"
 #endif
 
 export module feather.core:world.components.scene;
 
+import std.compat;
 import :world.ecs_defs;
 import :main.class_db;
 

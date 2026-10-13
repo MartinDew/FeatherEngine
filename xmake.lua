@@ -2,8 +2,8 @@ set_xmakever("2.9.0")
 set_project("feather")
 set_version("1.0.0")
 set_languages("cxx23", "clatest")
--- Nothing uses `import std;`, and clang-cl cannot build MSVC's std.ixx.
-set_policy("build.c++.modules.std", false)
+-- The engine uses `import std;` / `import std.compat;`.
+set_policy("build.c++.modules.std", true)
 
 -- Custom import()-able modules (xmake/modules/*.lua), e.g. feather_codegen --
 -- registered before anything that might import() from a script-scope closure.

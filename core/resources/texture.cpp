@@ -1,14 +1,9 @@
-module;
-
-#include <cstdint>
-
 // TODO: Add image loading
 // For now, basic implementation without actual file loading
-#include <string>
-#include <vector>
-#include <stdint.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

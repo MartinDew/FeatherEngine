@@ -1,14 +1,6 @@
-module;
-
-#include <utility>
-
-#include <cstdint>
-
-#include <functional>
-#include <ranges>
-
 export module feather.core:framework.delegate;
 
+import std.compat;
 import :framework.container_utils;
 import :framework.static_indexed_array;
 

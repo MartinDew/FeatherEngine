@@ -1,11 +1,6 @@
-module;
-
-#include <utility>
-
-#include <stdexcept>
-#include <memory>
-
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

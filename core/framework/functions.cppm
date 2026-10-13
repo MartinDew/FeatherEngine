@@ -1,9 +1,6 @@
-module;
-
-#include <functional>
-#include <utility>
-
 export module feather.core:framework.functions;
+
+import std;
 
 export {
 template <class T, class TRet, class... TArgs>

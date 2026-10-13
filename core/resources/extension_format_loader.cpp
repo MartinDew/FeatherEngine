@@ -1,11 +1,6 @@
-module;
-
-#include <memory>
-#include <string>
-
-#include <iostream>
-
 module feather.core;
+
+import std;
 
 namespace feather {
 

@@ -1,10 +1,10 @@
 module;
 
-#include <algorithm>
-#include <utility>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 

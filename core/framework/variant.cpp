@@ -1,13 +1,11 @@
 module;
 
-#include <string>
-
 #include <framework/static_string.hpp>
-#include <variant>
-#include <span>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std;
 
 namespace feather {
 

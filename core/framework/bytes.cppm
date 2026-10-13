@@ -1,10 +1,6 @@
-module;
-
-#include <cstddef>
-#include <span>
-#include <type_traits>
-
 export module feather.core:framework.bytes;
+
+import std;
 
 export {
 using Byte = std::byte;

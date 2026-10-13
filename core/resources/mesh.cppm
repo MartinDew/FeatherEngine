@@ -1,12 +1,7 @@
 module;
 
-#include <cstdint>
-
 #include <core/framework/export_defs.h>
 #include <core/framework/reflection_macros.h>
-
-#include <memory>
-#include <vector>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "mesh.gen.h"
@@ -14,6 +9,7 @@ module;
 
 export module feather.core:resources.mesh;
 
+import std.compat;
 import :framework.variant_array;
 import :math.math_defs;
 import :resources.resource;

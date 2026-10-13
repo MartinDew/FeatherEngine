@@ -1,12 +1,6 @@
-module;
-#include <span>
-#include <print>
-#include <iostream>
-#include <format>
-
-#include <functional>
-
 module feather.core;
+
+import std;
 
 using namespace std::literals;
 

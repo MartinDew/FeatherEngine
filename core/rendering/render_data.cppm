@@ -1,10 +1,8 @@
-module;
-
 // Data structures for GPU buffers and shader resources
-#include <cstdint>
 
 export module feather.core:rendering.render_data;
 
+import std.compat;
 import :math.math_defs;
 
 export namespace feather {

@@ -1,9 +1,6 @@
-module;
-#include <array>
-#include <cstdint>
-
 export module feather.core:math.projection;
 
+import std.compat;
 import :math.math_defs;
 
 export namespace feather {

@@ -9,6 +9,7 @@ module;
 
 export module feather.core:rendering.null_renderer;
 
+import std;
 import :rendering.renderer;
 import :main.class_db;
 

@@ -1,8 +1,6 @@
-module;
-
-#include <type_traits>
-
 export module feather.core:framework.reflection_utils;
+
+import std;
 
 export namespace feather {
 

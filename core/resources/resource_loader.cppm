@@ -1,22 +1,16 @@
 module;
 
-#include <memory>
-#include <string>
-#include <vector>
-
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
-
-#include <atomic>
 
 #include <framework/singleton_helpers.h>
 #ifndef FEATHER_REFLECTION_PARSER
 #include "resource_loader.gen.h"
 #endif
-#include <unordered_map>
 
 export module feather.core:resources.resource_loader;
 
+import std.compat;
 import :resources.resource;
 import :resources.resource_format_loader;
 import :resources.rid;

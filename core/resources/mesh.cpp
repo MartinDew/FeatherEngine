@@ -1,16 +1,11 @@
 module;
 
-#include <array>
-#include <memory>
-
-#include <cstdint>
-
 #include <framework/reflection_macros.h>
-#include <set>
-#include <vector>
 #include <SimpleMath.h>
 
 module feather.core;
+
+import std.compat;
 
 namespace feather {
 
