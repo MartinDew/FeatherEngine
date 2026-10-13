@@ -1,5 +1,12 @@
 module;
 
+#include <print>
+#include <string_view>
+
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <algorithm>
 #include <filesystem>
 #include <iostream>

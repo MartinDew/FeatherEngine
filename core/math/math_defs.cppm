@@ -1,5 +1,9 @@
 module;
 
+#include <array>
+
+#include <cstdint>
+
 #include <format>
 #include <type_traits>
 #include <utility>

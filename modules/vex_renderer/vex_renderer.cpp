@@ -1,5 +1,9 @@
 module;
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <SDL3/SDL_video.h>
 
 #include <raw_resources/shaders/depth_prepass.slang.gen.h>
@@ -16,6 +20,11 @@ module;
 #include <ShaderCompiler/ShaderCompilerSettings.h>
 #include <rendering/render_data_macros.h>
 #include <SimpleMath.h>
+
+#if defined(__linux__)
+#include <X11/Xlib.h>
+#include <wayland-client.h>
+#endif
 
 module feather.vex_renderer;
 

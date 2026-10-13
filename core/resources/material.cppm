@@ -1,5 +1,8 @@
 module;
 
+#include <memory>
+#include <utility>
+
 #include <core/framework/export_defs.h>
 
 #include <framework/reflection_macros.h>

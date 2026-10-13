@@ -1,5 +1,7 @@
 module;
 
+#include <string_view>
+
 #include <array>
 #include <atomic>
 #include <condition_variable>

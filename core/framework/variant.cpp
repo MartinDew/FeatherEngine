@@ -1,5 +1,7 @@
 module;
 
+#include <string>
+
 #include <framework/static_string.hpp>
 #include <variant>
 #include <span>

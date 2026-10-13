@@ -1,5 +1,11 @@
 module;
 
+#include <string_view>
+#include <utility>
+
+#include <string>
+#include <vector>
+
 #include <algorithm>
 #include <memory>
 #include <ranges>

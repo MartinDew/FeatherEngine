@@ -1,5 +1,11 @@
 module;
 
+#include <string_view>
+
+#include <string>
+
+#include <cstdint>
+
 #include <framework/export_defs.h>
 
 #include <filesystem>

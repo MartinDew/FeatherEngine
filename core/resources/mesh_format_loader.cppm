@@ -1,5 +1,8 @@
 module;
 
+#include <memory>
+#include <string>
+
 #include <assimp/Importer.hpp>
 #include <framework/export_defs.h>
 

@@ -1,5 +1,7 @@
 module;
 
+#include <utility>
+
 #include <cstdint>
 #include <functional>
 #include <span>

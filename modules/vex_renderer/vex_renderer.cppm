@@ -1,5 +1,9 @@
 module;
 
+#include <memory>
+
+#include <cstdint>
+
 #include <array>
 #include <string>
 #include <unordered_map>

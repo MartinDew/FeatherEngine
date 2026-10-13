@@ -1,7 +1,7 @@
 module;
 
 #include <SDL3/SDL_loadso.h>
-#include <xstring>
+#include <string>
 
 module feather.core;
 

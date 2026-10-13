@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <map>
 
 export module feather.core:main.notification;

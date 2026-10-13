@@ -1,5 +1,9 @@
 module;
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <chrono>
 #include <csignal>
 #include <iostream>

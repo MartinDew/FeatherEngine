@@ -1,6 +1,9 @@
 module;
 
+#include <cstdint>
+
 #include <array>
+#include <typeinfo>
 #include <vector>
 
 export module feather.core:rendering.mesh_data;

@@ -1,5 +1,7 @@
 module;
 
+#include <string_view>
+
 #include <framework/reflection_macros.h>
 
 module feather.core;

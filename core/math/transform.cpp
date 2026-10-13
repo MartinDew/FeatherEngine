@@ -1,5 +1,8 @@
 module;
 
+#include <cmath>
+#include <type_traits>
+
 #include <DirectXMath.h>
 
 #include <numbers>

@@ -1,5 +1,10 @@
 module;
 
+#include <string_view>
+
+#include <string>
+#include <utility>
+
 #include <framework/export_defs.h>
 #include <framework/singleton_helpers.h>
 #include <framework/static_string.hpp>

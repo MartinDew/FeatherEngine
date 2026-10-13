@@ -1,5 +1,7 @@
 module;
 
+#include <memory>
+
 #include <framework/static_string.hpp>
 
 #include <string_view>

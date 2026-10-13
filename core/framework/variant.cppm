@@ -1,5 +1,9 @@
 module;
 
+#include <utility>
+
+#include <cstdint>
+
 #include <expected>
 #include <string>
 #include <type_traits>

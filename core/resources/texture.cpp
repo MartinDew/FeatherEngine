@@ -1,8 +1,10 @@
 module;
 
+#include <cstdint>
+
 // TODO: Add image loading
 // For now, basic implementation without actual file loading
-#include <xstring>
+#include <string>
 #include <vector>
 #include <stdint.h>
 

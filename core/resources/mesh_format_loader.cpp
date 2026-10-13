@@ -1,5 +1,11 @@
 module;
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <cstdint>
+
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>

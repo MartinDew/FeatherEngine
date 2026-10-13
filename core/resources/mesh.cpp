@@ -1,5 +1,10 @@
 module;
 
+#include <array>
+#include <memory>
+
+#include <cstdint>
+
 #include <framework/reflection_macros.h>
 #include <set>
 #include <vector>

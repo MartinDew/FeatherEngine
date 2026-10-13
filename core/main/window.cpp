@@ -9,6 +9,7 @@ module;
 #include <cassert>
 #include <iostream>
 #include <functional>
+#include <utility>
 
 module feather.core;
 

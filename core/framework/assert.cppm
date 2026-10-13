@@ -1,5 +1,7 @@
 module;
 
+#include <string>
+
 #include <cstdlib>
 #include <exception>
 #include <format>

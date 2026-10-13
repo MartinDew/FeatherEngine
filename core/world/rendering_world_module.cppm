@@ -1,5 +1,7 @@
 module;
 
+#include <memory>
+
 #include <framework/export_defs.h>
 
 // WorldSim must be a complete type here (not just the forward decl from

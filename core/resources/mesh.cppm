@@ -1,5 +1,7 @@
 module;
 
+#include <cstdint>
+
 #include <core/framework/export_defs.h>
 #include <core/framework/reflection_macros.h>
 
