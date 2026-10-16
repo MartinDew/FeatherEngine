@@ -117,4 +117,14 @@ if has_config("enable_vex_renderer") then
             add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1", {public = true})
         end
     target_end()
+
+    -- The deploy rule runs on the executable: it compiles DX12AgilitySDK.cpp into it and copies DLLs to its targetdir.
+    -- target:pkg() only sees a target's own packages, so the rule's packages are added here too.
+    target("feather")
+        add_packages("vex")
+        if is_plat("windows") then
+            add_packages("directx12-agility")
+        end
+        add_rules("vex_renderer.deploy_runtime")
+    target_end()
 end
