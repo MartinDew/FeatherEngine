@@ -1,8 +1,8 @@
 module;
 
-#include <csignal>
 #include <SimpleMath.h>
 #include <flecs.h>
+#include <csignal>
 
 module feather.core;
 

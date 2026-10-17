@@ -1,7 +1,7 @@
 module;
 
-#include <assimp/Importer.hpp>
 #include <framework/export_defs.h>
+#include <assimp/Importer.hpp>
 
 #include <framework/reflection_macros.h>
 #ifndef FEATHER_REFLECTION_PARSER

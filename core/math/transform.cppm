@@ -76,11 +76,13 @@ struct Transform {
 	static Transform get_relative_transform_using_matrix_with_scale(const Transform& base, const Transform& relative);
 };
 
-Transform make_transform_screen_space_sized_billboard(Transform objectTransform,
-													  Vector3 cameraPosition,
-													  float fovDeg,
-													  Vector2 minScreenSpaceSize,
-													  Vector2 screenSize);
+Transform make_transform_screen_space_sized_billboard(
+		Transform objectTransform,
+		Vector3 cameraPosition,
+		float fovDeg,
+		Vector2 minScreenSpaceSize,
+		Vector2 screenSize
+);
 Transform make_transform_billboard(Transform objectTransform, Vector3 cameraPosition);
 
 } //namespace feather

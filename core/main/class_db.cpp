@@ -1,7 +1,7 @@
 module;
 
-#include <framework/static_string.hpp>
 #include <framework/singleton_helpers.h>
+#include <framework/static_string.hpp>
 
 module feather.core;
 

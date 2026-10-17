@@ -1,7 +1,7 @@
 module;
 
-#include <framework/reflection_macros.h>
 #include <SimpleMath.h>
+#include <framework/reflection_macros.h>
 
 module feather.core;
 
@@ -140,9 +140,10 @@ constexpr std::array<uint32_t, 36> cube_indices {
 	20, 22, 23 // right
 };
 
-static std::shared_ptr<MeshData> box_mesh =
-		std::make_shared<MeshData>(std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
-								   std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() });
+static std::shared_ptr<MeshData> box_mesh = std::make_shared<MeshData>(
+		std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
+		std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() }
+);
 
 BoxMesh::BoxMesh() : Super(box_mesh) {
 }

@@ -18,7 +18,9 @@ struct Main {
 };
 
 Main::Main(int argc, char* argv[], ModuleHooks hooks)
-		: _class_db(), _launch_settings(std::move(argc), std::move(argv)), _hooks(hooks) {
+		: _class_db()
+		, _launch_settings(std::move(argc), std::move(argv))
+		, _hooks(hooks) {
 	if (!_project_settings.init() && !_launch_settings.demo_mode.Get())
 		return;
 

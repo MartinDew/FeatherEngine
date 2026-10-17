@@ -1,6 +1,6 @@
 module;
-#include <framework/reflection_macros.h>
 #include <SDL3/SDL_video.h>
+#include <framework/reflection_macros.h>
 module feather.core;
 
 namespace feather {

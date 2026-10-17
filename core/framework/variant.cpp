@@ -1,7 +1,7 @@
 module;
 
-#include <framework/static_string.hpp>
 #include <SimpleMath.h>
+#include <framework/static_string.hpp>
 
 module feather.core;
 
@@ -38,7 +38,8 @@ bool Variant::operator==(const Variant& other) const {
 				}
 			},
 			_data,
-			other._data);
+			other._data
+	);
 }
 
 std::string Variant::to_string() const {

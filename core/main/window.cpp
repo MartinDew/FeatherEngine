@@ -68,7 +68,8 @@ Window::Window() : _internal_event(), _fullscreen_mode() {
 				}
 				return false;
 			},
-			this);
+			this
+	);
 }
 
 void Window::_on_resize() {

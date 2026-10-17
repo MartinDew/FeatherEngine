@@ -28,12 +28,14 @@ Projection::create_perspective_fov(float fov_y_degrees, float aspect_ratio, floa
 	return create_perspective(deg_to_rad(fov_y_degrees), aspect_ratio, near_plane, far_plane);
 }
 
-Projection Projection::create_perspective_off_center(float left,
-													 float right,
-													 float bottom,
-													 float top,
-													 float near_plane,
-													 float far_plane) {
+Projection Projection::create_perspective_off_center(
+		float left,
+		float right,
+		float bottom,
+		float top,
+		float near_plane,
+		float far_plane
+) {
 	Projection proj;
 	proj._type = ProjectionType::Perspective;
 	proj._near_plane = near_plane;
@@ -62,12 +64,14 @@ Projection Projection::create_orthographic(float width, float height, float near
 	return proj;
 }
 
-Projection Projection::create_orthographic_off_center(float left,
-													  float right,
-													  float bottom,
-													  float top,
-													  float near_plane,
-													  float far_plane) {
+Projection Projection::create_orthographic_off_center(
+		float left,
+		float right,
+		float bottom,
+		float top,
+		float near_plane,
+		float far_plane
+) {
 	Projection proj;
 	proj._type = ProjectionType::Orthographic;
 	proj._near_plane = near_plane;
@@ -170,9 +174,11 @@ Vector3 Projection::project_point(const Vector3& world_point, const Matrix& view
 	return Vector3(clip_space.x, clip_space.y, clip_space.z);
 }
 
-Vector3 Projection::unproject_point(const Vector3& screen_point,
-									const Matrix& view_matrix,
-									const Vector2& viewport_size) const {
+Vector3 Projection::unproject_point(
+		const Vector3& screen_point,
+		const Matrix& view_matrix,
+		const Vector2& viewport_size
+) const {
 	// Convert screen coordinates to NDC (-1 to 1)
 	Vector3 ndc;
 	ndc.x = (screen_point.x / viewport_size.x) * 2.0f - 1.0f;
@@ -221,7 +227,8 @@ std::array<Vector3, 8> Projection::get_frustum_corners() const {
 		// Perspective divide
 		if (std::abs(view_corner.w) > 0.0001f) {
 			corners[i] = Vector3(
-					view_corner.x / view_corner.w, view_corner.y / view_corner.w, view_corner.z / view_corner.w);
+					view_corner.x / view_corner.w, view_corner.y / view_corner.w, view_corner.z / view_corner.w
+			);
 		}
 	}
 

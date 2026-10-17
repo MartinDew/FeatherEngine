@@ -75,8 +75,10 @@ consteval VariantType get_variant_type() {
 	VARIANT_TYPE_OPTION(RID, RID)
 	VARIANT_TYPE_OPTION(Path, PATH)
 	// object
-	else if constexpr ((std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) ||
-					   std::is_base_of_v<Reflected, T>) {
+	else if constexpr (
+			(std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) ||
+			std::is_base_of_v<Reflected, T>
+	) {
 		return VariantType::OBJECT;
 	}
 	// Void case
@@ -96,19 +98,20 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 struct ClassInfo;
 
 class Variant {
-	using InternalVariant = std::variant<std::monostate,
-										 bool,
-										 int,
-										 real_t,
-										 Vector2,
-										 Vector3,
-										 Vertex,
-										 Color,
-										 std::string,
-										 Path,
-										 VariantArray,
-										 RID,
-										 Reflected*>;
+	using InternalVariant = std::variant<
+			std::monostate,
+			bool,
+			int,
+			real_t,
+			Vector2,
+			Vector3,
+			Vertex,
+			Color,
+			std::string,
+			Path,
+			VariantArray,
+			RID,
+			Reflected*>;
 
 	InternalVariant _data;
 	VariantType _type;

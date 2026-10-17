@@ -2,8 +2,8 @@ module;
 
 #include <framework/static_string.hpp>
 
-#include <framework/singleton_helpers.h>
 #include <flecs.h>
+#include <framework/singleton_helpers.h>
 
 module feather.core;
 

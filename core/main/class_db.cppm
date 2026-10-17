@@ -331,11 +331,13 @@ inline void ClassDB::bind_property(U T::* member, std::string_view name, AccessL
 
 // Property backed by explicit getter + setter member functions.
 template <class T, class TGet, class TSet>
-inline void ClassDB::bind_property_accessors(TGet (T::*getter)() const,
-											 void (T::*setter)(TSet),
-											 std::string_view name,
-											 AccessLevel getter_access,
-											 AccessLevel setter_access) {
+inline void ClassDB::bind_property_accessors(
+		TGet (T::*getter)() const,
+		void (T::*setter)(TSet),
+		std::string_view name,
+		AccessLevel getter_access,
+		AccessLevel setter_access
+) {
 	if (!get()->_current_info) {
 		return;
 	}
@@ -437,11 +439,13 @@ inline void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_vi
 
 // Guarded property binds — no-op when the property type isn't Variant-marshalable.
 template <class T, class TGet, class TSet>
-inline void ClassDB::bind_property_accessors_if_bindable(TGet (T::*getter)() const,
-														 void (T::*setter)(TSet),
-														 std::string_view name,
-														 AccessLevel getter_access,
-														 AccessLevel setter_access) {
+inline void ClassDB::bind_property_accessors_if_bindable(
+		TGet (T::*getter)() const,
+		void (T::*setter)(TSet),
+		std::string_view name,
+		AccessLevel getter_access,
+		AccessLevel setter_access
+) {
 	if constexpr (VariantCompatible<std::decay_t<TGet>> && VariantCompatible<std::decay_t<TSet>>) {
 		bind_property_accessors(getter, setter, name, getter_access, setter_access);
 	}
