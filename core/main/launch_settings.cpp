@@ -1,10 +1,7 @@
-module;
-
-#include <args.hxx>
-
 module feather.core;
 
 import std;
+import args;
 
 namespace feather {
 

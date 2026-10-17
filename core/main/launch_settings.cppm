@@ -1,10 +1,7 @@
-module;
-
-#include <args.hxx>
-
 export module feather.core:main.launch_settings;
 
 import std;
+import args;
 import :framework.static_string;
 import :framework.assert;
 
