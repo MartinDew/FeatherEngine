@@ -16,6 +16,7 @@
 *.sln
 *.gen.h
 *.gen.cpp
+*.gen.cppm
 *DotSettings.user
 .vs/
 compile_commands.json

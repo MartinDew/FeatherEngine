@@ -1,5 +1,6 @@
-#include "texture_format_loader.h"
-#include "texture.h"
+module feather.core;
+
+import std;
 
 namespace feather {
 

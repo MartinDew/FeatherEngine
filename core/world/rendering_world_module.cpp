@@ -1,11 +1,9 @@
-#include "rendering_world_module.h"
+module;
+#include <flecs.h>
 
-#include "components/scene.h"
-#include <main/world_sim.h>
-#include <rendering/rendering_server.h>
-#include <resources/mesh.h>
-#include <resources/resource_loader.h>
-#include <world/components/light.h>
+module feather.core;
+
+import std;
 
 namespace feather {
 

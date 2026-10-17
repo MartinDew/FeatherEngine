@@ -1,4 +1,4 @@
-﻿#include "scene.h"
+module feather.core;
 
 namespace feather {
 

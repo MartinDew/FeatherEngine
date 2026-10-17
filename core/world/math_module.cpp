@@ -1,6 +1,7 @@
-﻿#include "math_module.h"
+module;
+#include <SimpleMath.h>
 
-#include "math/transform.h"
+module feather.core;
 
 namespace feather {
 

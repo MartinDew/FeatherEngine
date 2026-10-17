@@ -40,6 +40,19 @@ package("flecs")
             "flecs no longer sets 'C_VISIBILITY_PRESET hidden' in " .. visibility_cmake ..
             "; re-check how ecs_* symbols get exported before removing this patch")
 
+        -- TODO: remove once flecs stops declaring builtin ids `static const`; TUs that only
+        -- import flecs get an uninitialized copy (e.g. flecs::Sparse == 0).
+        local patched = 0
+        for _, header in ipairs(os.files(path.join("include", "flecs", "addons", "cpp", "**.hpp"))) do
+            local content = io.readfile(header)
+            local replaced, n = content:gsub("\nstatic const ", "\ninline const ")
+            if n > 0 then
+                io.writefile(header, replaced)
+                patched = patched + n
+            end
+        end
+        assert(patched > 0, "flecs C++ headers no longer declare 'static const' builtin ids; re-check before removing this patch")
+
         local configs = {}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DFLECS_STATIC=" .. (package:config("shared") and "OFF" or "ON"))

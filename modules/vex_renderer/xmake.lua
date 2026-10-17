@@ -73,33 +73,58 @@ if has_config("enable_vex_renderer") then
         end)
     rule_end()
 
-    feather_module_target("vex_renderer", os.scriptdir(), {
-        "register_module.cpp",
-        "vex_renderer.cpp",
-    }, {
-        -- Pull vex onto the executable so target:pkg("vex") resolves in
-        -- vex_renderer.deploy_runtime's hooks (xmake dedupes the link).
-        exe_packages = {"vex"},
-        exe_packages_windows = {"directx12-agility"},
-        exe_rules = {"vex_renderer.deploy_runtime"},
-        -- The module's _bind_members() definitions, produced by
-        -- generate_reflection.py --module-path (see run_codegen in xmake/engine.lua).
-        generated_files = {"register_vex_renderer_types.gen.cpp"},
-    })
-
     target("vex_renderer")
-        add_packages("vex", {public = false})
+        set_kind("object")
+        add_rules("feather.module")
+        add_files("*.cppm", {public = true})
+        add_files("register_module.cpp", "vex_renderer.cpp")
+        -- Produced by generate_reflection.py (see run_codegen in xmake/engine.lua); absent before the first build.
+        add_files("register_vex_renderer_types.gen.cppm", {always_added = true, public = true})
+        add_files("register_vex_renderer_types.gen.cpp", {always_added = true})
+        add_packages("vex", {public = true})
+
+        -- The package ships Vex's module interface (`import Vex;`); it is compiled as part of this target.
+        -- Not asserted at load: that would also block `xmake require --force vex`, the fix for a stale install.
+        on_load(function(target)
+            local vex = target:pkg("vex")
+            if not vex then return end
+            local vex_module = path.join(vex:installdir(), "modules", "Vex.cppm")
+            if os.isfile(vex_module) then
+                target:add("files", vex_module, {public = true})
+            end
+        end)
+
+        -- Runs before module dependency scanning, which would otherwise fail with a less helpful error.
+        -- Skipped under `xmake require` (it runs config with require=false), which must stay usable to repair a stale install.
+        on_config(function(target)
+            import("core.base.option")
+            if option.get("require") == false then return end
+            local vex = target:pkg("vex")
+            assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
+                   "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
+        end)
+
         before_build(function(target)
             import("feather_codegen")
             feather_codegen.run_module_codegen(os.scriptdir())
         end)
 
         if is_mode("debug") then
-            add_defines("VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0")
+            add_defines("VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0", {public = true})
         elseif is_mode("releasedbg") then
-            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0")
+            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0", {public = true})
         elseif is_mode("release") then
-            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1")
+            add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1", {public = true})
         end
+    target_end()
+
+    -- The deploy rule runs on the executable: it compiles DX12AgilitySDK.cpp into it and copies DLLs to its targetdir.
+    -- target:pkg() only sees a target's own packages, so the rule's packages are added here too.
+    target("feather")
+        add_packages("vex")
+        if is_plat("windows") then
+            add_packages("directx12-agility")
+        end
+        add_rules("vex_renderer.deploy_runtime")
     target_end()
 end

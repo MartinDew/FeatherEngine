@@ -1,8 +1,4 @@
-#include "project_settings.h"
-
-#include "launch_settings.h"
-#include <filesystem>
-#include <iostream>
+module;
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <shlobj.h>
@@ -11,6 +7,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
+#include <framework/singleton_helpers.h>
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 

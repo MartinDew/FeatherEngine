@@ -1,14 +1,11 @@
-#include "mesh.h"
+module;
 
-#include "framework/container_utils.h"
-#include "framework/variant_array.h"
-#include "math/math_defs.h"
-#include "rendering/mesh_data.h"
-#include <core/framework/variant.h>
-#include <core/main/class_db.h>
+#include <SimpleMath.h>
 #include <framework/reflection_macros.h>
-#include <set>
-#include <vector>
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 
@@ -143,9 +140,10 @@ constexpr std::array<uint32_t, 36> cube_indices {
 	20, 22, 23 // right
 };
 
-static std::shared_ptr<MeshData> box_mesh =
-		std::make_shared<MeshData>(std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
-								   std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() });
+static std::shared_ptr<MeshData> box_mesh = std::make_shared<MeshData>(
+		std::vector<Vertex> { cube_vertices.begin(), cube_vertices.end() },
+		std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() }
+);
 
 BoxMesh::BoxMesh() : Super(box_mesh) {
 }
