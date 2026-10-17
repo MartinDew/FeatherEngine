@@ -10,6 +10,7 @@ module;
 export module feather.core:resources.mesh;
 
 import std.compat;
+import :framework.static_string;
 import :framework.variant_array;
 import :math.math_defs;
 import :resources.resource;

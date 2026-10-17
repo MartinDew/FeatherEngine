@@ -1,12 +1,11 @@
 module;
 
-#include "framework/static_string.hpp"
-
 #include <args.hxx>
 
 export module feather.core:main.launch_settings;
 
 import std;
+import :framework.static_string;
 import :framework.assert;
 
 export namespace feather {

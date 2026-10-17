@@ -1,14 +1,13 @@
 module;
 
 #include "export_defs.h"
-#include "static_string.hpp"
 
 #include <framework/export_defs.h>
-#include <framework/static_string.hpp>
 
 export module feather.core:framework.reflected;
 
 import :framework.reflection_utils;
+import :framework.static_string;
 
 export namespace feather {
 // base class for reflected objects

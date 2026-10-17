@@ -2,11 +2,11 @@ module;
 
 #include <framework/export_defs.h>
 #include <framework/singleton_helpers.h>
-#include <framework/static_string.hpp>
 
 export module feather.core:main.class_db;
 
 import std.compat;
+import :framework.static_string;
 import :framework.callable;
 import :framework.class_info;
 import :framework.reflection_utils;

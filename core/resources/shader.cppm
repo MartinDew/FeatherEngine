@@ -10,6 +10,7 @@ module;
 export module feather.core:resources.shader;
 
 import std.compat;
+import :framework.static_string;
 import :resources.resource;
 import :main.class_db;
 

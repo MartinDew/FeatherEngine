@@ -11,6 +11,7 @@ module;
 export module feather.core:main.project_settings;
 
 import std;
+import :framework.static_string;
 import :framework.path;
 import :framework.reflected;
 import :framework.assert;

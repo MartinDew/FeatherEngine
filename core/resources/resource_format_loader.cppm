@@ -10,6 +10,7 @@ module;
 export module feather.core:resources.resource_format_loader;
 
 import std;
+import :framework.static_string;
 import :resources.resource;
 import :framework.path;
 import :framework.reflected;

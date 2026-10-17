@@ -1,10 +1,7 @@
-module;
-
-#include <framework/static_string.hpp>
-
 export module feather.core:framework.variant;
 
 import std.compat;
+import :framework.static_string;
 import :framework.assert;
 import :framework.container_utils;
 import :framework.path;
@@ -268,6 +265,11 @@ public:
 	operator VariantArray() const { return as<VariantArray>().value(); }
 	operator Reflected*() const { return as<Reflected*>().value(); }
 };
+
+// Force std::span<Variant> to be instantiated in this partition. Otherwise GCC
+// instantiates it first in :framework.callable, and importers then fail with
+// "recursive lazy load ... failed to load pendings for 'feather::Variant'".
+static_assert(sizeof(std::span<Variant>) > 0);
 
 template <class... TArgs>
 Variant Variant::call(std::string_view method_name, TArgs&&... args) const {

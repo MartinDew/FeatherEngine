@@ -57,11 +57,10 @@ void game_loop() {
 }
 */
 
-#include <framework/static_string.hpp>
-
 export module feather.core:main.engine_settings;
 
 import std.compat;
+import :framework.static_string;
 import :framework.assert;
 
 export namespace feather {

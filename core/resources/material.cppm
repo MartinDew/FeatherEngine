@@ -10,6 +10,7 @@ module;
 export module feather.core:resources.material;
 
 import std;
+import :framework.static_string;
 import :resources.resource;
 import :math.math_defs;
 import :main.class_db;

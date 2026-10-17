@@ -11,6 +11,7 @@ module;
 export module feather.core:rendering.renderer;
 
 import std;
+import :framework.static_string;
 import :rendering.mesh_data;
 import :rendering.render_scene;
 import :framework.reflected;

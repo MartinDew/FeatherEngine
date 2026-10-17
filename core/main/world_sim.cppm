@@ -14,6 +14,7 @@ module;
 export module feather.core:main.world_sim;
 
 import std;
+import :framework.static_string;
 import :main.simulation;
 import :framework.delegate;
 import :world.components.scene;

@@ -1,7 +1,6 @@
 module;
 
 #include <framework/reflection_macros.h>
-#include <framework/static_string.hpp>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "scene.gen.h"
@@ -10,6 +9,7 @@ module;
 export module feather.core:world.components.scene;
 
 import std.compat;
+import :framework.static_string;
 import :world.ecs_defs;
 import :main.class_db;
 

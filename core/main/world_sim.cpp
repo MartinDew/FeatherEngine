@@ -1,7 +1,5 @@
 module;
 
-#include <framework/static_string.hpp>
-
 #include <flecs.h>
 #include <framework/singleton_helpers.h>
 

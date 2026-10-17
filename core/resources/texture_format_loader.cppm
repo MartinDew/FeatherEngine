@@ -10,6 +10,7 @@ module;
 export module feather.core:resources.texture_format_loader;
 
 import std;
+import :framework.static_string;
 import :resources.resource_format_loader;
 import :main.class_db;
 

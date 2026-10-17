@@ -1,7 +1,6 @@
 module;
 
 #include <SimpleMath.h>
-#include <framework/static_string.hpp>
 
 module feather.core;
 

@@ -826,7 +826,6 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
                     extra_includes.append(inc)
 
     lines = [GENERATED_NOTICE, "#pragma once", "",
-             "#include <framework/static_string.hpp>",
              "#include <utility>",
              "#include <framework/reflection_macros.h>"]
     for inc in extra_includes:

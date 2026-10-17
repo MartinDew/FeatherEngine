@@ -11,6 +11,7 @@ module;
 export module feather.core:resources.resource_loader;
 
 import std.compat;
+import :framework.static_string;
 import :resources.resource;
 import :resources.resource_format_loader;
 import :resources.rid;

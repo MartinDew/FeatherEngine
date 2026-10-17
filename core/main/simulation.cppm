@@ -10,6 +10,7 @@ module;
 export module feather.core:main.simulation;
 
 import std;
+import :framework.static_string;
 import :framework.reflected;
 import :main.class_db;
 

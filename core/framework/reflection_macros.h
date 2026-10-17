@@ -1,21 +1,5 @@
 #pragma once
 
-#include "static_string.hpp"
-
-template <class T>
-concept has_is_type_method = requires { T::is_type(); };
-
-template <has_is_type_method T>
-static bool get_is_type(StaticString type_name) {
-	T::is_of_type(type_name);
-}
-
-template <class T>
-	requires(!has_is_type_method<T>)
-static bool get_is_type(StaticString type_name) {
-	return false;
-}
-
 struct NO_PARENT {};
 
 // Token-paste helpers (two levels so args like __LINE__/CURRENT_FILE_ID expand

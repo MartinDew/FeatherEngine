@@ -9,6 +9,7 @@ module;
 export module feather.core:math.transform;
 
 import std;
+import :framework.static_string;
 import :math.math_defs;
 import :main.class_db;
 

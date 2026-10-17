@@ -9,6 +9,7 @@ module;
 export module feather.core:world.components.light;
 
 import std.compat;
+import :framework.static_string;
 import :math.math_defs;
 import :main.class_db;
 

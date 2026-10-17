@@ -1,12 +1,7 @@
-module;
-
-#include "static_string.hpp"
-
-#include <framework/static_string.hpp>
-
 export module feather.core:framework.class_info;
 
 import std.compat;
+import :framework.static_string;
 import :framework.callable;
 import :framework.variant;
 

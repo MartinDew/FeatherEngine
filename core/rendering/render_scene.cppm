@@ -10,6 +10,7 @@ module;
 export module feather.core:rendering.render_scene;
 
 import std.compat;
+import :framework.static_string;
 import :framework.cow_vector;
 import :math.projection;
 import :math.transform;

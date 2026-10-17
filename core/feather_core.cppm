@@ -14,6 +14,7 @@ export import :framework.reflection_utils;
 export import :framework.shared_library;
 export import :framework.spinlock;
 export import :framework.static_indexed_array;
+export import :framework.static_string;
 export import :framework.variant;
 export import :framework.variant_array;
 export import :main.class_db;
