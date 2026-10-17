@@ -872,7 +872,6 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         body = []
         body.append("friend class ClassDB;")
         body.append("struct _class_type {};")
-        body.append("template <class T> friend void has_bind_method(const T& t);")
         body.extend(pre_lines)
         body.append("public:")
         body.append(f'\tconstexpr static StaticString get_class_static() {{ return "{c.name}"_ss; }}')

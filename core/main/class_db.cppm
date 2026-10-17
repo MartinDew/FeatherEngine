@@ -44,6 +44,9 @@ private:
 
 	static ClassInfo* _get_class_info_internal(std::string_view name);
 
+	template <class T>
+	static constexpr bool _has_bind_members = requires { T::_bind_members(); };
+
 public:
 	void print_db();
 
@@ -170,16 +173,6 @@ public:
 	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
 
-template <class T>
-void has_bind_method(const T& t) {
-	t._bind_members();
-}
-
-template <typename T>
-concept has_bind_method_v = requires(T t) {
-	{ has_bind_method(t) };
-};
-
 template <is_reflected_class_type T>
 void ClassDB::register_class() {
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
@@ -191,7 +184,7 @@ void ClassDB::register_class() {
 	}
 	else {
 		static_assert(std::is_default_constructible<T>(), "Trying to register class that is not default constructible");
-		static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+		static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
 		std::println("Registering class '{}' as {} object", T::get_class_static(), "implementation");
 		ClassDB& instance = *get();
 
@@ -219,7 +212,7 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	std::println("Registering class '{}' as {} object", T::get_class_static(), "abstract");
 
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
-	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+	static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = *get();
 
 	ClassInfo& info = instance._class_infos[T::get_class_static()];
@@ -245,7 +238,7 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 	std::println("Registering class '{}' as {} object", T::get_class_static(), "singleton");
 
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
-	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+	static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = *get();
 
 	ClassInfo& info = instance._class_infos[T::get_class_static()];
@@ -276,7 +269,7 @@ void ClassDB::register_value_class() {
 	std::println("Registering class '{}' as {} object", T::get_class_static(), "value type");
 
 	static_assert(is_reflected_value_type<T>, "Attempt to register a non-value reflected class type");
-	static_assert(has_bind_method_v<T>, "Class doesn't have a static _bind_members function");
+	static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
 	ClassDB& instance = *get();
 
 	ClassInfo& info = instance._class_infos[T::get_class_static()];
