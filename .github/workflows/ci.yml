@@ -107,10 +107,10 @@ jobs:
             libudev-dev
 
       - name: Install GCC
-        uses: egor-tensin/setup-gcc@v2
+        uses: egor-tensin/setup-gcc@v2.0.2
         if: runner.os == 'Linux'
         with:
-          version: "15"
+          version: "16"
 
       - name: Install SDL deps (Linux)
         if: runner.os == 'Linux'
