@@ -59,7 +59,6 @@ constexpr std::array<uint32_t, 256> crc_table {
 };
 
 export {
-
 constexpr uint32_t crc32(const std::string_view str) {
 	uint32_t crc = 0xffffffff;
 	for (auto c : str)
