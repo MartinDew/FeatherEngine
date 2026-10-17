@@ -49,4 +49,11 @@ rule("feather.module")
         target:add("includedirs", target:scriptdir())
         target:add("deps", "feather_core")
     end)
+
+    -- Same flags as feather_core so xmake reuses its module BMIs instead of
+    -- rebuilding feather.core per target (GCC rejects mixing the two: CRC mismatch).
+    on_config(function (target)
+        import("feather_flags")
+        feather_flags.apply(target)
+    end)
 rule_end()

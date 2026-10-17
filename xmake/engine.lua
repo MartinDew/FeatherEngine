@@ -17,6 +17,12 @@ target("feather")
     end
     add_rules("feather.deploy_shaders", "feather.deploy_shared_deps")
 
+    -- Same flags as feather_core and the modules, so all of them share one set of module BMIs.
+    on_config(function (target)
+        import("feather_flags")
+        feather_flags.apply(target)
+    end)
+
     if is_plat("linux") then
         add_rpathdirs("$ORIGIN/lib", "$ORIGIN/runtime")
         -- Lets a dlopen'd project DLL resolve engine symbols at runtime.
