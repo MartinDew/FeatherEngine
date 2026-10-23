@@ -1,4 +1,6 @@
-#include "callable.h"
+module feather.core;
+
+import std;
 
 using namespace std::literals;
 
@@ -15,9 +17,11 @@ Variant Callable::call(std::span<Variant> params) {
 
 	if (params.size() != _param_amount) {
 		fassert(false,
-				std::format("Callable called with incorrect number of parameters. Expected {} and got {}",
-							_param_amount,
-							params.size()));
+				std::format(
+						"Callable called with incorrect number of parameters. Expected {} and got {}",
+						_param_amount,
+						params.size()
+				));
 	}
 	return _internal_func(params);
 }

@@ -101,6 +101,7 @@ IncludeCategories:
 # IndentGotoLabels: true
 # IndentPPDirectives: None
 # IndentExternBlock: AfterExternBlock
+IndentExportBlock: false
 # IndentRequires:  false
 IndentWidth:     4
 # IndentWrappedFunctionNames: false

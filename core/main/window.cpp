@@ -1,7 +1,4 @@
-#include "window.h"
-
-#include "engine.h"
-#include "notification.h"
+module;
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -10,7 +7,10 @@
 #include <SDL3/SDL_video.h>
 
 #include <cassert>
-#include <iostream>
+
+module feather.core;
+
+import std;
 
 namespace feather {
 
@@ -68,7 +68,8 @@ Window::Window() : _internal_event(), _fullscreen_mode() {
 				}
 				return false;
 			},
-			this);
+			this
+	);
 }
 
 void Window::_on_resize() {

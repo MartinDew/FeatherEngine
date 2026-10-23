@@ -1,7 +1,8 @@
-#include "reflected.h"
+module;
 
 #include "reflection_macros.h"
-#include "reflection_utils.h"
+
+module feather.core;
 
 namespace feather {
 

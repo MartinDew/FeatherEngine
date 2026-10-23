@@ -1,7 +1,10 @@
-#include "shared_library.h"
-#include "callable.h"
+module;
 
 #include <SDL3/SDL_loadso.h>
+
+module feather.core;
+
+import std;
 
 namespace feather {
 

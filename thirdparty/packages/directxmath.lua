@@ -17,9 +17,13 @@ package("directxmath_feather")
         -- os.scriptdir() is thirdparty/packages/, go up two levels to the
         -- engine root. Not os.projectdir(): a downstream consumer's build
         -- would resolve that to the wrong repo.
-        local sal_src = path.join(path.directory(path.directory(os.scriptdir())), "thirdparty", "DirectXMath", "sal.h")
-        if os.isfile(sal_src) then
-            os.cp(sal_src, dst_inc)
+        -- Never on MSVC: the shim would shadow the real <sal.h>, and the STL's own headers
+        -- (e.g. <execution>, built as part of `import std;`) need annotations it lacks.
+        if not package:is_plat("windows") then
+            local sal_src = path.join(path.directory(path.directory(os.scriptdir())), "thirdparty", "DirectXMath", "sal.h")
+            if os.isfile(sal_src) then
+                os.cp(sal_src, dst_inc)
+            end
         end
     end)
 package_end()

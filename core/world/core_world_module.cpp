@@ -1,8 +1,6 @@
-﻿#include "core_world_module.h"
+module;
 
-#include "components/scene.h"
-
-#include <main/world_sim.h>
+module feather.core;
 
 namespace feather {
 

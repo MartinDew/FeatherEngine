@@ -246,6 +246,14 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
             os.cp(path.join("shaders", "*"), package:installdir("shaders"))
         end
 
+        -- Vex's C++ module interface (`import Vex;`); it re-exports the installed headers, so consumers compile it themselves
+        local module_src = path.join("src", "Vex.cppm")
+        if os.isfile(module_src) then
+            local dst = package:installdir("modules")
+            os.mkdir(dst)
+            os.cp(module_src, dst)
+        end
+
         -- Must be compiled into the host executable, not just linked
         local agility_src = path.join("src", "DX12", "DX12AgilitySDK.cpp")
         if os.isfile(agility_src) then

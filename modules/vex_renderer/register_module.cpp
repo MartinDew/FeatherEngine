@@ -1,13 +1,6 @@
-#include "register_module.h"
+module;
 
-#include "vex_renderer.h"
-
-#include <core/rendering/renderer.h>
-#include <core/rendering/rendering_server.h>
-
-#include <core/main/class_db.h>
-
-#include "register_vex_renderer_types.gen.h"
+module feather.vex_renderer;
 
 namespace feather {
 

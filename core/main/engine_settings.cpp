@@ -1,4 +1,6 @@
-#include "engine_settings.h"
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 
