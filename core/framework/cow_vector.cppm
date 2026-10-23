@@ -6,6 +6,7 @@ module;
 #define aligned_free _aligned_free
 #elifdef __linux__
 #include <malloc.h>
+#include <stdlib.h>
 #define aligned_free free
 #else
 #define aligned_free free
