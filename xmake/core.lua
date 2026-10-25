@@ -22,10 +22,9 @@ target("feather_core")
     add_defines("EDITOR_BUILD=" .. (has_config("editor_build") and "1" or "0"), {public = true})
     add_defines("FEATHER_BUILDING_ENGINE", {public = true}) -- flips FEATHER_API to dllexport
     add_defines(is_mode("release") and "PRODUCTION" or "BETA", {public = true})
-    add_includedirs(ROOT, root("core"), root("thirdparty/SimpleMath"), {public = true})
+    add_includedirs(ROOT, root("core"), {public = true})
 
-    add_deps("simplemath", {public = true})
-    add_packages("directxmath", "taywee_args", {public = true})
+    add_packages("rtm", "taywee_args", {public = true})
     -- flecs/sdl3 own process-global state: shared libs on windows/mingw, elsewhere headers
     -- only so a DLL binds to the host exe's copy via -rdynamic.
     if is_plat("windows", "mingw") then

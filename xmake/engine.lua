@@ -9,7 +9,6 @@ target("feather")
 
     add_files(path.join(ROOT, "main/*.cppm"), path.join(ROOT, "main/*.cpp"))
     add_deps("feather_core")
-    add_deps("simplemath") -- object-kind deps don't propagate across a second hop
     add_packages("flecs", "assimp", "sdl3")
     -- xmake ignores a dep with no matching target (e.g. a disabled module).
     for _, dir in ipairs(os.dirs(path.join(ROOT, "modules", "*"))) do
