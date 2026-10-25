@@ -7,7 +7,7 @@ target("feather")
     set_basename("feather")
     set_targetdir("$(builddir)/bin")
 
-    add_files(path.join(ROOT, "modules/*.cppm"), path.join(ROOT, "modules/*.cpp"))
+    add_files(path.join(ROOT, "main/*.cppm"), path.join(ROOT, "main/*.cpp"))
     add_deps("feather_core")
     add_deps("simplemath") -- object-kind deps don't propagate across a second hop
     add_packages("flecs", "assimp", "sdl3")
