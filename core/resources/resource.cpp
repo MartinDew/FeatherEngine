@@ -1,4 +1,5 @@
-#include "resource.h"
-#include <core/main/class_db.h>
+module;
+
+module feather.core;
 
 namespace feather {} // namespace feather

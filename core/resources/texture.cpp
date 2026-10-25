@@ -1,9 +1,9 @@
-#include "texture.h"
-#include <core/framework/variant.h>
-#include <main/class_db.h>
-
 // TODO: Add image loading
 // For now, basic implementation without actual file loading
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 
@@ -16,11 +16,13 @@ bool Texture::load_from_file() {
 	return false;
 }
 
-void Texture::set_data(const std::string& path,
-					   const std::vector<uint8_t>& data,
-					   uint32_t width,
-					   uint32_t height,
-					   TextureFormat format) {
+void Texture::set_data(
+		const std::string& path,
+		const std::vector<uint8_t>& data,
+		uint32_t width,
+		uint32_t height,
+		TextureFormat format
+) {
 	_pixel_data = data;
 	_width = width;
 	_height = height;

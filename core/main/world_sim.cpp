@@ -1,10 +1,11 @@
-#include "world_sim.h"
+module;
 
-#include "engine.h"
-#include "world/ecs_module.h"
-#include <world/components/scene.h>
-#include <world/register_core_features.h>
-#include <framework/static_string.hpp>
+#include <flecs.h>
+#include <framework/singleton_helpers.h>
+
+module feather.core;
+
+import std;
 
 namespace feather {
 

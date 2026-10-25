@@ -1,4 +1,6 @@
-#include "extension.h"
+module feather.core;
+
+import std;
 
 namespace feather {
 

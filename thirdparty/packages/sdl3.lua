@@ -2,7 +2,7 @@
 package("sdl3_feather")
     set_kind("library")
     set_homepage("https://libsdl.org")
-    set_urls("https://github.com/libsdl-org/SDL.git", {tag = "release-3.4.0"})
+    set_urls("https://github.com/libsdl-org/SDL.git", {branch = "release-3.4.x"})
     add_deps("cmake")
 
     on_install(function(package)

@@ -1,11 +1,13 @@
-﻿#include "mesh_format_loader.h"
+module;
 
-#include "mesh.h"
-
+#include <SimpleMath.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
-#include <iostream>
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 
@@ -25,9 +27,10 @@ std::shared_ptr<Resource> MeshFormatLoader::instantiate(const Path& path) {
 }
 
 void MeshFormatLoader::load(std::shared_ptr<Resource> resource, const Path& path) {
-	const aiScene* scene = _importer->ReadFile(path.string(),
-											   aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
-													   aiProcess_CalcTangentSpace);
+	const aiScene* scene = _importer->ReadFile(
+			path.string(),
+			aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace
+	);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		std::cerr << "Assimp error: " << _importer->GetErrorString() << std::endl;

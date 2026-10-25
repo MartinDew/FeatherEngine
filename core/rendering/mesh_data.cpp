@@ -1,4 +1,6 @@
-#include "mesh_data.h"
+module feather.core;
+
+import std;
 
 namespace feather {
 

@@ -1,16 +1,12 @@
-#include "engine.h"
-#include "launch_settings.h"
-#include "world/components/light.h"
-#include "world/rendering_world_module.h"
+module;
 
-#include <framework/assert.h>
-#include <resources/resource_loader.h>
-
-#include <chrono>
+#include <SimpleMath.h>
+#include <flecs.h>
 #include <csignal>
 
-#include <rendering/rendering_server.h>
-#include <resources/mesh.h>
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 

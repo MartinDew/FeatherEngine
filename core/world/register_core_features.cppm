@@ -1,0 +1,14 @@
+module;
+
+export module feather.core:world.register_core_features;
+
+import :world.ecs_defs;
+
+export namespace feather {
+
+// Registers every reflected Component up front, before any EcsModule is
+// imported, so a component's Flecs name never depends on import order (see
+// the ClassDB::get_children_names discovery loop in WorldSim's constructor).
+void register_core_components(World& world);
+
+} // namespace feather
