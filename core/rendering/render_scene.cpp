@@ -1,7 +1,10 @@
-﻿#include "render_scene.h"
-#include <world/components/scene.h>
+module;
 
-#include <world/components/light.h>
+#include <SimpleMath.h>
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 

@@ -1,6 +1,10 @@
-#include "math_defs.h"
+module;
 
-#include <numbers>
+#include <SimpleMath.h>
+
+module feather.core;
+
+import std.compat;
 
 namespace feather {
 
