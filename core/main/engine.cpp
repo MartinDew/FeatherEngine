@@ -40,10 +40,10 @@ Engine::~Engine() {
 inline void _setup_demo_scene(WorldSim& _world_sim) {
 	// test script
 	auto w = *_world_sim.get_world();
-	Transform t1 { Vector3(0, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
-	Transform t2 { Vector3(-2, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
-	Transform t3 { Vector3(2, -1, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
-	Transform t4 { Vector3(0, 2, -3), Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t1 { { 0, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t2 { { -2, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t3 { { 2, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
+	Transform t4 { { 0, 2, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
 
 	auto material = std::make_shared<PBRMaterial>();
 	material->set_base_color_factor({ .7f, .7f, .0f });
