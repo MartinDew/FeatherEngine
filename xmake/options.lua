@@ -33,8 +33,8 @@ option("editor_build")
     set_description("Compile with editor support (EDITOR_BUILD=1); off builds a shipping-only binary (EDITOR_BUILD=0)")
 option_end()
 
--- Toolchain selection is done via CLI flags, not options:
---   LLVM/Clang (non-Windows):  xmake f --toolchain=llvm
---   Clang-CL (Windows):        xmake f --toolchain=clang-cl
---   MinGW cross:               xmake f --toolchain=mingw --sdk=<path>
---   Android NDK:               xmake f --plat=android --ndk=<path> --ndk_sdkver=21
+option("double_precision")
+    set_default(false)
+    set_description("Use double precision for real_t and the default vector/quaternion types (FEATHER_DOUBLE_PRECISION)")
+option_end()
+

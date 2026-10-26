@@ -13,7 +13,7 @@ add_moduledirs(path.join(FEATHER_ROOT, "xmake", "modules"))
 includes(path.join(FEATHER_ROOT, "xmake", "options.lua"))
 
 -- Must mirror root xmake.lua's MSVC runtime choice, project-wide and before
--- the includes() below, or simplemath's own target is left on the default runtime.
+-- the includes() below, or the engine's own targets are left on the default runtime.
 if has_config("production") or has_config("static_cpp") then
     set_runtimes(is_mode("debug") and "MTd" or "MT")
 end
@@ -39,8 +39,6 @@ function feather_sdk_setup(target_name, opts)
 
     target(target_name)
         add_deps("feather_core")
-        -- Direct: object-kind deps don't propagate across a second hop.
-        add_deps("simplemath")
 
         -- Every consumer needs its own compiled copy of the global operator
         -- new/delete overrides so its own new/delete route through the
