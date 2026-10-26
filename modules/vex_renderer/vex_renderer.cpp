@@ -68,7 +68,9 @@ vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
 	return vex_window;
 }
 
-static const std::filesystem::path shader_path = std::filesystem::current_path() / "shaders";
+static std::filesystem::path _engine_shader_path() {
+	return ProjectSettings::get()->localize_path("engine://shaders");
+}
 
 VexRenderer::VexRenderer()
 		: graphics(
@@ -211,7 +213,7 @@ VexRenderer::VexRenderer()
 	// (needed for Slang import resolution even when compiling from embedded source)
 	_shader_compiler = vex::ShaderCompiler(
 			vex::sc::ShaderCompilerSettings {
-					.shaderIncludeDirectories = { shader_path },
+					.shaderIncludeDirectories = { _engine_shader_path() },
 			}
 	);
 	_compile_engine_shaders();
@@ -287,6 +289,7 @@ void VexRenderer::_on_resize() {
 void VexRenderer::_compile_engine_shaders() {
 	// For each engine shader file, prefer the real file on disk (enables hot-reload and
 	// developer override), falling back to the embedded source when no file exists.
+	const std::filesystem::path shader_path = _engine_shader_path();
 	auto get_filepath = [&](const char* filename) -> std::string {
 		auto real_path = shader_path / filename;
 		if (std::filesystem::exists(real_path)) {
