@@ -46,21 +46,20 @@ std::string Variant::to_string() const {
 	case VariantType::INT:
 		return std::to_string(std::get<int>(_data));
 	case VariantType::FLOAT:
-		return std::to_string(std::get<real_t>(_data));
+		return std::format("{:f}", std::get<real_t>(_data));
 	case VariantType::STRING:
 		return std::get<std::string>(_data);
 	case VariantType::VECTOR2: {
 		auto& v = std::get<Vector2>(_data);
-		return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ")";
+		return std::format("({:f}, {:f})", v.x, v.y);
 	}
 	case VariantType::VECTOR3: {
 		auto& v = std::get<Vector3>(_data);
-		return "(" + std::to_string(v.x) + ", " + std::to_string(v.y) + ", " + std::to_string(v.z) + ")";
+		return std::format("({:f}, {:f}, {:f})", v.x, v.y, v.z);
 	}
 	case VariantType::COLOR: {
 		auto& c = std::get<Color>(_data);
-		return "rgba(" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + ", " +
-				std::to_string(c.a) + ")";
+		return std::format("rgba({:f}, {:f}, {:f}, {:f})", c.r, c.g, c.b, c.a);
 	}
 	case VariantType::VERTEX:
 		return "[Vertex]"; // expand if Vertex gains a meaningful string form
