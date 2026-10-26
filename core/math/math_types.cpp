@@ -1,9 +1,6 @@
-module;
-
-#include <rtm/matrix3x4f.h>
-
 module feather.core;
 
+import rtm;
 import std;
 
 namespace feather {

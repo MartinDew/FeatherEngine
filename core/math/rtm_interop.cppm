@@ -1,9 +1,6 @@
-module;
-
-#include <rtm/types.h>
-
 export module feather.core:math.rtm_interop;
 
+import rtm;
 import std;
 
 // Feather's math types declare the same fields as RTM's storage structs instead of deriving

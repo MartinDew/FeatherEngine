@@ -1,6 +1,6 @@
 module;
 
-#include <rtm/vector4f.h>
+#include <rtm/impl/compiler_utils.h>
 
 #include <framework/reflection_macros.h>
 
@@ -10,6 +10,7 @@ module;
 
 export module feather.core:math.color;
 
+import rtm;
 import std.compat;
 import :framework.static_string;
 import :math.rtm_interop;

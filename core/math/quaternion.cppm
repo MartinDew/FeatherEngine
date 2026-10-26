@@ -1,7 +1,6 @@
 module;
 
-#include <rtm/quatd.h>
-#include <rtm/quatf.h>
+#include <rtm/impl/compiler_utils.h>
 
 #include <framework/reflection_macros.h>
 
@@ -11,6 +10,7 @@ module;
 
 export module feather.core:math.quaternion;
 
+import rtm;
 import std.compat;
 import :framework.static_string;
 import :math.rtm_interop;

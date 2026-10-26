@@ -1,11 +1,6 @@
 module;
 
-#include <rtm/camera_utilsf.h>
-#include <rtm/matrix3x4f.h>
-#include <rtm/matrix4x4f.h>
-#include <rtm/quatf.h>
-#include <rtm/scalarf.h>
-#include <rtm/vector4f.h>
+#include <rtm/impl/compiler_utils.h>
 
 #include <framework/reflection_macros.h>
 
@@ -15,6 +10,7 @@ module;
 
 export module feather.core:math.matrix;
 
+import rtm;
 import std.compat;
 import :framework.static_string;
 import :math.quaternion;
