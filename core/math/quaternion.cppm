@@ -50,7 +50,9 @@ struct Quaternionf {
 	static Quaternionf from_matrix(const Matrix4x4f& m);
 
 	// `a * b` applies a, then b.
-	RTM_FORCE_INLINE Quaternionf operator*(const Quaternionf& o) const { return from_rtm(rtm::quat_mul(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Quaternionf operator*(const Quaternionf& o) const {
+		return from_rtm(rtm::quat_mul(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Quaternionf& operator*=(const Quaternionf& o) { return *this = *this * o; }
 	RTM_FORCE_INLINE Quaternionf operator-() const { return { -x, -y, -z, -w }; }
 
@@ -59,7 +61,9 @@ struct Quaternionf {
 		return Vector3f::from_rtm(rtm::quat_mul_vector3(v.to_rtm(), to_rtm()));
 	}
 
-	RTM_FORCE_INLINE bool operator==(const Quaternionf& o) const { return x == o.x && y == o.y && z == o.z && w == o.w; }
+	RTM_FORCE_INLINE bool operator==(const Quaternionf& o) const {
+		return x == o.x && y == o.y && z == o.z && w == o.w;
+	}
 	RTM_FORCE_INLINE bool operator!=(const Quaternionf& o) const { return !(*this == o); }
 	[[nodiscard]] inline bool is_near(const Quaternionf& o, float tolerance = 1.e-4f) const {
 		return rtm::quat_near_equal(to_rtm(), o.to_rtm(), tolerance);
@@ -123,14 +127,18 @@ struct Quaterniond {
 				from_axis_angle(Vector3d::up, yaw);
 	}
 
-	RTM_FORCE_INLINE Quaterniond operator*(const Quaterniond& o) const { return from_rtm(rtm::quat_mul(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Quaterniond operator*(const Quaterniond& o) const {
+		return from_rtm(rtm::quat_mul(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Quaterniond& operator*=(const Quaterniond& o) { return *this = *this * o; }
 	RTM_FORCE_INLINE Quaterniond operator-() const { return { -x, -y, -z, -w }; }
 	RTM_FORCE_INLINE Vector3d operator*(const Vector3d& v) const {
 		return Vector3d::from_rtm(rtm::quat_mul_vector3(v.to_rtm(), to_rtm()));
 	}
 
-	RTM_FORCE_INLINE bool operator==(const Quaterniond& o) const { return x == o.x && y == o.y && z == o.z && w == o.w; }
+	RTM_FORCE_INLINE bool operator==(const Quaterniond& o) const {
+		return x == o.x && y == o.y && z == o.z && w == o.w;
+	}
 	RTM_FORCE_INLINE bool operator!=(const Quaterniond& o) const { return !(*this == o); }
 	[[nodiscard]] inline bool is_near(const Quaterniond& o, double tolerance = 1.e-8) const {
 		return rtm::quat_near_equal(to_rtm(), o.to_rtm(), tolerance);
@@ -138,7 +146,9 @@ struct Quaterniond {
 
 	[[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::quat_length(to_rtm()); }
 	[[nodiscard]] RTM_FORCE_INLINE double length_squared() const { return rtm::quat_length_squared(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double dot(const Quaterniond& o) const { return rtm::quat_dot(to_rtm(), o.to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE double dot(const Quaterniond& o) const {
+		return rtm::quat_dot(to_rtm(), o.to_rtm());
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Quaterniond normalized() const { return from_rtm(rtm::quat_normalize(to_rtm())); }
 	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
 	[[nodiscard]] RTM_FORCE_INLINE Quaterniond conjugate() const { return from_rtm(rtm::quat_conjugate(to_rtm())); }

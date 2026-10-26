@@ -36,12 +36,22 @@ struct Vector4f {
 		return { rtm::vector_get_x(v), rtm::vector_get_y(v), rtm::vector_get_z(v), rtm::vector_get_w(v) };
 	}
 
-	RTM_FORCE_INLINE Vector4f operator+(const Vector4f& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4f operator-(const Vector4f& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4f operator*(const Vector4f& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4f operator/(const Vector4f& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector4f operator+(const Vector4f& o) const {
+		return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4f operator-(const Vector4f& o) const {
+		return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4f operator*(const Vector4f& o) const {
+		return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4f operator/(const Vector4f& o) const {
+		return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Vector4f operator*(float s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	RTM_FORCE_INLINE Vector4f operator/(float s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector4f operator/(float s) const {
+		return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s)));
+	}
 	RTM_FORCE_INLINE Vector4f operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
 	RTM_FORCE_INLINE Vector4f operator+() const { return *this; }
 
@@ -69,8 +79,12 @@ struct Vector4f {
 	[[nodiscard]] RTM_FORCE_INLINE Vector4f normalized() const { return from_rtm(rtm::vector_normalize(to_rtm())); }
 	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
 	[[nodiscard]] inline float distance(const Vector4f& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector4f min(const Vector4f& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector4f max(const Vector4f& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector4f min(const Vector4f& o) const {
+		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
+	}
+	[[nodiscard]] RTM_FORCE_INLINE Vector4f max(const Vector4f& o) const {
+		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Vector4f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
 	[[nodiscard]] RTM_FORCE_INLINE Vector4f lerp(const Vector4f& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
@@ -107,12 +121,22 @@ struct Vector4d {
 		return { rtm::vector_get_x(v), rtm::vector_get_y(v), rtm::vector_get_z(v), rtm::vector_get_w(v) };
 	}
 
-	RTM_FORCE_INLINE Vector4d operator+(const Vector4d& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4d operator-(const Vector4d& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4d operator*(const Vector4d& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector4d operator/(const Vector4d& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector4d operator+(const Vector4d& o) const {
+		return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4d operator-(const Vector4d& o) const {
+		return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4d operator*(const Vector4d& o) const {
+		return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector4d operator/(const Vector4d& o) const {
+		return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Vector4d operator*(double s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	RTM_FORCE_INLINE Vector4d operator/(double s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector4d operator/(double s) const {
+		return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s)));
+	}
 	RTM_FORCE_INLINE Vector4d operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
 	RTM_FORCE_INLINE Vector4d operator+() const { return *this; }
 
@@ -140,8 +164,12 @@ struct Vector4d {
 	[[nodiscard]] RTM_FORCE_INLINE Vector4d normalized() const { return from_rtm(rtm::vector_normalize(to_rtm())); }
 	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
 	[[nodiscard]] inline double distance(const Vector4d& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector4d min(const Vector4d& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector4d max(const Vector4d& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector4d min(const Vector4d& o) const {
+		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
+	}
+	[[nodiscard]] RTM_FORCE_INLINE Vector4d max(const Vector4d& o) const {
+		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Vector4d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
 	[[nodiscard]] RTM_FORCE_INLINE Vector4d lerp(const Vector4d& o, double alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));

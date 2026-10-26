@@ -31,14 +31,26 @@ struct Vector2f {
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, 0.0f, 0.0f); }
-	static RTM_FORCE_INLINE Vector2f from_rtm(rtm::vector4f v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
+	static RTM_FORCE_INLINE Vector2f from_rtm(rtm::vector4f v) {
+		return { rtm::vector_get_x(v), rtm::vector_get_y(v) };
+	}
 
-	RTM_FORCE_INLINE Vector2f operator+(const Vector2f& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2f operator-(const Vector2f& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2f operator*(const Vector2f& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2f operator/(const Vector2f& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator+(const Vector2f& o) const {
+		return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2f operator-(const Vector2f& o) const {
+		return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2f operator*(const Vector2f& o) const {
+		return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2f operator/(const Vector2f& o) const {
+		return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Vector2f operator*(float s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	RTM_FORCE_INLINE Vector2f operator/(float s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector2f operator/(float s) const {
+		return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s)));
+	}
 	RTM_FORCE_INLINE Vector2f operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
 	RTM_FORCE_INLINE Vector2f operator+() const { return *this; }
 
@@ -65,8 +77,12 @@ struct Vector2f {
 	[[nodiscard]] RTM_FORCE_INLINE Vector2f normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
 	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
 	[[nodiscard]] inline float distance(const Vector2f& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f min(const Vector2f& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f max(const Vector2f& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f min(const Vector2f& o) const {
+		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
+	}
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f max(const Vector2f& o) const {
+		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Vector2f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
 	[[nodiscard]] RTM_FORCE_INLINE Vector2f lerp(const Vector2f& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
@@ -106,14 +122,26 @@ struct Vector2d {
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, 0.0, 0.0); }
-	static RTM_FORCE_INLINE Vector2d from_rtm(rtm::vector4d v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
+	static RTM_FORCE_INLINE Vector2d from_rtm(rtm::vector4d v) {
+		return { rtm::vector_get_x(v), rtm::vector_get_y(v) };
+	}
 
-	RTM_FORCE_INLINE Vector2d operator+(const Vector2d& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2d operator-(const Vector2d& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2d operator*(const Vector2d& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	RTM_FORCE_INLINE Vector2d operator/(const Vector2d& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator+(const Vector2d& o) const {
+		return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2d operator-(const Vector2d& o) const {
+		return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2d operator*(const Vector2d& o) const {
+		return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm()));
+	}
+	RTM_FORCE_INLINE Vector2d operator/(const Vector2d& o) const {
+		return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Vector2d operator*(double s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	RTM_FORCE_INLINE Vector2d operator/(double s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector2d operator/(double s) const {
+		return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s)));
+	}
 	RTM_FORCE_INLINE Vector2d operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
 	RTM_FORCE_INLINE Vector2d operator+() const { return *this; }
 
@@ -136,12 +164,18 @@ struct Vector2d {
 
 	[[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
 	[[nodiscard]] RTM_FORCE_INLINE double length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double dot(const Vector2d& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE double dot(const Vector2d& o) const {
+		return rtm::vector_dot3(to_rtm(), o.to_rtm());
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Vector2d normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
 	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
 	[[nodiscard]] inline double distance(const Vector2d& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d min(const Vector2d& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d max(const Vector2d& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d min(const Vector2d& o) const {
+		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
+	}
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d max(const Vector2d& o) const {
+		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
+	}
 	[[nodiscard]] RTM_FORCE_INLINE Vector2d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
 	[[nodiscard]] RTM_FORCE_INLINE Vector2d lerp(const Vector2d& o, double alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));

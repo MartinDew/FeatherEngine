@@ -69,7 +69,8 @@ struct Matrix4x4f {
 		return m;
 	}
 	// Scale, then rotate, then translate.
-	static inline Matrix4x4f from_transform(const Vector3f& translation, const Quaternionf& rotation, const Vector3f& scale) {
+	static inline Matrix4x4f
+	from_transform(const Vector3f& translation, const Quaternionf& rotation, const Vector3f& scale) {
 		return from_rtm(rtm::matrix_from_qvv(rotation.to_rtm(), translation.to_rtm(), scale.to_rtm()));
 	}
 
@@ -91,7 +92,9 @@ struct Matrix4x4f {
 	}
 
 	// `a * b` applies a, then b.
-	RTM_FORCE_INLINE Matrix4x4f operator*(const Matrix4x4f& o) const { return from_rtm(rtm::matrix_mul(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Matrix4x4f operator*(const Matrix4x4f& o) const {
+		return from_rtm(rtm::matrix_mul(to_rtm(), o.to_rtm()));
+	}
 	RTM_FORCE_INLINE Matrix4x4f& operator*=(const Matrix4x4f& o) { return *this = *this * o; }
 
 	[[nodiscard]] RTM_FORCE_INLINE Vector3f transform_point(const Vector3f& p) const {
