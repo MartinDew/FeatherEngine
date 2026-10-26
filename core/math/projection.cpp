@@ -1,9 +1,3 @@
-module;
-
-#include "DirectXMath.h"
-
-#include <SimpleMath.h>
-
 module feather.core;
 
 import std;
@@ -141,28 +135,26 @@ void Projection::set_orthographic_size(float width, float height) {
 // Private rebuild functions
 void Projection::_rebuild_perspective() {
 	if (_is_off_center) {
-		_projection_matrix =
-				Matrix::create_perspective_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
+		_projection_matrix = Matrix::perspective_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
 	}
 	else {
-		_projection_matrix = Matrix::create_perspective_field_of_view(_fov_y, _aspect_ratio, _near_plane, _far_plane);
+		_projection_matrix = Matrix::perspective(_fov_y, _aspect_ratio, _near_plane, _far_plane);
 	}
 }
 
 void Projection::_rebuild_orthographic() {
 	if (_is_off_center) {
-		_projection_matrix =
-				Matrix::create_orthographic_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
+		_projection_matrix = Matrix::orthographic_off_center(_left, _right, _bottom, _top, _near_plane, _far_plane);
 	}
 	else {
-		_projection_matrix = Matrix::create_orthographic(_width, _height, _near_plane, _far_plane);
+		_projection_matrix = Matrix::orthographic(_width, _height, _near_plane, _far_plane);
 	}
 }
 
 // Utility functions
 Vector3 Projection::project_point(const Vector3& world_point, const Matrix& view_matrix) const {
 	Matrix view_proj = view_matrix * _projection_matrix;
-	Vector4 clip_space = Vector4::transform(Vector4(world_point.x, world_point.y, world_point.z, 1.0f), view_proj);
+	Vector4 clip_space = view_proj * Vector4(world_point.x, world_point.y, world_point.z, 1.0f);
 
 	// Perspective divide
 	if (std::abs(clip_space.w) > 0.0001f) {
@@ -187,10 +179,10 @@ Vector3 Projection::unproject_point(
 
 	// Create inverse view-projection matrix
 	Matrix view_proj = view_matrix * _projection_matrix;
-	Matrix inv_view_proj = view_proj.invert();
+	Matrix inv_view_proj = view_proj.inverse();
 
 	// Transform from NDC to world space
-	Vector4 world_point = Vector4::transform(Vector4(ndc.x, ndc.y, ndc.z, 1.0f), inv_view_proj);
+	Vector4 world_point = inv_view_proj * Vector4(ndc.x, ndc.y, ndc.z, 1.0f);
 
 	// Perspective divide
 	if (std::abs(world_point.w) > 0.0001f) {
@@ -204,7 +196,7 @@ Vector3 Projection::unproject_point(
 
 std::array<Vector3, 8> Projection::get_frustum_corners() const {
 	std::array<Vector3, 8> corners;
-	Matrix inv_proj = _projection_matrix.invert();
+	Matrix inv_proj = _projection_matrix.inverse();
 
 	// NDC corners of the frustum
 	const Vector3 ndc_corners[8] = {
@@ -221,8 +213,7 @@ std::array<Vector3, 8> Projection::get_frustum_corners() const {
 	};
 
 	for (int i = 0; i < 8; ++i) {
-		Vector4 view_corner =
-				Vector4::transform(Vector4(ndc_corners[i].x, ndc_corners[i].y, ndc_corners[i].z, 1.0f), inv_proj);
+		Vector4 view_corner = inv_proj * Vector4(ndc_corners[i].x, ndc_corners[i].y, ndc_corners[i].z, 1.0f);
 
 		// Perspective divide
 		if (std::abs(view_corner.w) > 0.0001f) {

@@ -1,7 +1,3 @@
-module;
-
-#include <SimpleMath.h>
-
 module feather.core;
 
 import std.compat;
