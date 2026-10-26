@@ -9,6 +9,9 @@ local function root(p) return path.join(ROOT, p) end
 target("feather_core")
     -- object: a static archive would drop TUs nothing references directly.
     set_kind("object")
+    -- GCC's own P1689 scanner needs a header unit's BMI before it exists
+    -- so let xmake's scanner find the imports instead.
+    set_policy("build.c++.modules.gcc.fallbackscanner", true)
     add_files(root("core/**.cppm"), {public = true})
     add_files(root("core/**.cpp"))
     -- Codegen output only exists after the first build, one pair per core subfolder.
