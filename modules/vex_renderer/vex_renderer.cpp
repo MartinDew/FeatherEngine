@@ -15,6 +15,10 @@ module;
 #include <wayland-client.h>
 #endif
 
+#if defined(_WIN32)
+#include <Windows.h>
+#endif
+
 module feather.vex_renderer;
 
 import std.compat;
