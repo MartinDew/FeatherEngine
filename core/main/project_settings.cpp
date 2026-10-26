@@ -8,6 +8,8 @@ module;
 #include <unistd.h>
 #endif
 
+#include <SDL3/SDL_filesystem.h>
+
 #include <framework/singleton_helpers.h>
 
 module feather.core;
@@ -62,6 +64,10 @@ static void replace_all(std::string& path, const std::string& token, const std::
 Path ProjectSettings::localize_path(const Path& path) {
 	std::string new_path = path.string();
 	replace_all(new_path, "res://", get_project_path().string() + '/');
+
+	// The directory holding the feather executable; SDL's path already ends in a separator.
+	const char* engine_path = SDL_GetBasePath();
+	replace_all(new_path, "engine://", engine_path ? engine_path : FileSystem::current_path().string() + '/');
 
 #if defined(_WIN32) || defined(_WIN64)
 	char sys_root[MAX_PATH];
