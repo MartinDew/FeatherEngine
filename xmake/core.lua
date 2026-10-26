@@ -20,6 +20,9 @@ target("feather_core")
 
     -- Public: BMIs are rebuilt in each dependent, and a mismatch is an ODR bug.
     add_defines("EDITOR_BUILD=" .. (has_config("editor_build") and "1" or "0"), {public = true})
+    if has_config("double_precision") then
+        add_defines("FEATHER_DOUBLE_PRECISION", {public = true})
+    end
     add_defines("FEATHER_BUILDING_ENGINE", {public = true}) -- flips FEATHER_API to dllexport
     add_defines(is_mode("release") and "PRODUCTION" or "BETA", {public = true})
     add_includedirs(ROOT, root("core"), {public = true})

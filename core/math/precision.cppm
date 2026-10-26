@@ -8,7 +8,7 @@ export import :math.vector3;
 export import :math.vector4;
 
 // The unsuffixed names follow the precision the build selected; the suffixed ones stay available
-// to code that needs one precision. Not wired to a build option yet: define it by hand to switch.
+// to code that needs one precision.
 export namespace feather {
 
 #ifdef FEATHER_DOUBLE_PRECISION
