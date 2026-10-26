@@ -30,45 +30,45 @@ struct Vector2f {
 	explicit constexpr Vector2f(float value) : x(value), y(value) {}
 
 	// The unused lanes are zero.
-	[[nodiscard]] rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, 0.0f, 0.0f); }
-	static Vector2f from_rtm(rtm::vector4f v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
+	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, 0.0f, 0.0f); }
+	static RTM_FORCE_INLINE Vector2f from_rtm(rtm::vector4f v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
 
-	Vector2f operator+(const Vector2f& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	Vector2f operator-(const Vector2f& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	Vector2f operator*(const Vector2f& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	Vector2f operator/(const Vector2f& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
-	Vector2f operator*(float s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	Vector2f operator/(float s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
-	Vector2f operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
-	Vector2f operator+() const { return *this; }
+	RTM_FORCE_INLINE Vector2f operator+(const Vector2f& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator-(const Vector2f& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator*(const Vector2f& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator/(const Vector2f& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator*(float s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
+	RTM_FORCE_INLINE Vector2f operator/(float s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector2f operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
+	RTM_FORCE_INLINE Vector2f operator+() const { return *this; }
 
-	Vector2f& operator+=(const Vector2f& o) { return *this = *this + o; }
-	Vector2f& operator-=(const Vector2f& o) { return *this = *this - o; }
-	Vector2f& operator*=(const Vector2f& o) { return *this = *this * o; }
-	Vector2f& operator/=(const Vector2f& o) { return *this = *this / o; }
-	Vector2f& operator*=(float s) { return *this = *this * s; }
-	Vector2f& operator/=(float s) { return *this = *this / s; }
+	RTM_FORCE_INLINE Vector2f& operator+=(const Vector2f& o) { return *this = *this + o; }
+	RTM_FORCE_INLINE Vector2f& operator-=(const Vector2f& o) { return *this = *this - o; }
+	RTM_FORCE_INLINE Vector2f& operator*=(const Vector2f& o) { return *this = *this * o; }
+	RTM_FORCE_INLINE Vector2f& operator/=(const Vector2f& o) { return *this = *this / o; }
+	RTM_FORCE_INLINE Vector2f& operator*=(float s) { return *this = *this * s; }
+	RTM_FORCE_INLINE Vector2f& operator/=(float s) { return *this = *this / s; }
 
-	bool operator==(const Vector2f& o) const { return x == o.x && y == o.y; }
-	bool operator!=(const Vector2f& o) const { return !(*this == o); }
+	RTM_FORCE_INLINE bool operator==(const Vector2f& o) const { return x == o.x && y == o.y; }
+	RTM_FORCE_INLINE bool operator!=(const Vector2f& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] bool is_near(const Vector2f& o, float tolerance = 1.e-4f) const {
+	[[nodiscard]] inline bool is_near(const Vector2f& o, float tolerance = 1.e-4f) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance;
 	}
 
-	float& operator[](size_t i) { return (&x)[i]; }
-	const float& operator[](size_t i) const { return (&x)[i]; }
+	RTM_FORCE_INLINE float& operator[](size_t i) { return (&x)[i]; }
+	RTM_FORCE_INLINE const float& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] float length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] float length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] float dot(const Vector2f& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
-	[[nodiscard]] Vector2f normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	void normalize() { *this = normalized(); }
-	[[nodiscard]] float distance(const Vector2f& o) const { return (*this - o).length(); }
-	[[nodiscard]] Vector2f min(const Vector2f& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] Vector2f max(const Vector2f& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] Vector2f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] Vector2f lerp(const Vector2f& o, float alpha) const {
+	[[nodiscard]] RTM_FORCE_INLINE float length() const { return rtm::vector_length3(to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE float length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE float dot(const Vector2f& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
+	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
+	[[nodiscard]] inline float distance(const Vector2f& o) const { return (*this - o).length(); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f min(const Vector2f& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f max(const Vector2f& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2f lerp(const Vector2f& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 
@@ -89,7 +89,7 @@ inline constexpr Vector2f Vector2f::left { -1.0f, 0.0f };
 inline constexpr Vector2f Vector2f::up { 0.0f, 1.0f };
 inline constexpr Vector2f Vector2f::down { 0.0f, -1.0f };
 
-inline Vector2f operator*(float s, const Vector2f& v) {
+RTM_FORCE_INLINE Vector2f operator*(float s, const Vector2f& v) {
 	return v * s;
 }
 
@@ -105,45 +105,45 @@ struct Vector2d {
 	explicit constexpr Vector2d(double value) : x(value), y(value) {}
 
 	// The unused lanes are zero.
-	[[nodiscard]] rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, 0.0, 0.0); }
-	static Vector2d from_rtm(rtm::vector4d v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
+	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, 0.0, 0.0); }
+	static RTM_FORCE_INLINE Vector2d from_rtm(rtm::vector4d v) { return { rtm::vector_get_x(v), rtm::vector_get_y(v) }; }
 
-	Vector2d operator+(const Vector2d& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
-	Vector2d operator-(const Vector2d& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
-	Vector2d operator*(const Vector2d& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
-	Vector2d operator/(const Vector2d& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
-	Vector2d operator*(double s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
-	Vector2d operator/(double s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
-	Vector2d operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
-	Vector2d operator+() const { return *this; }
+	RTM_FORCE_INLINE Vector2d operator+(const Vector2d& o) const { return from_rtm(rtm::vector_add(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator-(const Vector2d& o) const { return from_rtm(rtm::vector_sub(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator*(const Vector2d& o) const { return from_rtm(rtm::vector_mul(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator/(const Vector2d& o) const { return from_rtm(rtm::vector_div(to_rtm(), o.to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator*(double s) const { return from_rtm(rtm::vector_mul(to_rtm(), s)); }
+	RTM_FORCE_INLINE Vector2d operator/(double s) const { return from_rtm(rtm::vector_div(to_rtm(), rtm::vector_set(s))); }
+	RTM_FORCE_INLINE Vector2d operator-() const { return from_rtm(rtm::vector_neg(to_rtm())); }
+	RTM_FORCE_INLINE Vector2d operator+() const { return *this; }
 
-	Vector2d& operator+=(const Vector2d& o) { return *this = *this + o; }
-	Vector2d& operator-=(const Vector2d& o) { return *this = *this - o; }
-	Vector2d& operator*=(const Vector2d& o) { return *this = *this * o; }
-	Vector2d& operator/=(const Vector2d& o) { return *this = *this / o; }
-	Vector2d& operator*=(double s) { return *this = *this * s; }
-	Vector2d& operator/=(double s) { return *this = *this / s; }
+	RTM_FORCE_INLINE Vector2d& operator+=(const Vector2d& o) { return *this = *this + o; }
+	RTM_FORCE_INLINE Vector2d& operator-=(const Vector2d& o) { return *this = *this - o; }
+	RTM_FORCE_INLINE Vector2d& operator*=(const Vector2d& o) { return *this = *this * o; }
+	RTM_FORCE_INLINE Vector2d& operator/=(const Vector2d& o) { return *this = *this / o; }
+	RTM_FORCE_INLINE Vector2d& operator*=(double s) { return *this = *this * s; }
+	RTM_FORCE_INLINE Vector2d& operator/=(double s) { return *this = *this / s; }
 
-	bool operator==(const Vector2d& o) const { return x == o.x && y == o.y; }
-	bool operator!=(const Vector2d& o) const { return !(*this == o); }
+	RTM_FORCE_INLINE bool operator==(const Vector2d& o) const { return x == o.x && y == o.y; }
+	RTM_FORCE_INLINE bool operator!=(const Vector2d& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] bool is_near(const Vector2d& o, double tolerance = 1.e-8) const {
+	[[nodiscard]] inline bool is_near(const Vector2d& o, double tolerance = 1.e-8) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance;
 	}
 
-	double& operator[](size_t i) { return (&x)[i]; }
-	const double& operator[](size_t i) const { return (&x)[i]; }
+	RTM_FORCE_INLINE double& operator[](size_t i) { return (&x)[i]; }
+	RTM_FORCE_INLINE const double& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] double length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] double length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] double dot(const Vector2d& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
-	[[nodiscard]] Vector2d normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	void normalize() { *this = normalized(); }
-	[[nodiscard]] double distance(const Vector2d& o) const { return (*this - o).length(); }
-	[[nodiscard]] Vector2d min(const Vector2d& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] Vector2d max(const Vector2d& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
-	[[nodiscard]] Vector2d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] Vector2d lerp(const Vector2d& o, double alpha) const {
+	[[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE double length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE double dot(const Vector2d& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
+	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
+	[[nodiscard]] inline double distance(const Vector2d& o) const { return (*this - o).length(); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d min(const Vector2d& o) const { return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d max(const Vector2d& o) const { return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[nodiscard]] RTM_FORCE_INLINE Vector2d lerp(const Vector2d& o, double alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 
@@ -164,7 +164,7 @@ inline constexpr Vector2d Vector2d::left { -1.0, 0.0 };
 inline constexpr Vector2d Vector2d::up { 0.0, 1.0 };
 inline constexpr Vector2d Vector2d::down { 0.0, -1.0 };
 
-inline Vector2d operator*(double s, const Vector2d& v) {
+RTM_FORCE_INLINE Vector2d operator*(double s, const Vector2d& v) {
 	return v * s;
 }
 
@@ -173,7 +173,7 @@ inline Vector2d operator*(double s, const Vector2d& v) {
 template <> struct std::formatter<feather::Vector2f> {
 	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-	static auto format(const feather::Vector2f& v, std::format_context& ctx) {
+	static inline auto format(const feather::Vector2f& v, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}", v.x, v.y);
 	}
 };
@@ -181,7 +181,7 @@ template <> struct std::formatter<feather::Vector2f> {
 template <> struct std::formatter<feather::Vector2d> {
 	static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-	static auto format(const feather::Vector2d& v, std::format_context& ctx) {
+	static inline auto format(const feather::Vector2d& v, std::format_context& ctx) {
 		return std::format_to(ctx.out(), "X={}, Y={}", v.x, v.y);
 	}
 };
