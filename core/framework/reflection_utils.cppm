@@ -14,7 +14,7 @@ template <class T>
 concept is_reflected_class_type = requires { T::get_class_static(); };
 
 // Value type (FSTRUCT / FCLASS(novtable)): reflected but not derived from
-// Reflected, so no vtable pointer -- see ClassDB::register_value_class.
+// Reflected, so no vtable pointer -- see ClassDB::register_class.
 template <class T>
 concept is_reflected_value_type = is_reflected_class_type<T> && !std::is_base_of_v<Reflected, T>;
 
