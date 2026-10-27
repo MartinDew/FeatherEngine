@@ -54,6 +54,13 @@ public:
 	// registered classes gets unloaded -- see Main::~Main().
 	static void clear();
 
+	static const ClassInfo* get_class_info(std::string_view name) { return _get_class_info_internal(name); };
+
+	template <is_reflected_class_type T>
+	static const ClassInfo* get_class_info() {
+		return get_class_info(T::get_class_static());
+	}
+
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
 
 	template <is_reflected_class_type T>
@@ -64,12 +71,6 @@ public:
 
 	template <is_reflected_class_type T>
 	static void register_singleton_class();
-
-	// Value type (FSTRUCT / FCLASS(novtable)): properties/static methods only,
-	// no Reflected base or object_create_func -- no vtable to factory through.
-	template <is_reflected_value_type T>
-		requires(!std::is_base_of_v<Reflected, T>)
-	static void register_value_class();
 
 	// Property backed directly by a data member; both accessors share its access level.
 	template <class T, class U>
@@ -176,16 +177,24 @@ public:
 template <is_reflected_class_type T>
 void ClassDB::register_class() {
 	static_assert(is_reflected_class_type<T>, "Attempt to register a non reflected class type");
-	if constexpr (std::is_abstract_v<T> || !std::is_default_constructible_v<T>) {
+
+	// Value type (FSTRUCT / FCLASS(novtable)): properties/static methods only,
+	// no Reflected base or object_create_func -- no vtable to factory through.
+	constexpr bool is_value_type = is_reflected_value_type<T>;
+
+	if constexpr (!is_value_type && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>)) {
 		ClassDB::register_abstract_class<T>();
 	}
-	else if constexpr (is_singleton_v<T>) {
+	else if constexpr (!is_value_type && is_singleton_v<T>) {
 		ClassDB::register_singleton_class<T>();
 	}
 	else {
-		static_assert(std::is_default_constructible<T>(), "Trying to register class that is not default constructible");
 		static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
-		std::println("Registering class '{}' as {} object", T::get_class_static(), "implementation");
+		std::println(
+				"Registering class '{}' as {} object",
+				T::get_class_static(),
+				is_value_type ? "value type" : "implementation"
+		);
 		ClassDB& instance = *get();
 
 		ClassInfo& info = instance._class_infos[T::get_class_static()];
@@ -193,7 +202,16 @@ void ClassDB::register_class() {
 		info.parent = T::get_parent_name();
 		info.is_abstract = false;
 		info.is_singleton = false;
-		info.object_create_func = []() -> Variant { return new T(); };
+		info.is_value_type = is_value_type;
+		if constexpr (is_value_type) {
+			// No Reflected base means no polymorphic factory -- Variant's pointer path
+			// requires std::is_base_of_v<Reflected, T>, which a value type never satisfies.
+			// Todo fix this.
+			info.object_create_func = nullptr;
+		}
+		else {
+			info.object_create_func = []() -> Variant { return new T(); };
+		}
 
 		instance._current_info = &info;
 
@@ -249,37 +267,6 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 	// Singletons are not created through the reflection factory; the engine owns
 	// the single instance and constructs it in its own flow. Reflection resolves
 	// live instances through T::get().
-	info.object_create_func = nullptr;
-
-	instance._current_info = &info;
-
-	if (T::get_parent_name() != "") {
-		instance._class_infos[T::get_parent_name()].children.emplace_back(&info);
-	}
-
-	T::_bind_members();
-
-	instance._current_info = nullptr;
-	_fire_subclass_delegates(T::get_class_static());
-}
-
-template <is_reflected_value_type T>
-	requires(!std::is_base_of_v<Reflected, T>)
-void ClassDB::register_value_class() {
-	std::println("Registering class '{}' as {} object", T::get_class_static(), "value type");
-
-	static_assert(is_reflected_value_type<T>, "Attempt to register a non-value reflected class type");
-	static_assert(_has_bind_members<T>, "Class doesn't have a static _bind_members function");
-	ClassDB& instance = *get();
-
-	ClassInfo& info = instance._class_infos[T::get_class_static()];
-	info.name = T::get_class_static();
-	info.parent = T::get_parent_name();
-	info.is_abstract = false;
-	info.is_singleton = false;
-	info.is_value_type = true;
-	// No Reflected base means no polymorphic factory -- Variant's pointer path
-	// requires std::is_base_of_v<Reflected, T>, which a value type never satisfies.
 	info.object_create_func = nullptr;
 
 	instance._current_info = &info;

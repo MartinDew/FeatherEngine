@@ -1063,7 +1063,7 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
     lines.append(f"void {func}() {{")
     if ordered:
         for c in ordered:
-            # A modifier may replace the default register_class/register_value_class
+            # A modifier may replace the default register_class
             # call entirely (e.g. singleton -> register_singleton_class); the first
             # applied modifier (in resolved/sorted order) that opts in wins.
             stmts = None
@@ -1072,11 +1072,8 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
                 if stmts is not None:
                     break
             if stmts is None:
-                # No Reflected base for a value type, so no factory and no method
-                # dispatch -- register_value_class binds properties (and static
-                # methods) only.
-                reg = "register_value_class" if c.is_value_type else "register_class"
-                stmts = [f"ClassDB::{reg}<{c.name}>();"]
+                # register_class dispatches value types (no Reflected base) itself.
+                stmts = [f"ClassDB::register_class<{c.name}>();"]
             for stmt in stmts:
                 lines.append(f"\t{stmt}")
     else:

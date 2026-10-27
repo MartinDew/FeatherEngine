@@ -132,8 +132,7 @@ class Modifier:
 
     def register_statements(self, cls, ctx: EmitContext):
         """Statements to call in register_<dir>_types() for this class,
-        replacing the default `ClassDB::register_class<T>()` /
-        `register_value_class<T>()` choice. Return None to leave the default
+        replacing the default `ClassDB::register_class<T>()` call. Return None to leave the default
         alone (most modifiers should). If more than one applied modifier
         returns non-None, the first one (in resolved/sorted order) wins."""
         return None
