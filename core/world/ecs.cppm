@@ -174,6 +174,16 @@ public:
 	void enable_rest_api();
 	[[nodiscard]] EntityId phase(SystemPhase phase) const;
 
+	// A pipeline running only the systems assigned to it (SystemBuilder::pipeline), in phase order. Assigned
+	// systems leave the default pipeline.
+	EntityId create_pipeline(const std::string& name);
+	[[nodiscard]] EntityId get_default_pipeline() const;
+	// The pipeline progress() runs.
+	[[nodiscard]] EntityId get_pipeline() const;
+	void set_pipeline(EntityId pipeline);
+	// Runs `pipeline` once without making it current. A delta of 0 reuses the last frame's.
+	void run_pipeline(EntityId pipeline, double delta = 0.0);
+
 	// A phase of your own that the default pipeline runs right after `runs_after`. Phases chain, so `runs_after` may
 	// itself be a custom phase; a null one leaves the phase unordered.
 	EntityId create_phase(const std::string& name, EntityId runs_after);
@@ -394,6 +404,12 @@ public:
 	// A phase from Ecs::create_phase.
 	SystemBuilder& phase(EntityId phase) {
 		_desc.phase = phase;
+		return *this;
+	}
+
+	// A pipeline from Ecs::create_pipeline; the system then runs only there.
+	SystemBuilder& pipeline(EntityId pipeline) {
+		_desc.pipeline = pipeline;
 		return *this;
 	}
 

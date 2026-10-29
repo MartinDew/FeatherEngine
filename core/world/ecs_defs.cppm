@@ -71,6 +71,8 @@ struct SystemDesc {
 	QueryDesc query;
 
 	EntityId phase;
+	// Null runs the system in the default pipeline; otherwise only in this one.
+	EntityId pipeline;
 	bool multi_threaded = false;
 	// Null unless the system runs on a timer instead of every frame.
 	EntityId tick_source;

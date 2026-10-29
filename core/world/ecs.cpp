@@ -121,8 +121,61 @@ struct Ecs::Impl {
 	flecs::world world;
 	ecs_entity_t class_info_component = 0;
 
+	// Carried by every system assigned to a custom pipeline, which the default pipeline excludes.
+	ecs_entity_t assigned_tag = 0;
+	ecs_entity_t default_pipeline = 0;
+	// Pipeline -> the tag its systems carry.
+	std::unordered_map<ecs_entity_t, ecs_entity_t> pipeline_tags;
+
 	Impl() {
 		class_info_component = world.component<ComponentClassInfo>("FeatherComponentClassInfo").id();
+		assigned_tag = ecs_new(c());
+		default_pipeline = init_pipeline("FeatherDefaultPipeline", 0, assigned_tag);
+		ecs_set_pipeline(c(), default_pipeline);
+	}
+
+	// Mirrors flecs' builtin pipeline query, plus an optional required tag and an optional excluded one.
+	ecs_entity_t init_pipeline(const char* name, ecs_entity_t with_tag, ecs_entity_t without_tag) {
+		ecs_entity_desc_t entity_desc {};
+		entity_desc.name = name;
+
+		ecs_pipeline_desc_t desc {};
+		desc.entity = ecs_entity_init(c(), &entity_desc);
+
+		ecs_term_t* terms = desc.query.terms;
+		int term = 0;
+		terms[term].id = EcsSystem;
+		terms[term++].inout = EcsInOutNone;
+
+		// Cascading over DependsOn is what walks the phase chain in order.
+		terms[term].id = EcsPhase;
+		terms[term].src.id = EcsUp | EcsCascade;
+		terms[term].trav = EcsDependsOn;
+		terms[term++].inout = EcsInOutNone;
+
+		// Skipped when the system, its phase, or a parent is disabled.
+		terms[term].id = EcsDisabled;
+		terms[term].src.id = EcsUp;
+		terms[term].trav = EcsDependsOn;
+		terms[term].oper = EcsNot;
+		terms[term++].inout = EcsInOutNone;
+
+		terms[term].id = EcsDisabled;
+		terms[term].src.id = EcsUp;
+		terms[term].trav = EcsChildOf;
+		terms[term].oper = EcsNot;
+		terms[term++].inout = EcsInOutNone;
+
+		if (with_tag) {
+			terms[term].id = with_tag;
+			terms[term++].inout = EcsInOutNone;
+		}
+		if (without_tag) {
+			terms[term].id = without_tag;
+			terms[term].oper = EcsNot;
+			terms[term++].inout = EcsInOutNone;
+		}
+		return ecs_pipeline_init(c(), &desc);
 	}
 
 	ecs_world_t* c() const { return world.c_ptr(); }
@@ -168,6 +221,29 @@ void Ecs::enable_rest_api() {
 
 EntityId Ecs::phase(SystemPhase phase) const {
 	return EntityId(to_flecs_phase(phase));
+}
+
+EntityId Ecs::create_pipeline(const std::string& name) {
+	const ecs_entity_t tag = ecs_new(_impl->c());
+	const ecs_entity_t pipeline = _impl->init_pipeline(name.empty() ? nullptr : name.c_str(), tag, 0);
+	_impl->pipeline_tags[pipeline] = tag;
+	return EntityId(pipeline);
+}
+
+EntityId Ecs::get_default_pipeline() const {
+	return EntityId(_impl->default_pipeline);
+}
+
+EntityId Ecs::get_pipeline() const {
+	return EntityId(ecs_get_pipeline(_impl->c()));
+}
+
+void Ecs::set_pipeline(EntityId pipeline) {
+	ecs_set_pipeline(_impl->c(), pipeline.raw());
+}
+
+void Ecs::run_pipeline(EntityId pipeline, double delta) {
+	ecs_run_pipeline(_impl->c(), pipeline.raw(), static_cast<ecs_ftime_t>(delta == 0.0 ? delta_time() : delta));
 }
 
 EntityId Ecs::create_phase(const std::string& name, EntityId runs_after) {
@@ -481,6 +557,16 @@ EntityId Ecs::_register_system(SystemDesc&& desc) {
 
 	ecs_entity_desc_t entity_desc {};
 	entity_desc.name = desc.query.name.empty() ? nullptr : desc.query.name.c_str();
+	ecs_id_t add_ids[3] = {};
+	if (!desc.pipeline.is_null()) {
+		auto it = _impl->pipeline_tags.find(desc.pipeline.raw());
+		fassert(it != _impl->pipeline_tags.end(), "A system was assigned to a pipeline create_pipeline did not make");
+		if (it != _impl->pipeline_tags.end()) {
+			add_ids[0] = it->second;
+			add_ids[1] = _impl->assigned_tag;
+			entity_desc.add = add_ids;
+		}
+	}
 	system_desc.entity = ecs_entity_init(_impl->c(), &entity_desc);
 
 	auto* context = new SystemContext { this, desc.callback, desc.callback_ctx, desc.callback_ctx_free };
