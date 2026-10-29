@@ -3,9 +3,6 @@ module;
 #include <framework/export_defs.h>
 #include <framework/reflection_macros.h>
 
-#include <flecs.h>
-#include <flecs/addons/cpp/world.hpp>
-
 #include <framework/singleton_helpers.h>
 #ifndef FEATHER_REFLECTION_PARSER
 #include "world_sim.gen.h"
@@ -19,6 +16,7 @@ import :main.simulation;
 import :framework.delegate;
 import :world.components.scene;
 import :world.ecs_defs;
+import :world.ecs;
 import :framework.assert;
 import :main.class_db;
 
@@ -27,7 +25,7 @@ export namespace feather {
 class FEATHER_API WorldSim final : public Simulation {
 	FCLASS(singleton);
 
-	World _world;
+	Ecs _ecs;
 	Entity _scene_prefab;
 	Entity _current_scene;
 
@@ -35,22 +33,21 @@ class FEATHER_API WorldSim final : public Simulation {
 
 	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
 
-	// In world_sim.h, private section:
-	bool _is_in_scene(flecs::entity e, Entity scene) const;
+	bool _is_in_scene(Entity e, Entity scene) const;
 
 	template <class... TComps, class TFunc>
-	void _iterate_tree(flecs::entity e, TFunc func) {
+	void _iterate_tree(Entity e, TFunc func) {
 		// Todo
 	}
 
 protected:
-	template <std::derived_from<class EcsModule> T>
-	void _import_feature() {
-		_world.import<T>();
+	template <ClassDbNamed T>
+	void _import_object() {
+		_ecs.import_object<T>();
 	}
 
 public:
-	const EcsTimer fixed_tick;
+	const EntityId fixed_tick;
 
 	WorldSim();
 	~WorldSim() override;
@@ -62,20 +59,19 @@ public:
 	[[nodiscard]] Entity& get_current_scene() { return _current_scene; }
 
 	[[nodiscard]]
-	Entity create_scene(const std::string& name) const;
+	Entity create_scene(const std::string& name);
 
 	[[nodiscard]]
-	Entity create_entity(const std::string& name = "") const;
+	Entity create_entity(const std::string& name = "");
 	[[nodiscard]]
-	Entity create_entity(const Entity& parent_entity, const std::string& name = "") const;
+	Entity create_entity(const Entity& parent_entity, const std::string& name = "");
 
-	// get low level world impl
-	[[nodiscard]] World* get_world() { return &_world; }
+	[[nodiscard]] Ecs* get_ecs() { return &_ecs; }
 
-	void add_to_scene(Entity entity) const;
+	void add_to_scene(Entity entity);
 
 	template <class... T>
-	Ecs::system_builder<T...>& execute_fixed(Ecs::system_builder<T...>& system) {
+	SystemBuilder<T...>& execute_fixed(SystemBuilder<T...>& system) {
 		return system.tick_source(fixed_tick);
 	}
 
@@ -84,7 +80,7 @@ public:
 	// Build a query scoped to the active scene
 	template <class... TComps>
 	auto scene_query() {
-		return _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
+		return _ecs.query<TComps...>().template with<ActiveScene>(TraverseFlag::Up).build();
 	}
 
 	template <class... TComps>

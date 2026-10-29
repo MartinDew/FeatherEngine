@@ -47,6 +47,13 @@ private:
 	template <class T>
 	static constexpr bool _has_bind_members = requires { T::_bind_members(); };
 
+	template <class T>
+	static void _fill_storage_info(ClassInfo& info) {
+		info.size = sizeof(T);
+		info.alignment = alignof(T);
+		info.is_empty = std::is_empty_v<T>;
+	}
+
 public:
 	void print_db();
 
@@ -203,11 +210,13 @@ void ClassDB::register_class() {
 		info.is_abstract = false;
 		info.is_singleton = false;
 		info.is_value_type = is_value_type;
+		_fill_storage_info<T>(info);
 		if constexpr (is_value_type) {
 			// No Reflected base means no polymorphic factory -- Variant's pointer path
 			// requires std::is_base_of_v<Reflected, T>, which a value type never satisfies.
 			// Todo fix this.
 			info.object_create_func = nullptr;
+			info.value_hooks = make_value_type_hooks<T>();
 		}
 		else {
 			info.object_create_func = []() -> Variant { return new T(); };
@@ -239,6 +248,7 @@ template <is_reflected_class_type T> void ClassDB::register_abstract_class() {
 	info.is_abstract = true;
 	info.is_singleton = false;
 	info.object_create_func = nullptr;
+	_fill_storage_info<T>(info);
 
 	instance._current_info = &info;
 
@@ -264,6 +274,7 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 	info.parent = T::get_parent_name();
 	info.is_abstract = false;
 	info.is_singleton = true;
+	_fill_storage_info<T>(info);
 	// Singletons are not created through the reflection factory; the engine owns
 	// the single instance and constructs it in its own flow. Reflection resolves
 	// live instances through T::get().
