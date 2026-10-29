@@ -174,6 +174,13 @@ public:
 	void enable_rest_api();
 	[[nodiscard]] EntityId phase(SystemPhase phase) const;
 
+	// A phase of your own that the default pipeline runs right after `runs_after`. Phases chain, so `runs_after` may
+	// itself be a custom phase; a null one leaves the phase unordered.
+	EntityId create_phase(const std::string& name, EntityId runs_after);
+	EntityId create_phase(const std::string& name, SystemPhase runs_after) {
+		return create_phase(name, phase(runs_after));
+	}
+
 	// ---- Entities ----
 
 	[[nodiscard]] Entity entity(const std::string& name = "");
@@ -381,6 +388,12 @@ public:
 
 	SystemBuilder& phase(SystemPhase phase) {
 		_desc.phase = _ecs->phase(phase);
+		return *this;
+	}
+
+	// A phase from Ecs::create_phase.
+	SystemBuilder& phase(EntityId phase) {
+		_desc.phase = phase;
 		return *this;
 	}
 

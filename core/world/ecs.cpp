@@ -170,6 +170,19 @@ EntityId Ecs::phase(SystemPhase phase) const {
 	return EntityId(to_flecs_phase(phase));
 }
 
+EntityId Ecs::create_phase(const std::string& name, EntityId runs_after) {
+	ecs_world_t* world = _impl->c();
+	ecs_entity_desc_t desc {};
+	desc.name = name.empty() ? nullptr : name.c_str();
+	const ecs_entity_t created = ecs_entity_init(world, &desc);
+	ecs_add_id(world, created, EcsPhase);
+	// The pipeline orders phases by walking DependsOn; that chain is the only ordering a phase has.
+	if (!runs_after.is_null()) {
+		ecs_add_pair(world, created, EcsDependsOn, runs_after.raw());
+	}
+	return EntityId(created);
+}
+
 // ---- Entities ----
 
 Entity Ecs::entity(const std::string& name) {
