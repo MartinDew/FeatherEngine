@@ -1,6 +1,5 @@
 module;
 
-#include <flecs.h>
 #include <csignal>
 
 module feather.core;
@@ -39,7 +38,7 @@ Engine::~Engine() {
 #if BETA
 inline void _setup_demo_scene(WorldSim& _world_sim) {
 	// test script
-	auto w = *_world_sim.get_world();
+	Ecs& ecs = *_world_sim.get_ecs();
 	Transform t1 { { 0, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
 	Transform t2 { { -2, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
 	Transform t3 { { 2, -1, -3 }, Quaternion::from_euler(1.f, 0, 0), Vector3::one };
@@ -48,7 +47,8 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	auto material = std::make_shared<PBRMaterial>();
 	material->set_base_color_factor({ .7f, .7f, .0f });
 
-	struct Move {};
+	// No C++ type: a tag registered by name.
+	ecs.tag("Move");
 	auto s = _world_sim.create_scene("Ni");
 	_world_sim.set_active_scene(s);
 
@@ -56,21 +56,22 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 					 .emplace<Transform>(t1)
 					 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					 .emplace<MaterialInstance>(material)
-					 .add<Move>();
+					 .add_component("Move"_ss);
 
 	_ = _world_sim.create_entity(s, "Box2")
 				.emplace<Transform>(t2)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
-				.add<Move>();
+				.add_component("Move"_ss);
 
-	w.entity(s, "Box3")
+	ecs.entity("Box3")
+			.child_of(s)
 			.emplace<Transform>(t3)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 			.emplace<MaterialInstance>(material)
-			.add<Move>();
+			.add_component("Move"_ss);
 
-	w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
+	ecs.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
 	_world_sim.create_entity(s, "Floor")
 			.emplace<Transform>(Vector3 { 0, -2, 0 }, Quaternion::identity, Vector3 { 200, 0.1f, 200 })
@@ -83,24 +84,28 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 			  .color = Color(1.0f, 1.0f, 1.0f, 1.0f),
 			  .intensity = 10.0f,
 			  .cast_shadows = true };
-	w.entity(s, "Directional").emplace<Light>(std::move(l));
+	auto light = ecs.entity("Directional").child_of(s).set(std::move(l));
 
-	w.system<const MeshInstance, Transform>("Spin")
-			.with<Move>()
-			.kind(flecs::OnUpdate)
-			.write<Transform>()
-			.each([](flecs::iter& it, size_t, const MeshInstance& mi, Transform& t) {
+	// Reached through the ClassInfo the Light component was registered from, naming no C++ type.
+	ComponentHandle light_component = light.component(Light::get_class_static());
+	std::println(
+			"Light component: {} bytes, intensity {}",
+			light_component.get_class_info()->size,
+			light_component.get("intensity").as<real_t>().value_or(real_t(-1))
+	);
+
+	ecs.system<const MeshInstance, Transform>("Spin")
+			.with("Move"_ss)
+			.phase(SystemPhase::OnUpdate)
+			.each([](SystemIterator& it, std::size_t, const MeshInstance&, Transform& t) {
 				t.rotation = t.rotation * Quaternion::from_euler(static_cast<real_t>(it.delta_time()), 0, 0);
 			});
 
-	auto q = w.query_builder<Transform, MeshInstance, MaterialInstance*>("Test")
-					 .with<ActiveScene>()
-					 .optional()
-					 .parent()
-					 .cascade()
+	auto q = ecs.query<Transform, MeshInstance, MaterialInstance*>("Test")
+					 .with<ActiveScene>(TraverseFlag::Cascade, true)
 					 .build();
 
-	q.each([](Entity e, Transform& t, MeshInstance mi, MaterialInstance* mat) { std::cout << e.name() << std::endl; });
+	q.each([](Entity e, Transform&, MeshInstance&, MaterialInstance*) { std::println("{}", e.get_name()); });
 }
 #endif
 

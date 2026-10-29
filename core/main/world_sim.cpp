@@ -1,6 +1,5 @@
 module;
 
-#include <flecs.h>
 #include <framework/singleton_helpers.h>
 
 module feather.core;
@@ -11,83 +10,75 @@ namespace feather {
 
 FSINGLETON_INSTANCE(WorldSim);
 
-WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_time) } {
+WorldSim::WorldSim() : fixed_tick { _ecs.create_timer(Engine::simulation_time) } {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 #if BETA
-	_world.set<Ecs::Rest>({});
+	_ecs.enable_rest_api();
 #endif
 }
 
 WorldSim::~WorldSim() {
-	ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _subclass_delegate_id);
+	ClassDB::unregister_subclass_delegate(EcsObject::get_class_static(), _subclass_delegate_id);
 }
 
 void WorldSim::init() {
-	// Every reflected Component registers before any EcsModule imports
-	register_core_components(_world);
+	// Every reflected Component registers before any EcsObject imports
+	register_core_components(_ecs);
 
-	_scene_prefab = _world.prefab("Scene");
+	// Not "Scene": that name is the Scene component's.
+	_scene_prefab = _ecs.prefab("ScenePrefab");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
 
 	// Subscribed here, not in the ctor (which runs before index_project()):
-	// registering a class fires this immediately, so a DLL's EcsFeature would otherwise import reentrantly, before the
+	// registering a class fires this immediately, so a DLL's EcsObject would otherwise import reentrantly, before the
 	// world above exists.
 	_subclass_delegate_id = ClassDB::on_subclass_registered(
-			EcsModule::get_class_static(), [world_sim = this](std::string_view class_name) {
+			EcsObject::get_class_static(), [world_sim = this](std::string_view class_name) {
 				if (world_sim) {
-					ClassDB::get_static_method(class_name, "_import_module").call(world_sim);
+					ClassDB::get_static_method(class_name, "_import_object").call(world_sim);
 				}
 			}
 	);
 
-	// Picks up EcsModule subclasses from core, from built-in modules, and --
+	// Picks up EcsObject subclasses from core, from built-in modules, and --
 	// because this runs after index_project() -- from loaded project DLLs.
-	auto children = ClassDB::get_children_names(EcsModule::get_class_static());
+	auto children = ClassDB::get_children_names(EcsObject::get_class_static());
 	for (auto& child : children) {
-		ClassDB::get_static_method(child, "_import_module").call(this);
+		ClassDB::get_static_method(child, "_import_object").call(this);
 	}
 }
 
 void WorldSim::update(double delta) {
-	// Ecs::query<Transform, MeshInstance, MaterialInstance> q
-
-	bool result = _world.progress(/*delta*/);
+	_ecs.progress();
 }
 
-Entity WorldSim::create_scene(const std::string& name) const {
-	Scene s { { name } };
-	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
+Entity WorldSim::create_scene(const std::string& name) {
+	return _ecs.entity(name).is_a(_scene_prefab).set(Scene { std::string_view(name) });
 }
 
-Entity WorldSim::create_entity(const std::string& name) const {
-	return _world.entity(name.c_str());
+Entity WorldSim::create_entity(const std::string& name) {
+	return _ecs.entity(name);
 }
 
-Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) const {
-	return _world.entity(name.c_str()).child_of(parent_entity);
+Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) {
+	return _ecs.entity(name).child_of(parent_entity);
 }
 
-void WorldSim::add_to_scene(Entity entity) const {
+void WorldSim::add_to_scene(Entity entity) {
 	entity.child_of(_current_scene);
 }
 
-bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
-	flecs::entity current = e;
-	while (current.is_valid()) {
-		if (current == scene)
-			return true;
-		current = current.parent();
-	}
-	return false;
+bool WorldSim::_is_in_scene(Entity e, Entity scene) const {
+	return e.is_descendant_of(scene);
 }
 
 void WorldSim::set_active_scene(Entity scene) {
-	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
+	fassert(scene.is_instance_of(_scene_prefab), "Given scene isn't a scene instance");
 
 	// Clear old active scene marker
-	_world.remove_all<ActiveScene>();
+	_ecs.remove_all(ActiveScene::get_class_static());
 
 	scene.add<ActiveScene>();
 	_current_scene = scene;
