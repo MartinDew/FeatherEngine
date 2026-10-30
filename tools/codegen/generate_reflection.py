@@ -1098,8 +1098,8 @@ def generate_register_header(subfolder: str, dir_emissions: list, owner) -> str:
                 extra_includes.append(inc)
 
     if owner:
-        # A partition of the owning module; World comes from feather.core's ECS definitions.
-        world = "import :world.ecs_defs;" if owner == "feather.core" else "import feather.core;"
+        # A partition of the owning module; Ecs comes from feather.core's ECS partition.
+        world = "import :world.ecs;" if owner == "feather.core" else "import feather.core;"
         lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", "", world, "",
                  "export namespace feather {"]
     else:

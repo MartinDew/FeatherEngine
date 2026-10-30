@@ -68,7 +68,7 @@ public:
 
 		T* operator->() { return &**it; }
 
-		std::uint32_t absolute_index() { return std::distance(first, it); }
+		uint32_t absolute_index() { return std::distance(first, it); }
 
 		friend StaticIndexedArray;
 	};

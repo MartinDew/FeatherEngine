@@ -59,12 +59,13 @@ export import :resources.texture;
 export import :resources.texture_format_loader;
 export import :world.components.light;
 export import :world.components.scene;
-export import :world.core_world_module;
+export import :world.core_ecs_object;
+export import :world.ecs;
 export import :world.ecs_defs;
-export import :world.ecs_module;
-export import :world.math_module;
+export import :world.ecs_object;
+export import :world.math_ecs_object;
 export import :world.register_core_features;
-export import :world.rendering_world_module;
+export import :world.rendering_ecs_object;
 
 export import :register_framework_types;
 export import :register_main_types;
