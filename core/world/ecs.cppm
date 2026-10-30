@@ -32,7 +32,9 @@ class QueryBuilder;
 // A type ClassDB names. That name is the component's identity in the ECS, so it is the same in the exe and every DLL.
 template <typename T>
 concept ClassDbNamed = requires {
-	{ T::get_class_static() } -> std::convertible_to<StaticString>;
+	{
+		T::get_class_static()
+	} -> std::convertible_to<StaticString>;
 };
 
 // A handle: an Ecs and an id, no storage of its own.
@@ -128,7 +130,7 @@ class FEATHER_API Ecs : public Reflected {
 
 	std::unordered_map<StaticString, EntityId> _components;
 	// The reflection each component was registered from; absent for components without a ClassInfo.
-	std::unordered_map<std::uint64_t, const ClassInfo*> _component_infos;
+	std::unordered_map<uint64_t, const ClassInfo*> _component_infos;
 
 	std::unordered_map<StaticString, EntityId> _objects;
 	std::vector<std::unique_ptr<EcsObject>> _object_instances;
@@ -330,12 +332,14 @@ template <class... TComps>
 std::vector<Term> make_terms() {
 	std::vector<Term> terms;
 	terms.reserve(sizeof...(TComps));
-	(terms.push_back(Term {
-			 TermTraits<TComps>::Component::get_class_static(),
-			 TermTraits<TComps>::access,
-			 TraverseFlag::Self,
-			 TermTraits<TComps>::is_optional,
-	 }),
+	(terms.push_back(
+			 Term {
+					 TermTraits<TComps>::Component::get_class_static(),
+					 TermTraits<TComps>::access,
+					 TraverseFlag::Self,
+					 TermTraits<TComps>::is_optional,
+			 }
+	 ),
 	 ...);
 	return terms;
 }
@@ -343,11 +347,18 @@ std::vector<Term> make_terms() {
 template <class... TComps, class F, std::size_t... Is>
 void invoke_each(SystemIterator& it, F& fn, std::index_sequence<Is...>) {
 	// One column per term per batch, so fields resolve once rather than per row.
-	void* fields[] = { it._field_ptr(static_cast<std::int32_t>(Is), sizeof(typename TermTraits<TComps>::Component))... };
+	void* fields[] = {
+		it._field_ptr(static_cast<std::int32_t>(Is), sizeof(typename TermTraits<TComps>::Component))...
+	};
 
 	const std::size_t rows = it.count();
 	for (std::size_t row = 0; row < rows; ++row) {
-		if constexpr (std::is_invocable_v<F&, SystemIterator&, std::size_t, decltype(TermTraits<TComps>::row(fields[Is], row))...>) {
+		if constexpr (std::is_invocable_v<
+							  F&,
+							  SystemIterator&,
+							  std::size_t,
+							  decltype(TermTraits<TComps>::row(fields[Is], row))...>)
+		{
 			fn(it, row, TermTraits<TComps>::row(fields[Is], row)...);
 		}
 		else {
@@ -475,7 +486,9 @@ public:
 	Query(const Query&) = delete;
 	Query& operator=(const Query&) = delete;
 
-	Query(Query&& other) noexcept : _ecs(std::exchange(other._ecs, nullptr)), _impl(std::exchange(other._impl, nullptr)) {}
+	Query(Query&& other) noexcept
+			: _ecs(std::exchange(other._ecs, nullptr))
+			, _impl(std::exchange(other._impl, nullptr)) {}
 
 	Query& operator=(Query&& other) noexcept {
 		if (this != &other) {
@@ -502,7 +515,9 @@ public:
 		_ecs->_query_each(
 				_impl,
 				[](SystemIterator& it, void* ctx) {
-					ecs_detail::invoke_each<TComps...>(it, *static_cast<Fn*>(ctx), std::index_sequence_for<TComps...> {});
+					ecs_detail::invoke_each<TComps...>(
+							it, *static_cast<Fn*>(ctx), std::index_sequence_for<TComps...> {}
+					);
 				},
 				const_cast<void*>(static_cast<const void*>(std::addressof(callable)))
 		);

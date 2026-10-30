@@ -12,36 +12,36 @@ namespace {
 
 ecs_entity_t to_flecs_phase(SystemPhase phase) {
 	switch (phase) {
-		case SystemPhase::OnLoad:
-			return EcsOnLoad;
-		case SystemPhase::PostLoad:
-			return EcsPostLoad;
-		case SystemPhase::PreUpdate:
-			return EcsPreUpdate;
-		case SystemPhase::OnUpdate:
-			return EcsOnUpdate;
-		case SystemPhase::OnValidate:
-			return EcsOnValidate;
-		case SystemPhase::PostUpdate:
-			return EcsPostUpdate;
-		case SystemPhase::PreStore:
-			return EcsPreStore;
-		case SystemPhase::OnStore:
-			return EcsOnStore;
+	case SystemPhase::OnLoad:
+		return EcsOnLoad;
+	case SystemPhase::PostLoad:
+		return EcsPostLoad;
+	case SystemPhase::PreUpdate:
+		return EcsPreUpdate;
+	case SystemPhase::OnUpdate:
+		return EcsOnUpdate;
+	case SystemPhase::OnValidate:
+		return EcsOnValidate;
+	case SystemPhase::PostUpdate:
+		return EcsPostUpdate;
+	case SystemPhase::PreStore:
+		return EcsPreStore;
+	case SystemPhase::OnStore:
+		return EcsOnStore;
 	}
 	return EcsOnUpdate;
 }
 
 std::int16_t to_flecs_inout(TermAccess access) {
 	switch (access) {
-		case TermAccess::In:
-			return EcsIn;
-		case TermAccess::InOut:
-			return EcsInOut;
-		case TermAccess::Out:
-			return EcsOut;
-		case TermAccess::None:
-			return EcsInOutNone;
+	case TermAccess::In:
+		return EcsIn;
+	case TermAccess::InOut:
+		return EcsInOut;
+	case TermAccess::Out:
+		return EcsOut;
+	case TermAccess::None:
+		return EcsInOutNone;
 	}
 	return EcsInOutDefault;
 }
@@ -49,12 +49,12 @@ std::int16_t to_flecs_inout(TermAccess access) {
 // Up and Cascade both check the entity itself first, then walk ChildOf (not flecs' default IsA).
 ecs_id_t to_flecs_traverse_flags(TraverseFlag traverse) {
 	switch (traverse) {
-		case TraverseFlag::Self:
-			return EcsSelf;
-		case TraverseFlag::Up:
-			return EcsSelf | EcsUp;
-		case TraverseFlag::Cascade:
-			return EcsSelf | EcsCascade;
+	case TraverseFlag::Self:
+		return EcsSelf;
+	case TraverseFlag::Up:
+		return EcsSelf | EcsUp;
+	case TraverseFlag::Cascade:
+		return EcsSelf | EcsCascade;
 	}
 	return EcsSelf;
 }
@@ -193,7 +193,8 @@ StaticString Ecs::_intern(std::string_view name) {
 	return StaticString(names->back());
 }
 
-Ecs::Ecs() : _impl(std::make_unique<Impl>()) {}
+Ecs::Ecs() : _impl(std::make_unique<Impl>()) {
+}
 
 // EcsObjects go first: they may hold handles into the world.
 Ecs::~Ecs() {
@@ -432,6 +433,7 @@ bool Ecs::add_component(EntityId entity, StaticString name) {
 		return false;
 	}
 	ecs_add_id(_impl->c(), entity.raw(), component.raw());
+
 	return true;
 }
 
@@ -759,8 +761,10 @@ void* SystemIterator::_field_ptr(std::int32_t term, std::size_t size) const {
 
 // ---- ComponentHandle ----
 
-ComponentHandle::ComponentHandle(Ecs& ecs, EntityId entity, StaticString component) :
-		_ecs(&ecs), _entity(entity), _component(ecs.find_component(component)) {
+ComponentHandle::ComponentHandle(Ecs& ecs, EntityId entity, StaticString component)
+		: _ecs(&ecs)
+		, _entity(entity)
+		, _component(ecs.find_component(component)) {
 	_info = ecs.get_component_class_info(_component);
 }
 
@@ -777,8 +781,8 @@ const ClassInfo::Property* ComponentHandle::_find_property(std::string_view name
 }
 
 bool ComponentHandle::is_valid() const {
-	return _ecs && !_component.is_null() && _ecs->is_valid(_entity)
-		&& ecs_has_id(_ecs->_impl->c(), _entity.raw(), _component.raw());
+	return _ecs && !_component.is_null() && _ecs->is_valid(_entity) &&
+			ecs_has_id(_ecs->_impl->c(), _entity.raw(), _component.raw());
 }
 
 const void* ComponentHandle::data() const {

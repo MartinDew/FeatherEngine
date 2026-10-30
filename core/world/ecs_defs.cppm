@@ -9,22 +9,22 @@ class SystemIterator;
 
 // An entity's identity. Opaque outside core/world/*.cpp: it can only be handed back to the Ecs that issued it.
 class EntityId {
-	std::uint64_t _value = 0;
+	uint64_t _value = 0;
 
 public:
 	constexpr EntityId() = default;
-	explicit constexpr EntityId(std::uint64_t value) : _value(value) {}
+	explicit constexpr EntityId(uint64_t value) : _value(value) {}
 
 	[[nodiscard]] constexpr bool is_null() const { return _value == 0; }
 	explicit constexpr operator bool() const { return _value != 0; }
 
 	constexpr bool operator==(const EntityId& other) const = default;
 
-	[[nodiscard]] constexpr std::uint64_t raw() const { return _value; }
+	[[nodiscard]] constexpr uint64_t raw() const { return _value; }
 };
 
 // The phases of the default pipeline, in the order it runs them.
-enum class SystemPhase : std::uint8_t {
+enum class SystemPhase : uint8_t {
 	OnLoad,
 	PostLoad,
 	PreUpdate,
@@ -36,7 +36,7 @@ enum class SystemPhase : std::uint8_t {
 };
 
 // What a term does with its component. None is a pure filter: it must match but yields no field.
-enum class TermAccess : std::uint8_t {
+enum class TermAccess : uint8_t {
 	In,
 	InOut,
 	Out,
@@ -44,7 +44,7 @@ enum class TermAccess : std::uint8_t {
 };
 
 // Where a term looks for its component. Up and Cascade fall back to ancestors (ChildOf), e.g. the owning scene.
-enum class TraverseFlag : std::uint8_t {
+enum class TraverseFlag : uint8_t {
 	Self,
 	Up,
 	Cascade,
@@ -63,7 +63,8 @@ struct QueryDesc {
 	std::vector<Term> terms;
 };
 
-// Every system callback is reduced to this: `ctx` holds the user's callable, which only the trampoline knows the type of.
+// Every system callback is reduced to this: `ctx` holds the user's callable, which only the trampoline knows the type
+// of.
 using SystemCallback = void (*)(SystemIterator& it, void* ctx);
 using ContextDeleter = void (*)(void* ctx);
 
