@@ -20,7 +20,6 @@ import :main.class_db;
 export namespace feather {
 
 class Ecs;
-class EcsObject;
 class ComponentHandle;
 
 template <class... TComps>
@@ -32,9 +31,7 @@ class QueryBuilder;
 // A type ClassDB names. That name is the component's identity in the ECS, so it is the same in the exe and every DLL.
 template <typename T>
 concept ClassDbNamed = requires {
-	{
-		T::get_class_static()
-	} -> std::convertible_to<StaticString>;
+	{ T::get_class_static() } -> std::convertible_to<StaticString>;
 };
 
 // A handle: an Ecs and an id, no storage of its own.
@@ -125,28 +122,18 @@ class FEATHER_API Ecs : public Reflected {
 	template <class... TComps>
 	friend class Query;
 
+	// flecs is the only record of what is registered: components and imported EcsObjects are entities in it.
 	struct Impl;
 	std::unique_ptr<Impl> _impl;
 
-	std::unordered_map<StaticString, EntityId> _components;
-	// The reflection each component was registered from; absent for components without a ClassInfo.
-	std::unordered_map<uint64_t, const ClassInfo*> _component_infos;
-
-	std::unordered_map<StaticString, EntityId> _objects;
-	std::vector<std::unique_ptr<EcsObject>> _object_instances;
-
-	// flecs keeps the names it is handed, and StaticString is only a view.
-	static StaticString _intern(std::string_view name);
-
+	// A size of 0 registers a tag.
 	EntityId _register_component(
-			StaticString name,
+			std::string_view name,
 			std::size_t size,
 			std::size_t alignment,
 			const ValueTypeHooks& hooks,
 			const ClassInfo* info
 	);
-
-	void _link_class_info(EntityId component, const ClassInfo& info);
 
 	// Copies or moves one instance into the entity's storage, adding the component first if needed.
 	bool _set_component(EntityId entity, EntityId component, void* value, std::size_t size, bool move);
@@ -211,7 +198,8 @@ public:
 
 	// ---- Component types ----
 
-	// Registers a value type from its reflection alone, linking the component to `info`. Idempotent by name.
+	// Registers a value type from its reflection alone; the component entity then carries `info` as a component of its
+	// own. Idempotent by name.
 	EntityId register_component(const ClassInfo& info);
 	// Looks the class up in ClassDB; null when it is unknown or not a value type.
 	EntityId register_component(StaticString class_name);
@@ -229,17 +217,18 @@ public:
 			return tag(name);
 		}
 		else {
-			return _register_component(_intern(name), sizeof(T), alignof(T), make_value_type_hooks<T>(), nullptr);
+			return _register_component(name, sizeof(T), alignof(T), make_value_type_hooks<T>(), nullptr);
 		}
 	}
 
 	// A component with no storage.
 	EntityId tag(std::string_view name);
 
+	// A component registered at the ECS root under `name`, or null.
 	[[nodiscard]] EntityId find_component(StaticString name) const;
+	// Read off the component entity; null for components registered without a ClassInfo.
 	[[nodiscard]] const ClassInfo* get_component_class_info(EntityId component) const;
 	[[nodiscard]] const ClassInfo* get_component_class_info(StaticString name) const;
-	[[nodiscard]] std::size_t get_component_count() const { return _components.size(); }
 
 	// ---- Components on entities, by name ----
 
@@ -271,7 +260,7 @@ public:
 		return import_object(T::get_class_static());
 	}
 
-	[[nodiscard]] bool is_object_imported(StaticString class_name) const { return _objects.contains(class_name); }
+	[[nodiscard]] bool is_object_imported(StaticString class_name) const;
 };
 
 // One component on one entity, reflected through the ClassInfo it was registered from.
@@ -353,11 +342,13 @@ void invoke_each(SystemIterator& it, F& fn, std::index_sequence<Is...>) {
 
 	const std::size_t rows = it.count();
 	for (std::size_t row = 0; row < rows; ++row) {
-		if constexpr (std::is_invocable_v<
-							  F&,
-							  SystemIterator&,
-							  std::size_t,
-							  decltype(TermTraits<TComps>::row(fields[Is], row))...>)
+		if constexpr (
+				std::is_invocable_v<
+						F&,
+						SystemIterator&,
+						std::size_t,
+						decltype(TermTraits<TComps>::row(fields[Is], row))...>
+		)
 		{
 			fn(it, row, TermTraits<TComps>::row(fields[Is], row)...);
 		}
