@@ -56,20 +56,20 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 					 .emplace<Transform>(t1)
 					 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					 .emplace<MaterialInstance>(material)
-					 .add_component("Move"_ss);
+					 .add_component("Move");
 
 	_ = _world_sim.create_entity(s, "Box2")
 				.emplace<Transform>(t2)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
-				.add_component("Move"_ss);
+				.add_component("Move");
 
 	ecs.entity("Box3")
 			.child_of(s)
 			.emplace<Transform>(t3)
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 			.emplace<MaterialInstance>(material)
-			.add_component("Move"_ss);
+			.add_component("Move");
 
 	ecs.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
