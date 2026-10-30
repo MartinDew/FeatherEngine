@@ -79,10 +79,19 @@ void hook_move(void* dst, void* src, std::int32_t count, const ecs_type_info_t* 
 	hooks_of(info).move(dst, src, static_cast<std::size_t>(count));
 }
 
-// Stored on each component entity, so flecs-side tooling can also reach a component's reflection.
+// Set on a component's own entity: the reflection it was registered from.
 struct ComponentClassInfo {
 	const ClassInfo* info = nullptr;
 };
+
+// Set on an imported EcsObject's module entity, which owns the instance for the world's lifetime.
+struct EcsObjectInstance {
+	std::unique_ptr<EcsObject> object;
+};
+
+void free_hooks(void* hooks) {
+	delete static_cast<ValueTypeHooks*>(hooks);
+}
 
 struct SystemContext {
 	Ecs* ecs = nullptr;
@@ -116,26 +125,24 @@ void system_run_trampoline(ecs_iter_t* it) {
 } //namespace
 
 struct Ecs::Impl {
-	// Declared before the world: component dtors run during world teardown and read these.
-	std::deque<ValueTypeHooks> hooks;
 	flecs::world world;
 	ecs_entity_t class_info_component = 0;
+	ecs_entity_t object_component = 0;
 
 	// Carried by every system assigned to a custom pipeline, which the default pipeline excludes.
 	ecs_entity_t assigned_tag = 0;
 	ecs_entity_t default_pipeline = 0;
-	// Pipeline -> the tag its systems carry.
-	std::unordered_map<ecs_entity_t, ecs_entity_t> pipeline_tags;
 
 	Impl() {
-		class_info_component = world.component<ComponentClassInfo>("FeatherComponentClassInfo").id();
+		class_info_component = world.component<ComponentClassInfo>("FeatherClassInfo").id();
+		object_component = world.component<EcsObjectInstance>("FeatherEcsObject").id();
 		assigned_tag = ecs_new(c());
-		default_pipeline = init_pipeline("FeatherDefaultPipeline", 0, assigned_tag);
+		default_pipeline = init_pipeline("FeatherDefaultPipeline", false, assigned_tag);
 		ecs_set_pipeline(c(), default_pipeline);
 	}
 
-	// Mirrors flecs' builtin pipeline query, plus an optional required tag and an optional excluded one.
-	ecs_entity_t init_pipeline(const char* name, ecs_entity_t with_tag, ecs_entity_t without_tag) {
+	// Mirrors flecs' builtin pipeline query. A custom pipeline doubles as the tag its own systems carry.
+	ecs_entity_t init_pipeline(const char* name, bool own_systems_only, ecs_entity_t without_tag) {
 		ecs_entity_desc_t entity_desc {};
 		entity_desc.name = name;
 
@@ -166,8 +173,8 @@ struct Ecs::Impl {
 		terms[term].oper = EcsNot;
 		terms[term++].inout = EcsInOutNone;
 
-		if (with_tag) {
-			terms[term].id = with_tag;
+		if (own_systems_only) {
+			terms[term].id = desc.entity;
 			terms[term++].inout = EcsInOutNone;
 		}
 		if (without_tag) {
@@ -178,29 +185,21 @@ struct Ecs::Impl {
 		return ecs_pipeline_init(c(), &desc);
 	}
 
+	// A root-level entity named `name` carrying `marker`, or 0.
+	ecs_entity_t find_root(std::string_view name, ecs_id_t marker) const {
+		const std::string terminated(name);
+		const ecs_entity_t found = ecs_lookup_child(c(), 0, terminated.c_str());
+		return found && ecs_has_id(c(), found, marker) ? found : 0;
+	}
+
 	ecs_world_t* c() const { return world.c_ptr(); }
 };
-
-StaticString Ecs::_intern(std::string_view name) {
-	// Only ever grows, so every view handed out stays valid for the process.
-	static auto* names = new std::deque<std::string>();
-	for (const std::string& existing : *names) {
-		if (existing == name) {
-			return StaticString(existing);
-		}
-	}
-	names->emplace_back(name);
-	return StaticString(names->back());
-}
 
 Ecs::Ecs() : _impl(std::make_unique<Impl>()) {
 }
 
-// EcsObjects go first: they may hold handles into the world.
-Ecs::~Ecs() {
-	_object_instances.clear();
-	_impl.reset();
-}
+// The world owns every EcsObject instance, so tearing it down destroys them too.
+Ecs::~Ecs() = default;
 
 // ---- Simulation ----
 
@@ -225,10 +224,7 @@ EntityId Ecs::phase(SystemPhase phase) const {
 }
 
 EntityId Ecs::create_pipeline(const std::string& name) {
-	const ecs_entity_t tag = ecs_new(_impl->c());
-	const ecs_entity_t pipeline = _impl->init_pipeline(name.empty() ? nullptr : name.c_str(), tag, 0);
-	_impl->pipeline_tags[pipeline] = tag;
-	return EntityId(pipeline);
+	return EntityId(_impl->init_pipeline(name.empty() ? nullptr : name.c_str(), true, 0));
 }
 
 EntityId Ecs::get_default_pipeline() const {
@@ -315,110 +311,87 @@ bool Ecs::is_instance_of(EntityId entity, EntityId prefab) const {
 // ---- Component types ----
 
 EntityId Ecs::register_component(const ClassInfo& info) {
-	if (auto it = _components.find(info.name); it != _components.end()) {
-		return it->second;
+	if (const EntityId existing = find_component(info.name); !existing.is_null()) {
+		return existing;
 	}
 	// Only a value type's ClassInfo describes storage; a Reflected object lives on the heap, not in a column.
 	if (!info.is_value_type || info.size == 0) {
 		return {};
 	}
-	const StaticString name = _intern(info.name.str());
-	if (info.is_empty) {
-		const EntityId id = tag(name.str());
-		if (!id.is_null()) {
-			_link_class_info(id, info);
-		}
-		return id;
-	}
-	return _register_component(name, info.size, info.alignment, info.value_hooks, &info);
+	return _register_component(
+			info.name.str(), info.is_empty ? 0 : info.size, info.is_empty ? 0 : info.alignment, info.value_hooks, &info
+	);
 }
 
 EntityId Ecs::register_component(StaticString class_name) {
-	if (auto it = _components.find(class_name); it != _components.end()) {
-		return it->second;
+	if (const EntityId existing = find_component(class_name); !existing.is_null()) {
+		return existing;
 	}
 	const ClassInfo* info = ClassDB::get_class_info(class_name);
 	return info ? register_component(*info) : EntityId {};
 }
 
 EntityId Ecs::tag(std::string_view name) {
-	const StaticString interned = _intern(name);
-	if (auto it = _components.find(interned); it != _components.end()) {
-		return it->second;
-	}
-
-	// Always at the root, so a name resolves the same regardless of which EcsObject scope is open.
-	const ecs_entity_t previous_scope = ecs_set_scope(_impl->c(), 0);
-	ecs_entity_desc_t desc {};
-	desc.name = interned.data();
-	const EntityId id { ecs_entity_init(_impl->c(), &desc) };
-	ecs_set_scope(_impl->c(), previous_scope);
-
-	if (!id.is_null()) {
-		_components[interned] = id;
-	}
-	return id;
+	return _register_component(name, 0, 0, {}, nullptr);
 }
 
 EntityId Ecs::_register_component(
-		StaticString name,
+		std::string_view name,
 		std::size_t size,
 		std::size_t alignment,
 		const ValueTypeHooks& hooks,
 		const ClassInfo* info
 ) {
-	if (auto it = _components.find(name); it != _components.end()) {
-		return it->second;
+	if (const EntityId existing = find_component(StaticString(name)); !existing.is_null()) {
+		return existing;
 	}
 
+	// Always at the root, so a name resolves the same regardless of which EcsObject scope is open.
 	ecs_world_t* world = _impl->c();
 	const ecs_entity_t previous_scope = ecs_set_scope(world, 0);
 
+	const std::string terminated(name);
 	ecs_entity_desc_t entity_desc {};
-	entity_desc.name = name.data();
-	entity_desc.symbol = name.data();
-
-	const ValueTypeHooks* kept = &_impl->hooks.emplace_back(hooks);
+	entity_desc.name = terminated.c_str();
+	entity_desc.symbol = terminated.c_str();
 
 	ecs_component_desc_t desc {};
 	desc.entity = ecs_entity_init(world, &entity_desc);
 	desc.type.size = static_cast<ecs_size_t>(size);
 	desc.type.alignment = static_cast<ecs_size_t>(alignment);
-	desc.type.name = name.data();
-	desc.type.hooks.binding_ctx = const_cast<ValueTypeHooks*>(kept);
-	// flecs zero-fills when ctor is null; flecs_default_ctor keeps that while still being an explicit hook.
-	desc.type.hooks.ctor = kept->default_construct ? hook_ctor : flecs_default_ctor;
-	desc.type.hooks.dtor = kept->destruct ? hook_dtor : nullptr;
-	desc.type.hooks.copy = kept->copy ? hook_copy : nullptr;
-	desc.type.hooks.move = kept->move ? hook_move : nullptr;
+	if (size > 0) {
+		auto* owned = new ValueTypeHooks(hooks);
+		desc.type.hooks.binding_ctx = owned;
+		desc.type.hooks.binding_ctx_free = free_hooks;
+		// flecs zero-fills when ctor is null; flecs_default_ctor keeps that while still being an explicit hook.
+		desc.type.hooks.ctor = owned->default_construct ? hook_ctor : flecs_default_ctor;
+		desc.type.hooks.dtor = owned->destruct ? hook_dtor : nullptr;
+		desc.type.hooks.copy = owned->copy ? hook_copy : nullptr;
+		desc.type.hooks.move = owned->move ? hook_move : nullptr;
+	}
 
 	const EntityId id { ecs_component_init(world, &desc) };
 	ecs_set_scope(world, previous_scope);
-	if (id.is_null()) {
-		return {};
-	}
 
-	_components[name] = id;
-	if (info) {
-		_link_class_info(id, *info);
+	if (!id.is_null() && info) {
+		const ComponentClassInfo link { info };
+		ecs_set_id(world, id.raw(), _impl->class_info_component, sizeof(ComponentClassInfo), &link);
 	}
 	return id;
 }
 
-void Ecs::_link_class_info(EntityId component, const ClassInfo& info) {
-	_component_infos[component.raw()] = &info;
-	const ComponentClassInfo link { &info };
-	ecs_set_id(_impl->c(), component.raw(), _impl->class_info_component, sizeof(ComponentClassInfo), &link);
-}
-
 EntityId Ecs::find_component(StaticString name) const {
-	auto it = _components.find(name);
-	return it == _components.end() ? EntityId {} : it->second;
+	return EntityId(_impl->find_root(name.str(), ecs_id(EcsComponent)));
 }
 
 const ClassInfo* Ecs::get_component_class_info(EntityId component) const {
-	auto it = _component_infos.find(component.raw());
-	return it == _component_infos.end() ? nullptr : it->second;
+	if (!is_valid(component)) {
+		return nullptr;
+	}
+	const auto* link = static_cast<const ComponentClassInfo*>(
+			ecs_get_id(_impl->c(), component.raw(), _impl->class_info_component)
+	);
+	return link ? link->info : nullptr;
 }
 
 const ClassInfo* Ecs::get_component_class_info(StaticString name) const {
@@ -559,15 +532,12 @@ EntityId Ecs::_register_system(SystemDesc&& desc) {
 
 	ecs_entity_desc_t entity_desc {};
 	entity_desc.name = desc.query.name.empty() ? nullptr : desc.query.name.c_str();
-	ecs_id_t add_ids[3] = {};
-	if (!desc.pipeline.is_null()) {
-		auto it = _impl->pipeline_tags.find(desc.pipeline.raw());
-		fassert(it != _impl->pipeline_tags.end(), "A system was assigned to a pipeline create_pipeline did not make");
-		if (it != _impl->pipeline_tags.end()) {
-			add_ids[0] = it->second;
-			add_ids[1] = _impl->assigned_tag;
-			entity_desc.add = add_ids;
-		}
+	// A custom pipeline matches systems carrying its own entity as a tag.
+	const ecs_id_t add_ids[] = { desc.pipeline.raw(), _impl->assigned_tag, 0 };
+	if (!desc.pipeline.is_null() && desc.pipeline.raw() != _impl->default_pipeline) {
+		fassert(ecs_has_id(_impl->c(), desc.pipeline.raw(), ecs_id(EcsPipeline)),
+				"A system was assigned to a non-pipeline");
+		entity_desc.add = add_ids;
 	}
 	system_desc.entity = ecs_entity_init(_impl->c(), &entity_desc);
 
@@ -620,8 +590,8 @@ void Ecs::_query_each(void* query, SystemCallback callback, void* ctx) {
 // ---- EcsObjects ----
 
 EntityId Ecs::import_object(StaticString class_name) {
-	if (auto it = _objects.find(class_name); it != _objects.end()) {
-		return it->second;
+	if (const ecs_entity_t existing = _impl->find_root(class_name.str(), _impl->object_component)) {
+		return EntityId(existing);
 	}
 
 	const ClassInfo* info = ClassDB::get_class_info(class_name);
@@ -632,26 +602,27 @@ EntityId Ecs::import_object(StaticString class_name) {
 	if (!object) {
 		return {};
 	}
+	EcsObject* instance = object.get();
 
 	// A module entity scopes everything the object declares, the way flecs namespaces its own modules.
-	ecs_world_t* world = _impl->c();
-	const StaticString name = _intern(class_name.str());
-	ecs_entity_desc_t desc {};
-	desc.name = name.data();
-	const ecs_entity_t scope = ecs_entity_init(world, &desc);
-	ecs_add_id(world, scope, EcsModule);
-
-	// Recorded before on_import, so an object importing another that imports it back stops here.
-	const EntityId id { scope };
-	_objects[name] = id;
+	flecs::world& world = _impl->world;
+	const ecs_entity_t previous_scope = ecs_set_scope(world.c_ptr(), 0);
+	const std::string name(class_name.str());
+	flecs::entity scope = world.entity(name.c_str());
+	ecs_set_scope(world.c_ptr(), previous_scope);
+	scope.add(flecs::Module);
+	// Set before on_import, so an object importing another that imports it back finds it here.
+	scope.set(EcsObjectInstance { std::move(object) });
 
 	std::println("Importing ECS object {}", class_name);
-	const ecs_entity_t previous_scope = ecs_set_scope(world, scope);
-	object->on_import(*this);
-	ecs_set_scope(world, previous_scope);
+	const ecs_entity_t outer_scope = ecs_set_scope(world.c_ptr(), scope.id());
+	instance->on_import(*this);
+	ecs_set_scope(world.c_ptr(), outer_scope);
+	return EntityId(scope.id());
+}
 
-	_object_instances.push_back(std::move(object));
-	return id;
+bool Ecs::is_object_imported(StaticString class_name) const {
+	return _impl->find_root(class_name.str(), _impl->object_component) != 0;
 }
 
 // ---- Entity ----
