@@ -136,9 +136,9 @@ struct Ecs::Impl {
 	Impl() {
 		class_info_component = world.component<ComponentClassInfo>("FeatherClassInfo").id();
 		object_component = world.component<EcsObjectInstance>("FeatherEcsObject").id();
-		assigned_tag = ecs_new(c());
+		assigned_tag = ecs_new(flecs_ptr());
 		default_pipeline = init_pipeline("FeatherDefaultPipeline", false, assigned_tag);
-		ecs_set_pipeline(c(), default_pipeline);
+		ecs_set_pipeline(flecs_ptr(), default_pipeline);
 	}
 
 	// Mirrors flecs' builtin pipeline query. A custom pipeline doubles as the tag its own systems carry.
@@ -147,7 +147,7 @@ struct Ecs::Impl {
 		entity_desc.name = name;
 
 		ecs_pipeline_desc_t desc {};
-		desc.entity = ecs_entity_init(c(), &entity_desc);
+		desc.entity = ecs_entity_init(flecs_ptr(), &entity_desc);
 
 		ecs_term_t* terms = desc.query.terms;
 		int term = 0;
@@ -182,17 +182,17 @@ struct Ecs::Impl {
 			terms[term].oper = EcsNot;
 			terms[term++].inout = EcsInOutNone;
 		}
-		return ecs_pipeline_init(c(), &desc);
+		return ecs_pipeline_init(flecs_ptr(), &desc);
 	}
 
 	// A root-level entity named `name` carrying `marker`, or 0.
 	ecs_entity_t find_root(std::string_view name, ecs_id_t marker) const {
 		const std::string terminated(name);
-		const ecs_entity_t found = ecs_lookup_child(c(), 0, terminated.c_str());
-		return found && ecs_has_id(c(), found, marker) ? found : 0;
+		const ecs_entity_t found = ecs_lookup_child(flecs_ptr(), 0, terminated.c_str());
+		return found && ecs_has_id(flecs_ptr(), found, marker) ? found : 0;
 	}
 
-	ecs_world_t* c() const { return world.c_ptr(); }
+	ecs_world_t* flecs_ptr() const { return world.c_ptr(); }
 };
 
 Ecs::Ecs() : _impl(std::make_unique<Impl>()) {
@@ -232,19 +232,19 @@ EntityId Ecs::get_default_pipeline() const {
 }
 
 EntityId Ecs::get_pipeline() const {
-	return EntityId(ecs_get_pipeline(_impl->c()));
+	return EntityId(ecs_get_pipeline(_impl->flecs_ptr()));
 }
 
 void Ecs::set_pipeline(EntityId pipeline) {
-	ecs_set_pipeline(_impl->c(), pipeline.raw());
+	ecs_set_pipeline(_impl->flecs_ptr(), pipeline.raw());
 }
 
 void Ecs::run_pipeline(EntityId pipeline, double delta) {
-	ecs_run_pipeline(_impl->c(), pipeline.raw(), static_cast<ecs_ftime_t>(delta == 0.0 ? delta_time() : delta));
+	ecs_run_pipeline(_impl->flecs_ptr(), pipeline.raw(), static_cast<ecs_ftime_t>(delta == 0.0 ? delta_time() : delta));
 }
 
 EntityId Ecs::create_phase(const std::string& name, EntityId runs_after) {
-	ecs_world_t* world = _impl->c();
+	ecs_world_t* world = _impl->flecs_ptr();
 	ecs_entity_desc_t desc {};
 	desc.name = name.empty() ? nullptr : name.c_str();
 	const ecs_entity_t created = ecs_entity_init(world, &desc);
@@ -276,36 +276,36 @@ Entity Ecs::lookup(const std::string& name) {
 }
 
 void Ecs::destroy_entity(EntityId id) {
-	ecs_delete(_impl->c(), id.raw());
+	ecs_delete(_impl->flecs_ptr(), id.raw());
 }
 
 bool Ecs::is_valid(EntityId id) const {
-	return !id.is_null() && ecs_is_valid(_impl->c(), id.raw());
+	return !id.is_null() && ecs_is_valid(_impl->flecs_ptr(), id.raw());
 }
 
 std::string Ecs::get_entity_name(EntityId id) const {
-	const char* name = ecs_get_name(_impl->c(), id.raw());
+	const char* name = ecs_get_name(_impl->flecs_ptr(), id.raw());
 	return name ? std::string(name) : std::string {};
 }
 
 void Ecs::set_entity_name(EntityId id, const std::string& name) {
-	ecs_set_name(_impl->c(), id.raw(), name.c_str());
+	ecs_set_name(_impl->flecs_ptr(), id.raw(), name.c_str());
 }
 
 EntityId Ecs::get_parent(EntityId id) const {
-	return EntityId(ecs_get_target(_impl->c(), id.raw(), EcsChildOf, 0));
+	return EntityId(ecs_get_target(_impl->flecs_ptr(), id.raw(), EcsChildOf, 0));
 }
 
 void Ecs::set_parent(EntityId child, EntityId parent) {
-	ecs_add_pair(_impl->c(), child.raw(), EcsChildOf, parent.raw());
+	ecs_add_pair(_impl->flecs_ptr(), child.raw(), EcsChildOf, parent.raw());
 }
 
 void Ecs::set_prefab(EntityId entity, EntityId prefab) {
-	ecs_add_pair(_impl->c(), entity.raw(), EcsIsA, prefab.raw());
+	ecs_add_pair(_impl->flecs_ptr(), entity.raw(), EcsIsA, prefab.raw());
 }
 
 bool Ecs::is_instance_of(EntityId entity, EntityId prefab) const {
-	return ecs_has_pair(_impl->c(), entity.raw(), EcsIsA, prefab.raw());
+	return ecs_has_pair(_impl->flecs_ptr(), entity.raw(), EcsIsA, prefab.raw());
 }
 
 // ---- Component types ----
@@ -347,7 +347,7 @@ EntityId Ecs::_register_component(
 	}
 
 	// Always at the root, so a name resolves the same regardless of which EcsObject scope is open.
-	ecs_world_t* world = _impl->c();
+	ecs_world_t* world = _impl->flecs_ptr();
 	const ecs_entity_t previous_scope = ecs_set_scope(world, 0);
 
 	const std::string terminated(name);
@@ -389,7 +389,7 @@ const ClassInfo* Ecs::get_component_class_info(EntityId component) const {
 		return nullptr;
 	}
 	const auto* link = static_cast<const ComponentClassInfo*>(
-			ecs_get_id(_impl->c(), component.raw(), _impl->class_info_component)
+			ecs_get_id(_impl->flecs_ptr(), component.raw(), _impl->class_info_component)
 	);
 	return link ? link->info : nullptr;
 }
@@ -405,25 +405,25 @@ bool Ecs::add_component(EntityId entity, StaticString name) {
 	if (component.is_null() || !is_valid(entity)) {
 		return false;
 	}
-	ecs_add_id(_impl->c(), entity.raw(), component.raw());
+	ecs_add_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 
 	return true;
 }
 
 bool Ecs::has_component(EntityId entity, StaticString name) const {
 	const EntityId component = find_component(name);
-	return !component.is_null() && is_valid(entity) && ecs_has_id(_impl->c(), entity.raw(), component.raw());
+	return !component.is_null() && is_valid(entity) && ecs_has_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 }
 
 void Ecs::remove_component(EntityId entity, StaticString name) {
 	if (const EntityId component = find_component(name); !component.is_null() && is_valid(entity)) {
-		ecs_remove_id(_impl->c(), entity.raw(), component.raw());
+		ecs_remove_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 	}
 }
 
 void Ecs::remove_all(StaticString name) {
 	if (const EntityId component = find_component(name); !component.is_null()) {
-		ecs_remove_all(_impl->c(), component.raw());
+		ecs_remove_all(_impl->flecs_ptr(), component.raw());
 	}
 }
 
@@ -436,23 +436,24 @@ void* Ecs::mutable_component_data(EntityId entity, StaticString name) {
 }
 
 const void* Ecs::_component_data(EntityId entity, EntityId component) const {
-	if (component.is_null() || !is_valid(entity) || !ecs_has_id(_impl->c(), entity.raw(), component.raw())) {
+	if (component.is_null() || !is_valid(entity) || !ecs_has_id(_impl->flecs_ptr(), entity.raw(), component.raw())) {
 		return nullptr;
 	}
-	return ecs_get_id(_impl->c(), entity.raw(), component.raw());
+	return ecs_get_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 }
 
 void* Ecs::_mutable_component_data(EntityId entity, EntityId component) {
 	if (component.is_null() || !is_valid(entity)) {
 		return nullptr;
 	}
-	const ecs_type_info_t* type_info = ecs_get_type_info(_impl->c(), component.raw());
+	const ecs_type_info_t* type_info = ecs_get_type_info(_impl->flecs_ptr(), component.raw());
 	if (!type_info || type_info->size <= 0) {
 		return nullptr;
 	}
-	void* data = ecs_ensure_id(_impl->c(), entity.raw(), component.raw(), static_cast<std::size_t>(type_info->size));
+	void* data =
+			ecs_ensure_id(_impl->flecs_ptr(), entity.raw(), component.raw(), static_cast<std::size_t>(type_info->size));
 	if (data) {
-		ecs_modified_id(_impl->c(), entity.raw(), component.raw());
+		ecs_modified_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 	}
 	return data;
 }
@@ -462,7 +463,7 @@ bool Ecs::_set_component(EntityId entity, EntityId component, void* value, std::
 		return false;
 	}
 
-	ecs_world_t* world = _impl->c();
+	ecs_world_t* world = _impl->flecs_ptr();
 	const ecs_type_info_t* type_info = ecs_get_type_info(world, component.raw());
 	if (!type_info || type_info->size <= 0) {
 		ecs_add_id(world, entity.raw(), component.raw());
@@ -535,11 +536,11 @@ EntityId Ecs::_register_system(SystemDesc&& desc) {
 	// A custom pipeline matches systems carrying its own entity as a tag.
 	const ecs_id_t add_ids[] = { desc.pipeline.raw(), _impl->assigned_tag, 0 };
 	if (!desc.pipeline.is_null() && desc.pipeline.raw() != _impl->default_pipeline) {
-		fassert(ecs_has_id(_impl->c(), desc.pipeline.raw(), ecs_id(EcsPipeline)),
+		fassert(ecs_has_id(_impl->flecs_ptr(), desc.pipeline.raw(), ecs_id(EcsPipeline)),
 				"A system was assigned to a non-pipeline");
 		entity_desc.add = add_ids;
 	}
-	system_desc.entity = ecs_entity_init(_impl->c(), &entity_desc);
+	system_desc.entity = ecs_entity_init(_impl->flecs_ptr(), &entity_desc);
 
 	auto* context = new SystemContext { this, desc.callback, desc.callback_ctx, desc.callback_ctx_free };
 	if (desc.run_once) {
@@ -557,7 +558,7 @@ EntityId Ecs::_register_system(SystemDesc&& desc) {
 	system_desc.multi_threaded = desc.multi_threaded;
 	system_desc.tick_source = desc.tick_source.raw();
 
-	return EntityId(ecs_system_init(_impl->c(), &system_desc));
+	return EntityId(ecs_system_init(_impl->flecs_ptr(), &system_desc));
 }
 
 void* Ecs::_create_query(QueryDesc&& desc) {
@@ -567,7 +568,7 @@ void* Ecs::_create_query(QueryDesc&& desc) {
 		return nullptr;
 	}
 	query_desc.cache_kind = EcsQueryCacheAuto;
-	return ecs_query_init(_impl->c(), &query_desc);
+	return ecs_query_init(_impl->flecs_ptr(), &query_desc);
 }
 
 void Ecs::_destroy_query(void* query) const {
@@ -580,7 +581,7 @@ void Ecs::_query_each(void* query, SystemCallback callback, void* ctx) {
 	if (!query || !callback) {
 		return;
 	}
-	ecs_iter_t it = ecs_query_iter(_impl->c(), static_cast<ecs_query_t*>(query));
+	ecs_iter_t it = ecs_query_iter(_impl->flecs_ptr(), static_cast<ecs_query_t*>(query));
 	while (ecs_query_next(&it)) {
 		SystemIterator iterator(*this, &it);
 		callback(iterator, ctx);
@@ -753,7 +754,7 @@ const ClassInfo::Property* ComponentHandle::_find_property(std::string_view name
 
 bool ComponentHandle::is_valid() const {
 	return _ecs && !_component.is_null() && _ecs->is_valid(_entity) &&
-			ecs_has_id(_ecs->_impl->c(), _entity.raw(), _component.raw());
+			ecs_has_id(_ecs->_impl->flecs_ptr(), _entity.raw(), _component.raw());
 }
 
 const void* ComponentHandle::data() const {
