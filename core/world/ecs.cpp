@@ -79,6 +79,34 @@ void hook_move(void* dst, void* src, std::int32_t count, const ecs_type_info_t* 
 	hooks_of(info).move(dst, src, static_cast<std::size_t>(count));
 }
 
+void hook_copy_ctor(void* dst, const void* src, std::int32_t count, const ecs_type_info_t* info) {
+	hooks_of(info).copy_construct(dst, src, static_cast<std::size_t>(count));
+}
+
+void hook_move_ctor(void* dst, void* src, std::int32_t count, const ecs_type_info_t* info) {
+	hooks_of(info).move_construct(dst, src, static_cast<std::size_t>(count));
+}
+
+ecs_flags32_t to_flecs_illegal_flags(ValueTypeIllegal illegal) {
+	ecs_flags32_t flags = 0;
+	if (has_flag(illegal, ValueTypeIllegal::DefaultConstruct)) {
+		flags |= ECS_TYPE_HOOK_CTOR_ILLEGAL;
+	}
+	if (has_flag(illegal, ValueTypeIllegal::Copy)) {
+		flags |= ECS_TYPE_HOOK_COPY_ILLEGAL;
+	}
+	if (has_flag(illegal, ValueTypeIllegal::Move)) {
+		flags |= ECS_TYPE_HOOK_MOVE_ILLEGAL;
+	}
+	if (has_flag(illegal, ValueTypeIllegal::CopyConstruct)) {
+		flags |= ECS_TYPE_HOOK_COPY_CTOR_ILLEGAL;
+	}
+	if (has_flag(illegal, ValueTypeIllegal::MoveConstruct)) {
+		flags |= ECS_TYPE_HOOK_MOVE_CTOR_ILLEGAL;
+	}
+	return flags;
+}
+
 // Set on a component's own entity: the reflection it was registered from.
 struct ComponentClassInfo {
 	const ClassInfo* info = nullptr;
@@ -119,13 +147,34 @@ void system_trampoline(ecs_iter_t* it) {
 	context->callback(iterator, context->user_ctx);
 }
 
-// Clears EcsIterIsValid rather than calling ecs_iter_fini, as flecs' own C++ run() path does.
+// Clears EcsIterIsValid as flecs' own C++ run() path does. flecs frees a query that matches nothing itself;
+// any other iterator the callback did not exhaust is ours to fini.
 void system_run_trampoline(ecs_iter_t* it) {
 	auto* context = static_cast<SystemContext*>(it->run_ctx);
 	it->flags &= ~EcsIterIsValid;
 	SystemIterator iterator(*context->ecs, it);
 	context->callback(iterator, context->user_ctx);
+	const bool flecs_finis = it->query && (it->query->flags & EcsQueryMatchNothing);
+	if (!flecs_finis && !iterator.is_finished()) {
+		iterator.fini();
+	}
 }
+
+// flecs wants NUL-terminated names; the common short ones are terminated on the stack.
+template <class F>
+decltype(auto) with_terminated(std::string_view name, F&& fn) {
+	constexpr std::size_t buffer_size = 128;
+	if (name.size() < buffer_size) {
+		std::array<char, buffer_size> buffer;
+		std::memcpy(buffer.data(), name.data(), name.size());
+		buffer[name.size()] = '\0';
+		return fn(static_cast<const char*>(buffer.data()));
+	}
+	const std::string terminated(name);
+	return fn(terminated.c_str());
+}
+
+std::atomic<std::uint32_t> next_component_slot { 0 };
 
 } //namespace
 
@@ -134,6 +183,9 @@ struct Ecs::Impl {
 	ecs_entity_t class_info_component = 0;
 	ecs_entity_t object_component = 0;
 
+	// Component ids by ComponentSlot, filled on first typed use. A memo of the name lookup, not a second registry.
+	std::vector<ecs_entity_t> slot_ids;
+
 	Impl() {
 		class_info_component = world.component<ComponentClassInfo>("FeatherClassInfo").id();
 		object_component = world.component<EcsObjectInstance>("FeatherEcsObject").id();
@@ -141,8 +193,8 @@ struct Ecs::Impl {
 
 	// A root-level entity named `name` carrying `marker`, or 0.
 	ecs_entity_t find_root(std::string_view name, ecs_id_t marker) const {
-		const std::string terminated(name);
-		const ecs_entity_t found = ecs_lookup_child(flecs_ptr(), 0, terminated.c_str());
+		const ecs_entity_t found =
+				with_terminated(name, [this](const char* terminated) { return ecs_lookup_child(flecs_ptr(), 0, terminated); });
 		return found && ecs_has_id(flecs_ptr(), found, marker) ? found : 0;
 	}
 
@@ -369,11 +421,16 @@ EntityId Ecs::_register_component(
 		auto* owned = new ValueTypeHooks(hooks);
 		desc.type.hooks.binding_ctx = owned;
 		desc.type.hooks.binding_ctx_free = free_hooks;
+		desc.type.hooks.flags = to_flecs_illegal_flags(owned->illegal);
 		// flecs zero-fills when ctor is null; flecs_default_ctor keeps that while still being an explicit hook.
-		desc.type.hooks.ctor = owned->default_construct ? hook_ctor : flecs_default_ctor;
+		if (!has_flag(owned->illegal, ValueTypeIllegal::DefaultConstruct)) {
+			desc.type.hooks.ctor = owned->default_construct ? hook_ctor : flecs_default_ctor;
+		}
 		desc.type.hooks.dtor = owned->destruct ? hook_dtor : nullptr;
 		desc.type.hooks.copy = owned->copy ? hook_copy : nullptr;
 		desc.type.hooks.move = owned->move ? hook_move : nullptr;
+		desc.type.hooks.copy_ctor = owned->copy_construct ? hook_copy_ctor : nullptr;
+		desc.type.hooks.move_ctor = owned->move_construct ? hook_move_ctor : nullptr;
 	}
 
 	const EntityId id { ecs_component_init(world, &desc) };
@@ -407,24 +464,53 @@ const ClassInfo* Ecs::get_component_class_info(StaticString name) const {
 // ---- Components on entities ----
 
 bool Ecs::add_component(EntityId entity, StaticString name) {
-	const EntityId component = register_component(name);
+	return _add(entity, register_component(name));
+}
+
+bool Ecs::has_component(EntityId entity, StaticString name) const {
+	return _has(entity, find_component(name));
+}
+
+void Ecs::remove_component(EntityId entity, StaticString name) {
+	_remove(entity, find_component(name));
+}
+
+bool Ecs::_add(EntityId entity, EntityId component) {
 	if (component.is_null() || !is_valid(entity)) {
 		return false;
 	}
 	ecs_add_id(_impl->flecs_ptr(), entity.raw(), component.raw());
-
 	return true;
 }
 
-bool Ecs::has_component(EntityId entity, StaticString name) const {
-	const EntityId component = find_component(name);
+bool Ecs::_has(EntityId entity, EntityId component) const {
 	return !component.is_null() && is_valid(entity) && ecs_has_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 }
 
-void Ecs::remove_component(EntityId entity, StaticString name) {
-	if (const EntityId component = find_component(name); !component.is_null() && is_valid(entity)) {
+void Ecs::_remove(EntityId entity, EntityId component) {
+	if (!component.is_null() && is_valid(entity)) {
 		ecs_remove_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 	}
+}
+
+std::uint32_t Ecs::_allocate_slot() {
+	return next_component_slot.fetch_add(1, std::memory_order_relaxed);
+}
+
+// Like flecs' own lazy type registration, filling a slot is not safe from several threads at once.
+EntityId Ecs::_component_id(std::uint32_t slot, StaticString name) {
+	std::vector<ecs_entity_t>& ids = _impl->slot_ids;
+	if (slot < ids.size() && ids[slot] != 0) {
+		return EntityId(ids[slot]);
+	}
+	const EntityId id = register_component(name);
+	if (!id.is_null()) {
+		if (slot >= ids.size()) {
+			ids.resize(slot + 1, 0);
+		}
+		ids[slot] = id.raw();
+	}
+	return id;
 }
 
 void Ecs::remove_all(StaticString name) {
@@ -441,8 +527,9 @@ void* Ecs::mutable_component_data(EntityId entity, StaticString name) {
 	return _mutable_component_data(entity, register_component(name));
 }
 
+// ecs_get_id is null when the entity lacks the component, so no separate has check.
 const void* Ecs::_component_data(EntityId entity, EntityId component) const {
-	if (component.is_null() || !is_valid(entity) || !ecs_has_id(_impl->flecs_ptr(), entity.raw(), component.raw())) {
+	if (component.is_null() || !is_valid(entity)) {
 		return nullptr;
 	}
 	return ecs_get_id(_impl->flecs_ptr(), entity.raw(), component.raw());
@@ -456,12 +543,17 @@ void* Ecs::_mutable_component_data(EntityId entity, EntityId component) {
 	if (!type_info || type_info->size <= 0) {
 		return nullptr;
 	}
-	void* data =
-			ecs_ensure_id(_impl->flecs_ptr(), entity.raw(), component.raw(), static_cast<std::size_t>(type_info->size));
-	if (data) {
+	return ecs_ensure_id(_impl->flecs_ptr(), entity.raw(), component.raw(), static_cast<std::size_t>(type_info->size));
+}
+
+void Ecs::_modified(EntityId entity, EntityId component) {
+	if (!component.is_null() && is_valid(entity) && ecs_has_id(_impl->flecs_ptr(), entity.raw(), component.raw())) {
 		ecs_modified_id(_impl->flecs_ptr(), entity.raw(), component.raw());
 	}
-	return data;
+}
+
+void Ecs::modified(EntityId entity, StaticString name) {
+	_modified(entity, find_component(name));
 }
 
 bool Ecs::_set_component(EntityId entity, EntityId component, void* value, std::size_t size, bool move) {
@@ -479,19 +571,35 @@ bool Ecs::_set_component(EntityId entity, EntityId component, void* value, std::
 		return false;
 	}
 
-	// ecs_ensure_id hands back constructed storage, so this is an assignment and must go through the hooks.
-	void* destination = ecs_ensure_id(world, entity.raw(), component.raw(), size);
+	// Decided before emplacing: storage flecs hands back unconstructed must be constructed.
+	const ValueTypeHooks& hooks = hooks_of(type_info);
+	const bool exists = ecs_has_id(world, entity.raw(), component.raw());
+	const bool use_move =
+			move && !has_flag(hooks.illegal, exists ? ValueTypeIllegal::Move : ValueTypeIllegal::MoveConstruct);
+	if (!use_move && has_flag(hooks.illegal, exists ? ValueTypeIllegal::Copy : ValueTypeIllegal::CopyConstruct)) {
+		fassert(false, "Setting a component its type can neither copy nor move");
+		return false;
+	}
+
+	bool is_new = false;
+	void* destination = ecs_emplace_id(world, entity.raw(), component.raw(), size, &is_new);
 	if (!destination) {
 		return false;
 	}
-	const ValueTypeHooks& hooks = hooks_of(type_info);
-	if (move && hooks.move) {
-		hooks.move(destination, value, 1);
+	fassert(is_new != exists, "Component storage changed state while being set");
+
+	using Transfer = void (*)(void*, void*, std::size_t);
+	using CopyTransfer = void (*)(void*, const void*, std::size_t);
+	const Transfer move_op = is_new ? hooks.move_construct : hooks.move;
+	const CopyTransfer copy_op = is_new ? hooks.copy_construct : hooks.copy;
+	if (use_move && move_op) {
+		move_op(destination, value, 1);
 	}
-	else if (hooks.copy) {
-		hooks.copy(destination, value, 1);
+	else if (!use_move && copy_op) {
+		copy_op(destination, value, 1);
 	}
 	else {
+		// A null hook that is not illegal is a trivial one.
 		std::memcpy(destination, value, size);
 	}
 	ecs_modified_id(world, entity.raw(), component.raw());
@@ -566,7 +674,7 @@ void* Ecs::_create_query(QueryDesc&& desc) {
 		fassert(false, "A query named a component the ECS does not know");
 		return nullptr;
 	}
-	query_desc.cache_kind = EcsQueryCacheAuto;
+	query_desc.cache_kind = desc.cached ? EcsQueryCacheAuto : EcsQueryCacheDefault;
 	return ecs_query_init(_impl->flecs_ptr(), &query_desc);
 }
 
@@ -693,6 +801,13 @@ bool Entity::has_component(StaticString component) const {
 	return _ecs && _ecs->has_component(_id, component);
 }
 
+Entity& Entity::modified(StaticString component) {
+	if (_ecs) {
+		_ecs->modified(_id, component);
+	}
+	return *this;
+}
+
 Entity& Entity::remove_component(StaticString component) {
 	if (_ecs) {
 		_ecs->remove_component(_id, component);
@@ -720,6 +835,23 @@ Entity SystemIterator::entity_at(std::size_t row) const {
 		return {};
 	}
 	return { *_ecs, EntityId(it->entities[row]) };
+}
+
+bool SystemIterator::next() {
+	auto* it = static_cast<ecs_iter_t*>(_impl);
+	if (!it || _finished) {
+		return false;
+	}
+	// A false return has already released the iterator.
+	_finished = !ecs_iter_next(it);
+	return !_finished;
+}
+
+void SystemIterator::fini() {
+	if (_impl && !_finished) {
+		ecs_iter_fini(static_cast<ecs_iter_t*>(_impl));
+	}
+	_finished = true;
 }
 
 void* SystemIterator::_field_ptr(std::int32_t term, std::size_t size) const {
@@ -784,6 +916,7 @@ bool ComponentHandle::set(std::string_view property, const Variant& value) {
 		return false;
 	}
 	found->setter(storage, value);
+	_ecs->_modified(_entity, _component);
 	return true;
 }
 
