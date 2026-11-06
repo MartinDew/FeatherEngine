@@ -28,6 +28,8 @@ class SystemBuilder;
 template <class... TComps>
 class QueryBuilder;
 
+class PipelineBuilder;
+
 // A type ClassDB names. That name is the component's identity in the ECS, so it is the same in the exe and every DLL.
 template <typename T>
 concept ClassDbNamed = requires {
@@ -121,6 +123,7 @@ class FEATHER_API Ecs : public Reflected {
 	friend class SystemBuilder;
 	template <class... TComps>
 	friend class Query;
+	friend class PipelineBuilder;
 
 	// flecs is the only record of what is registered: components and imported EcsObjects are entities in it.
 	struct Impl;
@@ -141,6 +144,11 @@ class FEATHER_API Ecs : public Reflected {
 	[[nodiscard]] void* _mutable_component_data(EntityId entity, EntityId component);
 
 	EntityId _register_system(SystemDesc&& desc);
+	EntityId _register_pipeline(
+			const std::string& name,
+			std::span<const StaticString> with,
+			std::span<const StaticString> without
+	);
 
 	// Owned ecs_query_t*, handed back through _destroy_query.
 	[[nodiscard]] void* _create_query(QueryDesc&& desc);
@@ -163,10 +171,8 @@ public:
 	void enable_rest_api();
 	[[nodiscard]] EntityId phase(SystemPhase phase) const;
 
-	// A pipeline running only the systems assigned to it (SystemBuilder::pipeline), in phase order. Assigned
-	// systems leave the default pipeline.
-	EntityId create_pipeline(const std::string& name);
-	[[nodiscard]] EntityId get_default_pipeline() const;
+	// A pipeline over the systems its query matches; see PipelineBuilder.
+	[[nodiscard]] PipelineBuilder pipeline(const std::string& name);
 	// The pipeline progress() runs.
 	[[nodiscard]] EntityId get_pipeline() const;
 	void set_pipeline(EntityId pipeline);
@@ -409,12 +415,6 @@ public:
 		return *this;
 	}
 
-	// A pipeline from Ecs::create_pipeline; the system then runs only there.
-	SystemBuilder& pipeline(EntityId pipeline) {
-		_desc.pipeline = pipeline;
-		return *this;
-	}
-
 	SystemBuilder& multi_threaded(bool enabled = true) {
 		_desc.multi_threaded = enabled;
 		return *this;
@@ -436,25 +436,26 @@ public:
 	}
 
 	// `fn` takes (Entity, components...) or (SystemIterator&, row, components...).
+	// Returns the system's own entity, which can carry tags a pipeline matches on.
 	template <class F>
-	EntityId each(F&& fn) {
+	Entity each(F&& fn) {
 		ecs_detail::bind_each<TComps...>(
 				std::forward<F>(fn), _desc.callback, _desc.callback_ctx, _desc.callback_ctx_free
 		);
 		_desc.run_once = false;
-		return _ecs->_register_system(std::move(_desc));
+		return { *_ecs, _ecs->_register_system(std::move(_desc)) };
 	}
 
 	// Called once per invocation with the whole batch, even when nothing matched.
 	template <class F>
-	EntityId run(F&& fn) {
+	Entity run(F&& fn) {
 		using Fn = std::decay_t<F>;
 
 		_desc.callback_ctx = new Fn(std::forward<F>(fn));
 		_desc.callback = [](SystemIterator& it, void* ctx) { (*static_cast<Fn*>(ctx))(it); };
 		_desc.callback_ctx_free = [](void* ctx) { delete static_cast<Fn*>(ctx); };
 		_desc.run_once = true;
-		return _ecs->_register_system(std::move(_desc));
+		return { *_ecs, _ecs->_register_system(std::move(_desc)) };
 	}
 };
 
@@ -537,6 +538,40 @@ public:
 	}
 
 	[[nodiscard]] Query<TComps...> build() { return Query<TComps...>(*_ecs, std::move(_desc)); }
+};
+
+// Starts from flecs' builtin pipeline query (every enabled system with a phase, in phase then declaration order) and
+// narrows it to systems carrying, or lacking, the given tags and components.
+class FEATHER_API PipelineBuilder {
+	Ecs* _ecs = nullptr;
+	std::string _name;
+	std::vector<StaticString> _with;
+	std::vector<StaticString> _without;
+
+public:
+	PipelineBuilder(Ecs& ecs, std::string name) : _ecs(&ecs), _name(std::move(name)) {}
+
+	PipelineBuilder& with(StaticString component) {
+		_with.push_back(component);
+		return *this;
+	}
+
+	template <ClassDbNamed T>
+	PipelineBuilder& with() {
+		return with(T::get_class_static());
+	}
+
+	PipelineBuilder& without(StaticString component) {
+		_without.push_back(component);
+		return *this;
+	}
+
+	template <ClassDbNamed T>
+	PipelineBuilder& without() {
+		return without(T::get_class_static());
+	}
+
+	[[nodiscard]] EntityId build() { return _ecs->_register_pipeline(_name, _with, _without); }
 };
 
 template <class... TComps>
