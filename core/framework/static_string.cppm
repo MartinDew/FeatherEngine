@@ -70,8 +70,9 @@ struct StaticString {
 	constexpr StaticString(const StaticString& str) : _view { str._view }, _hash { str._hash } {}
 	constexpr StaticString(StaticString&& str) = default;
 	explicit constexpr StaticString(const char* str, const size_t len) : _view { str, len }, _hash { crc32(_view) } {}
+	constexpr StaticString(const char* str) : _view { str }, _hash { crc32(_view) } {}
 	constexpr StaticString(const std::string_view str) : _view { str }, _hash { crc32(_view) } {}
-	constexpr StaticString& operator=(StaticString& str) {
+	constexpr StaticString& operator=(const StaticString& str) {
 		_view = str._view;
 		_hash = str._hash;
 		return *this;
@@ -80,7 +81,7 @@ struct StaticString {
 
 	constexpr bool operator==(uint32_t str) const { return _hash == str; }
 
-	constexpr size_t hash() const noexcept { return _hash; }
+	constexpr uint32_t hash() const noexcept { return _hash; }
 
 	constexpr operator size_t() const noexcept { return _hash; }
 
@@ -91,6 +92,7 @@ struct StaticString {
 	constexpr operator std::string() const { return std::string(_view); }
 	constexpr bool operator==(const StaticString& other) const noexcept { return _hash == other._hash; }
 	constexpr bool operator==(const std::string_view& other) const { return _view == other; }
+	constexpr bool operator==(const char* other) const { return operator==(std::string_view(other)); }
 
 	constexpr size_t size() const noexcept { return _view.size(); }
 

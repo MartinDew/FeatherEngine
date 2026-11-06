@@ -4,9 +4,9 @@ module feather.core;
 
 namespace feather {
 
-void register_core_components(World& world) {
-	register_world_components(world);
-	register_math_components(world);
+void register_core_components(Ecs& ecs) {
+	register_world_components(ecs);
+	register_math_components(ecs);
 }
 
 } //namespace feather
