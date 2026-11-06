@@ -20,6 +20,7 @@ import :world.ecs_defs;
 import :world.ecs_module;
 import :main.world_sim;
 import :main.class_db;
+import :framework.reflection_utils;
 
 export namespace feather {
 

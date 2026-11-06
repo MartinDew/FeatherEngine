@@ -12,7 +12,11 @@ FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
+	ClassInfoBuilder<Reflected>::fill(_class_infos[Reflected::get_class_static()], ClassKind::Abstract);
+}
+
+const ClassInfo* find_class_info(std::string_view name) {
+	return ClassDB::get_class_info(name);
 }
 
 ClassDB::~ClassDB() {
@@ -20,18 +24,21 @@ ClassDB::~ClassDB() {
 }
 
 void ClassDB::clear() {
+	for (auto& [name, info] : _instance->_class_infos) {
+		if (int32_t live = info.live_objects.load(); live != 0) {
+			std::println("ClassDB cleared while {} object(s) of class '{}' are still alive", live, name);
+		}
+	}
 	_instance->_class_infos.clear();
 	_instance->_subclass_delegates.clear();
-	_instance->_current_info = nullptr;
 }
 
-Reflected* ClassDB::create_object_unsafe(std::string_view name) {
-	auto object_info_it = _instance->_class_infos.find(name);
-	if (object_info_it != _instance->_class_infos.end()) {
-		return object_info_it->second.object_create_func().as<Reflected*>().value();
+Variant ClassDB::create_object(std::string_view name) {
+	Object object = Object::create(name);
+	if (!object) {
+		return {};
 	}
-
-	return {};
+	return Variant(std::move(object));
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {
@@ -49,7 +56,10 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 }
 
 ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
-	if (auto it = get()->_class_infos.find(name); it != get()->_class_infos.end()) {
+	if (!_instance) {
+		return nullptr;
+	}
+	if (auto it = _instance->_class_infos.find(name); it != _instance->_class_infos.end()) {
 		return &it->second;
 	};
 	return nullptr;
@@ -113,7 +123,15 @@ void ClassDB::print_db() {
 #ifdef BETA
 	std::println("Printing database");
 
+	std::vector<const ClassInfo*> sorted;
 	for (auto& [name, info] : _class_infos) {
+		sorted.push_back(&info);
+	}
+	std::ranges::sort(sorted, {}, [](const ClassInfo* info) { return info->name.str(); });
+
+	for (const ClassInfo* class_info : sorted) {
+		const ClassInfo& info = *class_info;
+		StaticString name = info.name;
 		std::println("Class: {} : ", info.name.str());
 		for (auto& prop : info.properties) {
 			std::println("\tProperty: {} Type: {}\n", prop.name.str(), std::to_underlying<VariantType>(prop.type));
@@ -128,7 +146,7 @@ Callable ClassDB::get_static_method(const StaticString& class_name, std::string_
 	auto ci = _get_class_info_internal(class_name);
 	if (!ci)
 		return {};
-	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
+	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](const ClassInfo::Method& m) {
 		return m.name == func_name;
 	});
 

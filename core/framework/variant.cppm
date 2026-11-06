@@ -74,7 +74,7 @@ consteval VariantType get_variant_type() {
 	// object
 	else if constexpr (
 			(std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) ||
-			std::is_base_of_v<Reflected, T>
+			std::is_base_of_v<Reflected, T> || std::is_same_v<T, ObjectRef>
 	) {
 		return VariantType::OBJECT;
 	}
@@ -92,8 +92,6 @@ consteval VariantType get_variant_type() {
 template <typename T>
 concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 
-struct ClassInfo;
-
 class Variant {
 	using InternalVariant = std::variant<
 			std::monostate,
@@ -108,13 +106,14 @@ class Variant {
 			Path,
 			VariantArray,
 			RID,
-			Reflected*>;
+			ObjectRef,
+			std::shared_ptr<Object>>;
 
 	InternalVariant _data;
 	VariantType _type;
-	ClassInfo* _object_info = nullptr;
 
-	void set_class_info(StaticString class_name);
+	// The object of an OBJECT variant, borrowed or owned; a null ref otherwise.
+	ObjectRef _object_ref() const;
 
 	// enforce_public denies non-Public methods; *_internal entry points pass false.
 	[[nodiscard]] Variant
@@ -124,13 +123,23 @@ public:
 	// Default constructor - NIL
 	Variant() : _data(std::monostate {}), _type(VariantType::NIL) {}
 
-	Variant(Reflected& ref);
+	// A Reflected object is always referenced, never copied in.
+	template <class T>
+		requires std::is_base_of_v<Reflected, T>
+	Variant(T& object) : _data { ObjectRef(object) }, _type { VariantType::OBJECT } {}
+
+	Variant(ObjectRef ref) : _data { ref }, _type { VariantType::OBJECT } {}
+
+	// Takes ownership; copies of this Variant share the object.
+	Variant(Object&& object)
+			: _data { std::make_shared<Object>(std::move(object)) }, _type { VariantType::OBJECT } {}
 
 	// String literal constructor
 	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
+		requires(!std::is_base_of_v<Reflected, T> && !std::is_same_v<T, ObjectRef>)
 	Variant(T value) {
 		constexpr VariantType type = get_variant_type<T>();
 		_type = type;
@@ -158,14 +167,7 @@ public:
 			}
 		}
 		else if constexpr (type == VariantType::OBJECT) {
-			if constexpr (std::is_pointer_v<T>) {
-				_data = static_cast<Reflected*>(value);
-				set_class_info(value->get_class_name());
-			}
-			else {
-				_data = static_cast<Reflected*>(&value);
-				set_class_info(value.get_class_name());
-			}
+			_data = value ? ObjectRef(*value) : ObjectRef {};
 		}
 		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
@@ -207,13 +209,28 @@ public:
 		else if constexpr (std::is_floating_point_v<T>) {
 			return static_cast<T>(std::get<real_t>(_data));
 		}
+		else if constexpr (std::is_same_v<T, ObjectRef>) {
+			return _object_ref();
+		}
 		// Reflected-derived only: a reflected value type (Vector3, Color) is held in the variant
-		// itself, not behind a Reflected*.
+		// itself, not behind an ObjectRef.
 		else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
-			return static_cast<T>(std::get<Reflected*>(_data));
+			ObjectRef ref = _object_ref();
+			if (!ref) {
+				return static_cast<T>(nullptr);
+			}
+			T object = ref.cast<std::remove_pointer_t<T>>();
+			if (!object) {
+				return std::unexpected("Variant object is not of the requested type");
+			}
+			return object;
 		}
 		else if constexpr (!std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_reference_t<T>>) {
-			return *static_cast<T*>(std::get<Reflected*>(_data));
+			T* object = _object_ref().cast<T>();
+			if (!object) {
+				return std::unexpected("Variant object is not of the requested type");
+			}
+			return *object;
 		}
 		else
 			return std::get<T>(_data);
@@ -266,6 +283,7 @@ public:
 	operator RID() const { return as<RID>().value(); }
 	operator VariantArray() const { return as<VariantArray>().value(); }
 	operator Reflected*() const { return as<Reflected*>().value(); }
+	operator ObjectRef() const { return _object_ref(); }
 };
 
 // Force std::span<Variant> to be instantiated in this partition. Otherwise GCC
@@ -276,14 +294,14 @@ static_assert(sizeof(std::span<Variant>) > 0);
 template <class... TArgs>
 Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant params[] = { as<Reflected*>().value(), args... };
+	Variant params[] = { Variant(_object_ref()), args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), true);
 }
 
 template <class... TArgs>
 Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant params[] = { as<Reflected*>().value(), args... };
+	Variant params[] = { Variant(_object_ref()), args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), false);
 }
 

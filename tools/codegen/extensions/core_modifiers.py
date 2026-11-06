@@ -18,9 +18,9 @@ class SingletonModifier(Modifier):
     """FCLASS(singleton). Reflection contract with FDECLARE_SINGLETON/
     FSINGLETON_INSTANCE (core/framework/singleton_helpers.h): adds the
     get()/instance boilerplate to the class body and routes registration
-    through ClassDB::register_singleton_class, which -- unlike register_class
-    -- never installs an object_create_func (the engine constructs the single
-    instance itself; reflection only ever resolves it via T::get())."""
+    through ClassDB::register_singleton_class, which marks the class as not
+    creatable through reflection (the engine constructs the single instance
+    itself; reflection only ever resolves it via T::get())."""
     name = "singleton"
     targets = frozenset({"class"})
     value_type = False

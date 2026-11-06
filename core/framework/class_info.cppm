@@ -1,21 +1,17 @@
 export module feather.core:framework.class_info;
 
 import std.compat;
+import :framework.assert;
 import :framework.static_string;
 import :framework.callable;
 import :framework.variant;
+export import :framework.reflection_utils;
+import :framework.object;
+import :framework.reflected;
 
 export namespace feather {
 
-// Mirrors the C++ access of a member (or an explicit property attribute); gates
-// script/editor access via Variant::get/set/call.
-enum class AccessLevel : uint8_t {
-	Public = 0,
-	Protected,
-	Private,
-};
-
-// Operations a value type does not support. Distinct from a null hook, which means the operation is trivial.
+// Operations a type does not support. Distinct from a null hook, which means the operation is trivial.
 enum class ValueTypeIllegal : uint8_t {
 	None = 0,
 	DefaultConstruct = 1 << 0,
@@ -23,6 +19,7 @@ enum class ValueTypeIllegal : uint8_t {
 	Move = 1 << 2,
 	CopyConstruct = 1 << 3,
 	MoveConstruct = 1 << 4,
+	Destruct = 1 << 5,
 };
 
 constexpr ValueTypeIllegal operator|(ValueTypeIllegal a, ValueTypeIllegal b) {
@@ -58,7 +55,10 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 			std::uninitialized_value_construct_n(static_cast<T*>(ptr), count);
 		};
 	}
-	if constexpr (!std::is_trivially_destructible_v<T>) {
+	if constexpr (!std::is_destructible_v<T>) {
+		hooks.illegal = hooks.illegal | ValueTypeIllegal::Destruct;
+	}
+	else if constexpr (!std::is_trivially_destructible_v<T>) {
 		hooks.destruct = [](void* ptr, size_t count) { std::destroy_n(static_cast<T*>(ptr), count); };
 	}
 	if constexpr (!std::is_copy_assignable_v<T>) {
@@ -96,25 +96,49 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 	return hooks;
 }
 
+// A Reflected object has identity: it is created and destroyed, never copied or moved through its ClassInfo. The
+// copy traits of such classes also often lie (a vector of unique_ptr reports copyable), so they are never probed.
+template <class T>
+constexpr ValueTypeHooks make_object_hooks() {
+	ValueTypeHooks hooks;
+	hooks.illegal = ValueTypeIllegal::Copy | ValueTypeIllegal::Move | ValueTypeIllegal::CopyConstruct |
+			ValueTypeIllegal::MoveConstruct;
+	if constexpr (!std::is_default_constructible_v<T>) {
+		hooks.illegal = hooks.illegal | ValueTypeIllegal::DefaultConstruct;
+	}
+	else {
+		hooks.default_construct = [](void* ptr, size_t count) {
+			std::uninitialized_value_construct_n(static_cast<T*>(ptr), count);
+		};
+	}
+	if constexpr (!std::is_destructible_v<T>) {
+		hooks.illegal = hooks.illegal | ValueTypeIllegal::Destruct;
+	}
+	else {
+		hooks.destruct = [](void* ptr, size_t count) { std::destroy_n(static_cast<T*>(ptr), count); };
+	}
+	return hooks;
+}
+
 struct ClassInfo {
 	StaticString name = ""_ss;
 	StaticString parent = ""_ss;
 	std::vector<const ClassInfo*> children;
 
-	// Abstract/singleton classes have a null object_create_func.
+	// Abstract/singleton classes are never created through reflection.
 	bool is_abstract = false;
 	bool is_singleton = false;
-	// Value type (FSTRUCT / FCLASS(novtable)): no Reflected base or factory --
-	// Property::getter/setter's void* is a raw T*, not a Reflected*.
-	bool is_value_type = false;
+	// Derives from Reflected, so a base reference can report the dynamic type.
+	bool has_dynamic_type = false;
 
-	// sizeof/alignof of a value type. An empty type still reports sizeof 1, so is_empty tells storage it needs none.
+	// An empty type still reports sizeof 1, so is_empty tells storage it needs none.
 	size_t size = 0;
 	size_t alignment = 1;
 	bool is_empty = false;
-
-	// Only filled for value types: enough to store instances from this ClassInfo alone.
 	ValueTypeHooks value_hooks;
+
+	// Adjusts a pointer to this class into a pointer to its parent subobject; null at a root.
+	void* (*to_parent)(void* object) = nullptr;
 
 	struct Property {
 		StaticString name;
@@ -126,9 +150,11 @@ struct ClassInfo {
 		AccessLevel getter_access = AccessLevel::Public;
 		AccessLevel setter_access = AccessLevel::Public;
 
-		// Function pointers for get/set
-		std::function<Variant(void*)> getter; // Takes object pointer, returns Variant
-		std::function<void(void*, Variant)> setter; // Takes object pointer and value
+		// Both take a pointer to an instance of the class that declares the property.
+		Variant (*getter)(void* object) = nullptr;
+		void (*setter)(void* object, const Variant& value) = nullptr;
+
+		size_t offset = no_offset;
 	};
 	std::vector<Property> properties;
 
@@ -136,12 +162,208 @@ struct ClassInfo {
 		StaticString name;
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
+		// A non-static method's callable takes the ObjectRef of the declaring class first.
+		bool is_static = false;
 		Callable callable;
 	};
 
 	std::vector<Method> methods;
 
-	std::function<Variant()> object_create_func;
+	// Live Objects of this class; ClassDB::clear() reports any left over, since their hooks die with the DLL.
+	mutable std::atomic<int32_t> live_objects = 0;
+
+	bool can_create() const {
+		return !has_flag(value_hooks.illegal, ValueTypeIllegal::DefaultConstruct) &&
+				!has_flag(value_hooks.illegal, ValueTypeIllegal::Destruct);
+	}
+};
+
+enum class ClassKind : uint8_t {
+	Auto = 0,
+	Abstract,
+	Singleton,
+};
+
+namespace reflection_detail {
+
+template <class>
+struct member_function_traits;
+
+template <class C, class R, class... A>
+struct member_function_traits<R (C::*)(A...)> {
+	using ret = R;
+	using args = std::tuple<A...>;
+};
+template <class C, class R, class... A>
+struct member_function_traits<R (C::*)(A...) const> : member_function_traits<R (C::*)(A...)> {};
+template <class C, class R, class... A>
+struct member_function_traits<R (C::*)(A...) noexcept> : member_function_traits<R (C::*)(A...)> {};
+template <class C, class R, class... A>
+struct member_function_traits<R (C::*)(A...) const noexcept> : member_function_traits<R (C::*)(A...)> {};
+
+template <class>
+struct data_member_traits;
+
+template <class C, class U>
+struct data_member_traits<U C::*> {
+	using type = U;
+};
+
+template <auto Accessor>
+constexpr bool is_data_member = std::is_member_object_pointer_v<decltype(Accessor)>;
+
+// Value type a getter yields or a setter takes, decayed; void when the accessor is null.
+template <auto Accessor, bool IsGetter>
+struct accessor_value {
+	using type = void;
+};
+
+template <auto Accessor, bool IsGetter>
+	requires(!std::is_null_pointer_v<decltype(Accessor)>)
+struct accessor_value<Accessor, IsGetter> {
+	static auto pick() {
+		if constexpr (is_data_member<Accessor>) {
+			return std::type_identity<typename data_member_traits<decltype(Accessor)>::type> {};
+		}
+		else if constexpr (IsGetter) {
+			return std::type_identity<typename member_function_traits<decltype(Accessor)>::ret> {};
+		}
+		else {
+			using args = typename member_function_traits<decltype(Accessor)>::args;
+			static_assert(std::tuple_size_v<args> == 1, "A property setter takes exactly one argument");
+			return std::type_identity<std::tuple_element_t<0, args>> {};
+		}
+	}
+	using type = std::decay_t<typename decltype(pick())::type>;
+};
+
+template <class R, class... A>
+constexpr bool signature_bindable = VariantCompatible<std::decay_t<R>> && (VariantCompatible<std::decay_t<A>> && ...);
+
+} // namespace reflection_detail
+
+// Builds the runtime ClassInfo of T from its compile-time description. The description comes from the
+// codegen-emitted T::_feather_properties()/_feather_methods(); static reflection would compute the same tuples.
+template <is_reflected_class_type T>
+struct ClassInfoBuilder {
+	static constexpr auto properties = [] {
+		if constexpr (requires { T::_feather_properties(); }) {
+			return T::_feather_properties();
+		}
+		else {
+			return std::tuple<> {};
+		}
+	}();
+
+	static constexpr auto methods = [] {
+		if constexpr (requires { T::_feather_methods(); }) {
+			return T::_feather_methods();
+		}
+		else {
+			return std::tuple<> {};
+		}
+	}();
+
+	static void fill(ClassInfo& info, ClassKind kind = ClassKind::Auto) {
+		constexpr bool has_dynamic_type = std::is_base_of_v<Reflected, T>;
+
+		info.name = T::get_class_static();
+		info.parent = T::get_parent_name();
+		info.has_dynamic_type = has_dynamic_type;
+		info.is_abstract = kind == ClassKind::Abstract ||
+				(has_dynamic_type && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>));
+		info.is_singleton = kind == ClassKind::Singleton;
+		info.size = sizeof(T);
+		info.alignment = alignof(T);
+		info.is_empty = std::is_empty_v<T>;
+		if constexpr (has_dynamic_type) {
+			info.value_hooks = make_object_hooks<T>();
+		}
+		else {
+			info.value_hooks = make_value_type_hooks<T>();
+		}
+		if (info.is_abstract || info.is_singleton) {
+			info.value_hooks.illegal = info.value_hooks.illegal | ValueTypeIllegal::DefaultConstruct;
+		}
+
+		if constexpr (requires { typename T::_feather_parent; }) {
+			using Parent = typename T::_feather_parent;
+			info.to_parent = [](void* object) -> void* { return static_cast<Parent*>(static_cast<T*>(object)); };
+		}
+		else {
+			info.to_parent = nullptr;
+		}
+
+		info.properties.clear();
+		std::apply([&info](const auto&... desc) { (_add_property(info, desc), ...); }, properties);
+		info.methods.clear();
+		std::apply([&info](const auto&... desc) { (_add_method(info, desc), ...); }, methods);
+	}
+
+private:
+	template <auto Getter, auto Setter>
+	static void _add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc) {
+		using namespace reflection_detail;
+		using GetType = typename accessor_value<Getter, true>::type;
+		using SetType = typename accessor_value<Setter, false>::type;
+		using U = std::conditional_t<std::is_void_v<GetType>, SetType, GetType>;
+
+		// A type Variant can't carry is skipped, so an annotated member never breaks the build.
+		if constexpr (VariantCompatible<U>) {
+			ClassInfo::Property prop { .name = desc.name,
+									   .type = get_variant_type<U>(),
+									   .getter_access = desc.getter_access,
+									   .setter_access = desc.setter_access,
+									   .offset = desc.offset };
+
+			if constexpr (!std::is_void_v<GetType>) {
+				prop.getter = [](void* object) -> Variant {
+					if constexpr (is_data_member<Getter>) {
+						return Variant(static_cast<T*>(object)->*Getter);
+					}
+					else {
+						return Variant((static_cast<T*>(object)->*Getter)());
+					}
+				};
+			}
+			if constexpr (!std::is_void_v<SetType>) {
+				prop.setter = [](void* object, const Variant& value) {
+					auto result = value.as<SetType>();
+					fassert(result.has_value(), "Property setter called with an incompatible Variant type");
+					if constexpr (is_data_member<Setter>) {
+						static_cast<T*>(object)->*Setter = std::move(result.value());
+					}
+					else {
+						(static_cast<T*>(object)->*Setter)(std::move(result.value()));
+					}
+				};
+			}
+			info.properties.push_back(std::move(prop));
+		}
+	}
+
+	template <auto Function>
+	static void _add_method(ClassInfo& info, const MethodDesc<Function>& desc) {
+		using namespace reflection_detail;
+		using F = decltype(Function);
+
+		if constexpr (std::is_member_function_pointer_v<F>) {
+			using Traits = member_function_traits<F>;
+			[&]<class... A>(std::type_identity<std::tuple<A...>>) {
+				using R = typename Traits::ret;
+				static_assert(signature_bindable<R, A...>, "[[method]] signature isn't Variant-marshalable");
+				std::function<R(ObjectRef, A...)> func = [](ObjectRef self, A... args) -> R {
+					return (static_cast<T*>(self.get())->*Function)(args...);
+				};
+				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+			}(std::type_identity<typename Traits::args> {});
+		}
+		else {
+			info.methods.push_back(
+					{ .name = desc.name, .access = desc.access, .is_static = true, .callable = Callable { Function } }
+			);
+		}
+	}
 };
 
 } //namespace feather

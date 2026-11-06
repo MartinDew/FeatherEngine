@@ -77,6 +77,12 @@ protected:
 public:
 	PBRMaterial() = default;
 
+	Color get_base_color_factor() const { return _base_color_factor; }
+	void set_base_color_factor(Color factor) { _base_color_factor = factor; }
+	float get_metallic_factor() const { return _metallic_factor; }
+	float get_roughness_factor() const { return _roughness_factor; }
+	Color get_emissive_factor() const { return _emissive_factor; }
+
 	// Texture getters/setters
 	void set_base_color_texture(std::shared_ptr<Texture> texture) { _base_color_texture = texture; }
 	std::shared_ptr<Texture> get_base_color_texture() const { return _base_color_texture; }

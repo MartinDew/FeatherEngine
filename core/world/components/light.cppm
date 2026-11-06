@@ -12,6 +12,7 @@ import std.compat;
 import :framework.static_string;
 import :math.math_defs;
 import :main.class_db;
+import :framework.reflection_utils;
 
 export namespace feather {
 

@@ -14,6 +14,7 @@ import rtm;
 import std.compat;
 import :framework.static_string;
 import :math.rtm_interop;
+import :framework.reflection_utils;
 
 export namespace feather {
 

@@ -83,14 +83,24 @@ struct StaticString {
 
 	constexpr uint32_t hash() const noexcept { return _hash; }
 
-	constexpr operator size_t() const noexcept { return _hash; }
+	explicit constexpr operator size_t() const noexcept { return _hash; }
 
 	[[nodiscard]] constexpr const char* data() const noexcept { return _view.data(); }
 
 	constexpr operator std::string_view() const noexcept { return _view; }
 	constexpr std::string_view str() const noexcept { return _view; }
 	constexpr operator std::string() const { return std::string(_view); }
-	constexpr bool operator==(const StaticString& other) const noexcept { return _hash == other._hash; }
+	// The hash only rejects fast: two names sharing a crc32 must still compare unequal.
+	constexpr bool operator==(const StaticString& other) const noexcept {
+		return _hash == other._hash && _view == other._view;
+	}
+	// Hash first for speed; the order is arbitrary but total, so ordered containers never merge colliding names.
+	constexpr std::strong_ordering operator<=>(const StaticString& other) const noexcept {
+		if (auto order = _hash <=> other._hash; order != 0) {
+			return order;
+		}
+		return _view <=> other._view;
+	}
 	constexpr bool operator==(const std::string_view& other) const { return _view == other; }
 	constexpr bool operator==(const char* other) const { return operator==(std::string_view(other)); }
 

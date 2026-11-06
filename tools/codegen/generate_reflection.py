@@ -5,9 +5,10 @@ generate_reflection.py — FeatherEngine reflection code generator.
 For every reflected class (uses FCLASS(...)/FSTRUCT(...)) this tool recovers
 the name/parent from the C++ declaration, extracts [[attribute]]-annotated
 members and methods, emits a per-header "<name>.gen.h" (Unreal-style GEN_BODY
-macro: reflection boilerplate + generated accessors + _bind_members() decl),
-and emits per-subfolder "register_<sub>_types.gen.{h,cpp}" defining every
-_bind_members() body plus the register_<sub>_types() entry point.
+macro: reflection boilerplate + the compile-time property/method description
+that ClassInfoBuilder<T> reads), and emits per-subfolder
+"register_<sub>_types.gen.{h,cpp}" holding the register_<sub>_types() entry
+point.
 
 Parsing is purely syntactic (stdlib `re`, no compiler) and opt-in: a
 member/method is only ever inspected once annotated, so the tool never
@@ -16,14 +17,14 @@ degrade an unresolved type to `int` the way the old clang-AST backend could
 (see REFLECTION_CODEGEN_HANDOFF.md). Not a general C++ parser: assumes
 well-formed, not-too-exotic C++ (no raw string literals, no digraphs).
 
-[[get(...)]]/[[set(...)]] accept an access keyword and/or `ref` (e.g.
-[[get(protected, ref)]]) for a const-reference accessor instead of by-value;
-see _plan_accessor() for why only const-ref (not mutable T&) is supported.
+[[get(...)]]/[[set(...)]] accept an access keyword (e.g. [[get(protected)]])
+or a manual accessor name; otherwise the property reads/writes the field
+directly -- see _plan_accessor().
 
 A reflected member may sit inside arbitrarily nested #if/#ifdef/.../#endif;
 condition text is only ever copied, never evaluated. See
 iter_conditioned_chunks() for the #if-stack tracking and
-generate_gen_header()/_bind_members_body() for how that same condition is
+generate_gen_header()/_tuple_expr() for how that same condition is
 reproduced around generated code, so one .gen.h covers every build config.
 
 Writes go through write_if_changed(), so unchanged files keep their mtime.
@@ -82,7 +83,7 @@ class PropertyPlan:
     prop_name: str          # reflected name (leading underscore stripped)
     member_name: str        # C++ member, e.g. "_foo"
     type_spelling: str      # C++ type, e.g. "float"
-    # Getter: (kind, value). kind in {"none","generate","manual"}.
+    # Getter: (kind, value). kind in {"none","field","manual"}.
     getter_kind: str = "none"
     getter_access: str = "public"      # accessibility of the getter
     getter_method: str = ""            # method name (generated or manual)
@@ -124,7 +125,6 @@ class ClassDesc:
     # so explicitly. See generate_gen_header() for what is left out.
     is_value_type: bool = False
     properties: list = dc_field(default_factory=list)     # list[PropertyPlan]
-    gen_getters: list = dc_field(default_factory=list)    # (access, code, condition) inline accessor defs
     methods: list = dc_field(default_factory=list)        # list[MethodPlan]
 
 
@@ -707,20 +707,15 @@ _REF_KEYWORD = "ref"
 
 def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, condition: str, cls: ClassDesc,
                     header: Path, body: str, offset: int, fclass_line: int):
-    """Resolve one accessor per the property rules and, when generating, record
-    the inline accessor code. arg is the raw text inside [[get(...)]]/
+    """Resolve one side of a property. arg is the raw text inside [[get(...)]]/
     [[set(...)]] -- e.g. "public", "ref", "public, ref", or a manual accessor
     name -- or None for a bare [[get]]/[[set]].
 
-    `ref` makes a generated accessor pass/return by const-reference instead of
-    by-value (getter returns `const T&`, setter takes `const T&` and
-    copy-assigns rather than std::move()s). Only const-ref is supported, not
-    mutable T&: the getter must be `const` (bind_property_get(_if_bindable)
-    requires it, so it could never actually return a mutable reference), and
-    the setter call site in class_db.inl passes `std::move(result.value())`,
-    which won't bind to a non-const T& parameter. Both are real compile
-    errors, so `ref` unconditionally means const-ref."""
-    prop, member, ty = plan.prop_name, plan.member_name, plan.type_spelling
+    Without a manual accessor the property reads/writes the field itself
+    (kind "field"); nothing is generated in the class, since static
+    reflection couldn't generate members either. `ref` is still accepted
+    but has nothing left to change."""
+    member = plan.member_name
 
     def err(msg: str):
         return ParseError(f"{header}: class {cls.name} field '{member}' near line "
@@ -747,19 +742,8 @@ def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, cond
         kind = "manual"
     else:
         access = access_tok or member_access
-        method = f"{which}_{prop}"
-        kind = "generate"
-        if which == "get":
-            if is_ref:
-                code = f"\tconst {ty}& {method}() const {{ return {member}; }}"
-            else:
-                code = f"\t{ty} {method}() const {{ return {member}; }}"
-        else:
-            if is_ref:
-                code = f"\tvoid {method}(const {ty}& value) {{ {member} = value; }}"
-            else:
-                code = f"\tvoid {method}({ty} value) {{ {member} = std::move(value); }}"
-        cls.gen_getters.append((access, code, condition))
+        method = member
+        kind = "field"
 
     if which == "get":
         plan.getter_kind, plan.getter_access, plan.getter_method = kind, access, method
@@ -777,16 +761,6 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
     forced = "method" in attrs
     if not forced:
         return
-    # bind_method dispatches through object_cast<T>(Reflected*), which a
-    # vtable-free value type has no way to support; a static method is fine.
-    if cls.is_value_type and not info["is_static"]:
-        raise ParseError(
-            f"{header}: class {cls.name} method '{name}' near line "
-            f"{_line_of(body, offset) + fclass_line - 1}: [[method]] on a non-static method of a "
-            f"value type (FSTRUCT / FCLASS(novtable)) can't be bound -- ClassDB::bind_method "
-            f"dispatches through object_cast<T>(Reflected*), which a vtable-free type has no way "
-            f"to support. Make the method static, or drop 'novtable'/use FCLASS instead."
-        )
     # Skip overloaded names (&T::name is ambiguous) unless every other
     # same-named occurrence is provably in a mutually exclusive #if branch of
     # the same chain (the "#if X ... #else ... #endif" duplicate-impl idiom).
@@ -826,6 +800,7 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
                     extra_includes.append(inc)
 
     lines = [GENERATED_NOTICE, "#pragma once", "",
+             "#include <cstddef>",
              "#include <utility>",
              "#include <framework/reflection_macros.h>"]
     for inc in extra_includes:
@@ -849,11 +824,13 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
     def hoist(macro: str, acc: str, code_lines: list, condition: str) -> str:
         helper_counter[0] += 1
         helper_name = f"{macro}_{acc.upper()}_COND{helper_counter[0]}"
+        # A tuple-entry helper stands in an expression, so its disabled form is an empty tuple.
+        disabled = "std::tuple {}" if acc in ("PROPS", "METHODS") else ""
         helper_blocks.append(f"#if {condition}")
         helper_blocks.append(f"#define {helper_name} \\")
         helper_blocks.append(" \\\n".join(code_lines))
         helper_blocks.append("#else")
-        helper_blocks.append(f"#define {helper_name}")
+        helper_blocks.append(f"#define {helper_name} {disabled}".rstrip())
         helper_blocks.append("#endif")
         helper_blocks.append("")
         return helper_name
@@ -876,6 +853,12 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         body.append("public:")
         body.append(f'\tconstexpr static StaticString get_class_static() {{ return "{c.name}"_ss; }}')
         body.append(f'\tconstexpr static StaticString get_parent_name() {{ return "{c.parent}"_ss; }}')
+        # Emitted for every class, so a subclass never inherits its parent's.
+        body.append(f"\tusing _feather_self = {c.name};")
+        # A rootless type (only possible for a value type) has no base clause
+        # to alias -- `using Super = ;` would be a syntax error.
+        if c.parent:
+            body.append(f"\tusing _feather_parent = {c.parent};")
         # A value type gets no virtual member at all -- that's the point: no
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
@@ -883,32 +866,22 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tbool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tvirtual StaticString get_class_name() override { return get_class_static(); }")
+            body.append("\t::feather::ObjectRef _get_object_ref() override "
+                        "{ return _make_object_ref(this, get_class_static()); }")
+        prop_entries = [(_property_entry(c, p), p.condition) for p in c.properties]
+        method_entries = [(_method_entry(c, m), m.condition) for m in c.methods]
+        for modifier, _arg in c.resolved_modifiers:
+            method_entries.extend((e, None) for e in modifier.method_entries(c, cls_ctx))
+        body.append(f"\tstatic consteval auto _feather_properties() {{ "
+                    f"return {_tuple_expr(prop_entries, lambda lines, cond: hoist(macro, 'PROPS', lines, cond))}; }}")
+        body.append(f"\tstatic consteval auto _feather_methods() {{ "
+                    f"return {_tuple_expr(method_entries, lambda lines, cond: hoist(macro, 'METHODS', lines, cond))}; }}")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
-        # A rootless type (only possible for a value type) has no base clause
-        # to alias -- `using Super = ;` would be a syntax error.
         if c.parent:
             body.append(f"\tusing Super = {c.parent};")
-        body.append("\tstatic void _bind_members();")
         body.extend(protected_lines)
-
-        # Generated accessors, grouped by access level; within a group,
-        # unconditional lines are emitted directly (unchanged from before),
-        # and conditional lines are grouped by their (already-flattened)
-        # condition text into one hoisted helper macro per unique condition.
-        for acc in ("public", "protected", "private"):
-            group = [(code, cond) for (a, code, cond) in c.gen_getters if a == acc]
-            if not group:
-                continue
-            body.append(f"{acc}:")
-            body.extend(code for code, cond in group if cond is None)
-            by_condition: dict = {}
-            for code, cond in group:
-                if cond is not None:
-                    by_condition.setdefault(cond, []).append(code)
-            for cond, code_lines in by_condition.items():
-                body.append(hoist(macro, acc, code_lines, cond))
         if private_lines:
             body.append("private:")
             body.extend(private_lines)
@@ -927,47 +900,41 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
     return "\n".join(lines) + "\n"
 
 
-def _bind_members_body(c: ClassDesc, dir_name: str) -> list:
-    # Unlike the .gen.h macro, this is a real function body -- #if/#endif can
-    # wrap a conditional binding call directly, no hoisted-helper-macro
-    # indirection needed.
-    def emit(out: list, condition: str, stmt: str):
-        if condition:
-            out.append(f"#if {condition}")
-            out.append(stmt)
-            out.append("#endif")
-        else:
-            out.append(stmt)
+def _property_entry(c: ClassDesc, p: PropertyPlan) -> str:
+    """A ::feather::PropertyDesc for one property: each side is the field itself,
+    a manual accessor, or nullptr. Only a value type's plain field has a known
+    offset (offsetof is only well-defined on standard-layout types)."""
+    def side(kind: str, method: str) -> str:
+        if kind == "none":
+            return "nullptr"
+        return f"&{c.name}::{method if kind == 'manual' else p.member_name}"
 
-    out = [f"void {c.name}::_bind_members() {{"]
-    for p in c.properties:
-        ga = ACCESS_ENUM[p.getter_access]
-        sa = ACCESS_ENUM[p.setter_access]
-        has_get = p.getter_kind != "none"
-        has_set = p.setter_kind != "none"
-        if has_get and has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_accessors_if_bindable("
-                 f"&{c.name}::{p.getter_method}, &{c.name}::{p.setter_method}, "
-                 f'"{p.prop_name}", {ga}, {sa});')
-        elif has_get:
-            emit(out, p.condition, f"\tClassDB::bind_property_get_if_bindable("
-                 f'&{c.name}::{p.getter_method}, "{p.prop_name}", {ga});')
-        elif has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_set_if_bindable("
-                 f'&{c.name}::{p.setter_method}, "{p.prop_name}", {sa});')
-    for m in c.methods:
-        acc = ACCESS_ENUM[m.access]
-        if m.is_static:
-            emit(out, m.condition, f'\tClassDB::bind_static_method(&{c.name}::{m.name}, "{m.bind_name}", {acc});')
-        else:
-            bind = "bind_method" if m.strict else "bind_method_if_bindable"
-            emit(out, m.condition, f'\tClassDB::{bind}(&{c.name}::{m.name}, "{m.bind_name}", {acc});')
-    ctx = EmitContext(dir_name=dir_name)
-    for modifier, _arg in c.resolved_modifiers:
-        for stmt in modifier.bind_members_lines(c, ctx):
-            out.append(f"\t{stmt}")
-    out.append("}")
-    return out
+    field_backed = "manual" not in (p.getter_kind, p.setter_kind)
+    offset = f"offsetof({c.name}, {p.member_name})" if c.is_value_type and field_backed else "::feather::no_offset"
+    return (f"::feather::PropertyDesc<{side(p.getter_kind, p.getter_method)}, "
+            f"{side(p.setter_kind, p.setter_method)}> {{ \"{p.prop_name}\"_ss, "
+            f"::feather::{ACCESS_ENUM[p.getter_access]}, ::feather::{ACCESS_ENUM[p.setter_access]}, {offset} }}")
+
+
+def _method_entry(c: ClassDesc, m: MethodPlan) -> str:
+    return (f"::feather::MethodDesc<&{c.name}::{m.name}> {{ \"{m.bind_name}\"_ss, "
+            f"::feather::{ACCESS_ENUM[m.access]} }}")
+
+
+def _tuple_expr(entries: list, hoist) -> str:
+    """A std::tuple of (entry, condition) pairs. A #if-guarded group can't sit
+    inside the macro body, so it becomes a hoisted helper expanding to its own
+    tuple (or an empty one), concatenated with the unconditional entries."""
+    plain = [e for e, cond in entries if cond is None]
+    by_condition: dict = {}
+    for e, cond in entries:
+        if cond is not None:
+            by_condition.setdefault(cond, []).append(e)
+    if not by_condition:
+        return f"std::tuple {{ {', '.join(plain)} }}"
+    parts = [f"std::tuple {{ {', '.join(plain)} }}"]
+    parts += [hoist([f"std::tuple {{ {', '.join(group)} }}"], cond, ) for cond, group in by_condition.items()]
+    return f"std::tuple_cat({', '.join(parts)})"
 
 
 def topological_sort(classes: list) -> list:
@@ -1052,8 +1019,6 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
     lines += ["", "namespace feather {", ""]
 
     for c in ordered:
-        lines.extend(_bind_members_body(c, subfolder))
-        lines.append("")
         for modifier, _arg in c.resolved_modifiers:
             defs = modifier.register_cpp_definitions(c, ctx)
             if defs:
@@ -1126,6 +1091,12 @@ def validate_hierarchy(classes: list):
     known = {c.name: c for c in classes}
     for c in classes:
         base = known.get(c.parent)
+        if base is not None and base.is_value_type:
+            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives from it.
+            raise ParseError(
+                f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
+                f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."
+            )
         if base is None or base.is_value_type == c.is_value_type:
             continue
         kind, base_kind = ("a value type", "not") if c.is_value_type else ("not a value type", "is")

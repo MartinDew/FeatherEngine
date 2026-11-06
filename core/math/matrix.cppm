@@ -16,6 +16,7 @@ import :framework.static_string;
 import :math.quaternion;
 import :math.vector3;
 import :math.vector4;
+import :framework.reflection_utils;
 
 export namespace feather {
 

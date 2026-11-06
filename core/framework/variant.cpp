@@ -4,7 +4,14 @@ import std;
 
 namespace feather {
 
-Variant::Variant(Reflected& ref) : Variant(&ref) {
+ObjectRef Variant::_object_ref() const {
+	if (auto* ref = std::get_if<ObjectRef>(&_data)) {
+		return *ref;
+	}
+	if (auto* owned = std::get_if<std::shared_ptr<Object>>(&_data)) {
+		return *owned ? (*owned)->ref() : ObjectRef {};
+	}
+	return {};
 }
 
 bool Variant::operator==(const Variant& other) const {
@@ -81,128 +88,123 @@ std::string Variant::get_name() const {
 	if (_type != VariantType::OBJECT) {
 		return to_string();
 	}
-	if (!_object_info) {
+	ObjectRef ref = _object_ref();
+	if (!ref.get_class_info()) {
 		return "[Object: no class info]";
 	}
-	return _object_info->name;
+	return std::string(ref.get_class_name());
 }
+
+namespace {
+
+// Walks from the object's class up to its root, handing each level's ClassInfo and the object pointer adjusted to
+// that level to visit; stops at the first level visit returns true for.
+template <class TVisit>
+bool walk_hierarchy(ObjectRef ref, TVisit&& visit) {
+	const ClassInfo* info = ref.get_class_info();
+	void* object = ref.get();
+	while (info && object) {
+		if (visit(*info, object)) {
+			return true;
+		}
+		if (info->to_parent) {
+			object = info->to_parent(object);
+		}
+		info = ClassDB::get_class_info(info->parent);
+	}
+	return false;
+}
+
+Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {
+	Variant result;
+	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+		for (auto& property : info.properties) {
+			if (property.name == key) {
+				// Script-facing access: only public getters are reachable.
+				if (property.getter && (!enforce_public || property.getter_access == AccessLevel::Public)) {
+					result = property.getter(object);
+				}
+				return true;
+			}
+		}
+		return false;
+	});
+	return result;
+}
+
+void set_property(ObjectRef ref, std::string_view key, const Variant& value, bool enforce_public) {
+	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+		for (auto& property : info.properties) {
+			if (property.name == key) {
+				// Script-facing access: only public setters are writable.
+				if (property.setter && (!enforce_public || property.setter_access == AccessLevel::Public)) {
+					property.setter(object, value);
+				}
+				return true;
+			}
+		}
+		return false;
+	});
+}
+
+} // namespace
 
 Variant Variant::get(std::string_view key) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	if (!_object_info) {
-		return {};
-	}
-	auto info = _object_info;
-	while (info) {
-		for (auto& property : info->properties) {
-			if (property.name == key) {
-				// Script-facing access: only public getters are reachable.
-				if (property.getter_access != AccessLevel::Public || !property.getter) {
-					return {};
-				}
-				return property.getter(std::get<Reflected*>(_data));
-			}
-		}
-		info = ClassDB::_get_class_info_internal(info->parent);
-	}
-	return {}; // property not found
+	return get_property(_object_ref(), key, true);
 }
 
 Variant Variant::get_internal(std::string_view key) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	if (!_object_info) {
-		return {};
-	}
-	auto info = _object_info;
-	while (info) {
-		for (auto& property : info->properties) {
-			if (property.name == key) {
-				if (!property.getter) {
-					return {};
-				}
-				return property.getter(std::get<Reflected*>(_data));
-			}
-		}
-		info = ClassDB::_get_class_info_internal(info->parent);
-	}
-	return {}; // property not found
+	return get_property(_object_ref(), key, false);
 }
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	if (!_object_info) {
-		return {};
-	}
-	Variant self = as<Reflected*>().value();
+	Variant self = _object_ref();
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	if (!_object_info) {
-		return {};
-	}
-	Variant self = as<Reflected*>().value();
+	Variant self = _object_ref();
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/false);
 }
 
 void Variant::set(std::string_view key, const Variant& value) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = _object_info;
-	while (info) {
-		for (auto& property : info->properties) {
-			if (property.name == key) {
-				// Script-facing access: only public setters are writable.
-				if (property.setter_access != AccessLevel::Public || !property.setter) {
-					return;
-				}
-				property.setter(std::get<Reflected*>(_data), value);
-				return;
-			}
-		}
-		info = ClassDB::_get_class_info_internal(info->parent);
-	}
+	set_property(_object_ref(), key, value, true);
 }
 
 void Variant::set_internal(std::string_view key, const Variant& value) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	auto info = _object_info;
-	while (info) {
-		for (auto& property : info->properties) {
-			if (property.name == key) {
-				if (!property.setter) {
-					return;
-				}
-				property.setter(std::get<Reflected*>(_data), value);
-				return;
-			}
-		}
-		info = ClassDB::_get_class_info_internal(info->parent);
-	}
+	set_property(_object_ref(), key, value, false);
 }
 
-void Variant::set_class_info(StaticString class_name) {
-	_object_info = ClassDB::get()->_get_class_info_internal(class_name);
-}
-
+// args[0] is the object itself; it is replaced by the object adjusted to the class that declares the method.
 Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
-	auto info = _object_info;
-	while (info) {
-		for (auto& method : info->methods) {
+	Variant result;
+	walk_hierarchy(_object_ref(), [&](const ClassInfo& info, void* object) {
+		for (auto& method : info.methods) {
 			if (method.name == method_name) {
 				// Script-facing calls (enforce_public) only reach public methods.
 				if (enforce_public && method.access != AccessLevel::Public) {
-					return {};
+					return true;
 				}
-				Callable& callable = method.callable;
-
-				return callable.call(args);
+				const Callable& callable = method.callable;
+				if (method.is_static) {
+					result = callable.call(args.subspan(1));
+				}
+				else {
+					args[0] = Variant(ObjectRef(object, &info));
+					result = callable.call(args);
+				}
+				return true;
 			}
 		}
-		info = ClassDB::_get_class_info_internal(info->parent);
-	}
-
-	return {};
+		return false;
+	});
+	return result;
 }
 
 } //namespace feather

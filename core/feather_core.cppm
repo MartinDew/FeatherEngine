@@ -8,6 +8,7 @@ export import :framework.container_utils;
 export import :framework.cow_vector;
 export import :framework.delegate;
 export import :framework.functions;
+export import :framework.object;
 export import :framework.path;
 export import :framework.reflected;
 export import :framework.reflection_utils;

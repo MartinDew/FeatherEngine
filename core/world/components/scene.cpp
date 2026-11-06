@@ -2,7 +2,7 @@ module feather.core;
 
 namespace feather {
 
-Scene::Scene(StaticString name) : _scene_id(name) {
+Scene::Scene(StaticString name) : _scene_id(name.hash()) {
 }
 
 bool Scene::operator==(const Scene& other) const {

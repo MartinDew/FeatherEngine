@@ -33,6 +33,7 @@ public:
 	bool init();
 
 	std::string get_project_name() const;
+	const Path& get_project_path() const { return _project_path; }
 	Path localize_path(const Path& path);
 };
 

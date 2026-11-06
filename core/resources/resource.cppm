@@ -40,6 +40,9 @@ public:
 	};
 
 	virtual bool is_loaded() { return false; };
+
+	const Path& get_path() const { return _cached_path; }
+	void set_path(const Path& path) { _cached_path = path; }
 };
 
 } // namespace feather

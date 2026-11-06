@@ -6,8 +6,7 @@ Lets a game project add its own cross-cutting FCLASS concern (e.g. an ECS
 forking generate_reflection.py, which used to hardcode modifiers directly.
 
 A Modifier is a plain object with one method per emission site the generator
-already has, mirroring generate_gen_header/_bind_members_body/
-generate_register_cpp; a modifier overrides only the hooks it needs, the rest
+already has, mirroring generate_gen_header/generate_register_cpp; a modifier overrides only the hooks it needs, the rest
 default to "contribute nothing".
 
 Modifiers are scoped per source-directory pass (see build_registry): built-in
@@ -69,9 +68,9 @@ class DirEmission:
     directory, returned from Modifier.emit_dir(). Appended to
     register_<dir>_types.gen.{h,cpp} after the per-class content
     generate_gen_header()/generate_register_cpp() already produce -- see
-    e.g. ecs.py's ComponentModifier, which has no per-class _bind_members
-    hook to attach to (world.component<T>() needs a live flecs::world&,
-    which _bind_members()/ClassDB never has) and instead emits one
+    e.g. ecs.py's ComponentModifier, which has no per-class hook to attach
+    to (world.component<T>() needs a live flecs::world&, which ClassDB
+    registration never has) and instead emits one
     aggregate register_<dir>_components(World&) function."""
     header_includes: list = dc_field(default_factory=list)   # quoted, core-relative
     header_decls: list = dc_field(default_factory=list)      # raw lines, inside `namespace feather { ... }`
@@ -124,10 +123,10 @@ class Modifier:
         FDECLARE_SINGLETON sits), "public", "protected", "private"."""
         return []
 
-    def bind_members_lines(self, cls, ctx: EmitContext) -> list:
-        """Extra statements (no trailing semicolon requirement waived --
-        write them exactly as they should appear, semicolon included) for the
-        generated T::_bind_members() body."""
+    def method_entries(self, cls, ctx: EmitContext) -> list:
+        """Extra ::feather::MethodDesc<...>{...} expressions appended to the
+        class's generated _feather_methods() tuple, e.g. for a method this
+        modifier declared in gen_body_lines."""
         return []
 
     def register_statements(self, cls, ctx: EmitContext):
