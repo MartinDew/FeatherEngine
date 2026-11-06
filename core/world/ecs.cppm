@@ -30,6 +30,11 @@ class QueryBuilder;
 
 class PipelineBuilder;
 
+namespace ecs_detail {
+template <class T>
+struct ComponentSlot;
+}
+
 // A type ClassDB names. That name is the component's identity in the ECS, so it is the same in the exe and every DLL.
 template <typename T>
 concept ClassDbNamed = requires {
@@ -65,6 +70,8 @@ public:
 	Entity& add_component(StaticString component);
 	[[nodiscard]] bool has_component(StaticString component) const;
 	Entity& remove_component(StaticString component);
+	// Signals a write through get_mutable/mutable_component_data, once it is done.
+	Entity& modified(StaticString component);
 	[[nodiscard]] ComponentHandle component(StaticString component) const;
 
 	template <ClassDbNamed T>
@@ -79,8 +86,12 @@ public:
 	template <ClassDbNamed T>
 	[[nodiscard]] const T* get() const;
 
+	// Adds the component when missing. Call modified<T>() once written.
 	template <ClassDbNamed T>
 	[[nodiscard]] T* get_mutable();
+
+	template <ClassDbNamed T>
+	Entity& modified();
 
 	template <ClassDbNamed T>
 	[[nodiscard]] bool has() const;
@@ -93,6 +104,7 @@ public:
 class FEATHER_API SystemIterator {
 	void* _impl = nullptr; // ecs_iter_t*
 	Ecs* _ecs = nullptr;
+	bool _finished = false;
 
 public:
 	SystemIterator() = default;
@@ -102,6 +114,12 @@ public:
 	[[nodiscard]] float delta_time() const;
 	[[nodiscard]] Entity entity_at(std::size_t row) const;
 	[[nodiscard]] Ecs& get_ecs() const { return *_ecs; }
+
+	// run() systems only: advances to the next matched batch, false once every match was visited.
+	bool next();
+	// run() systems only: ends iteration early. Called for you if the callback returns mid-iteration.
+	void fini();
+	[[nodiscard]] bool is_finished() const { return _finished; }
 
 	// Null when the term is optional and absent from this batch.
 	[[nodiscard]] void* _field_ptr(std::int32_t term, std::size_t size) const;
@@ -124,6 +142,8 @@ class FEATHER_API Ecs : public Reflected {
 	template <class... TComps>
 	friend class Query;
 	friend class PipelineBuilder;
+	template <class T>
+	friend struct ecs_detail::ComponentSlot;
 
 	// flecs is the only record of what is registered: components and imported EcsObjects are entities in it.
 	struct Impl;
@@ -142,6 +162,14 @@ class FEATHER_API Ecs : public Reflected {
 	bool _set_component(EntityId entity, EntityId component, void* value, std::size_t size, bool move);
 	[[nodiscard]] const void* _component_data(EntityId entity, EntityId component) const;
 	[[nodiscard]] void* _mutable_component_data(EntityId entity, EntityId component);
+	bool _add(EntityId entity, EntityId component);
+	[[nodiscard]] bool _has(EntityId entity, EntityId component) const;
+	void _remove(EntityId entity, EntityId component);
+	void _modified(EntityId entity, EntityId component);
+
+	// Typed access indexes a per-world array by a per-type slot, so it never looks the name up twice.
+	static std::uint32_t _allocate_slot();
+	EntityId _component_id(std::uint32_t slot, StaticString name);
 
 	EntityId _register_system(SystemDesc&& desc);
 	EntityId _register_pipeline(
@@ -211,9 +239,7 @@ public:
 	EntityId register_component(StaticString class_name);
 
 	template <ClassDbNamed T>
-	EntityId component() {
-		return register_component(T::get_class_static());
-	}
+	EntityId component();
 
 	// For a C++ type ClassDB does not describe; it gets no ClassInfo link.
 	template <class T>
@@ -243,9 +269,10 @@ public:
 	void remove_component(EntityId entity, StaticString name);
 	void remove_all(StaticString name);
 
-	// Raw storage, or null. The mutable one adds the component when missing and marks it changed.
+	// Raw storage, or null. The mutable one adds the component when missing; call modified() once written.
 	[[nodiscard]] const void* component_data(EntityId entity, StaticString name) const;
 	[[nodiscard]] void* mutable_component_data(EntityId entity, StaticString name);
+	void modified(EntityId entity, StaticString name);
 
 	// ---- Systems and queries ----
 
@@ -300,6 +327,15 @@ public:
 };
 
 namespace ecs_detail {
+
+// Function-local so the slot exists before any static initializer can ask for it.
+template <class T>
+struct ComponentSlot {
+	static std::uint32_t get() {
+		static const std::uint32_t slot = Ecs::_allocate_slot();
+		return slot;
+	}
+};
 
 // `T` yields T&, `const T` is read-only, and `T*` is optional and null where absent.
 template <class T>
@@ -446,7 +482,7 @@ public:
 		return { *_ecs, _ecs->_register_system(std::move(_desc)) };
 	}
 
-	// Called once per invocation with the whole batch, even when nothing matched.
+	// Called once per invocation, even when nothing matched. Visit the matches with `while (it.next())`.
 	template <class F>
 	Entity run(F&& fn) {
 		using Fn = std::decay_t<F>;
@@ -537,6 +573,11 @@ public:
 		return with(T::get_class_static(), traverse, optional);
 	}
 
+	QueryBuilder& cached(bool enabled = true) {
+		_desc.cached = enabled;
+		return *this;
+	}
+
 	[[nodiscard]] Query<TComps...> build() { return Query<TComps...>(*_ecs, std::move(_desc)); }
 };
 
@@ -585,9 +626,14 @@ QueryBuilder<TComps...> Ecs::query(const char* name) {
 }
 
 template <ClassDbNamed T>
+EntityId Ecs::component() {
+	return _component_id(ecs_detail::ComponentSlot<T>::get(), T::get_class_static());
+}
+
+template <ClassDbNamed T>
 Entity& Entity::add() {
 	if (_ecs) {
-		_ecs->add_component(_id, T::get_class_static());
+		_ecs->_add(_id, _ecs->component<T>());
 	}
 	return *this;
 }
@@ -607,23 +653,31 @@ Entity& Entity::emplace(TArgs&&... args) {
 
 template <ClassDbNamed T>
 const T* Entity::get() const {
-	return _ecs ? static_cast<const T*>(_ecs->component_data(_id, T::get_class_static())) : nullptr;
+	return _ecs ? static_cast<const T*>(_ecs->_component_data(_id, _ecs->component<T>())) : nullptr;
 }
 
 template <ClassDbNamed T>
 T* Entity::get_mutable() {
-	return _ecs ? static_cast<T*>(_ecs->mutable_component_data(_id, T::get_class_static())) : nullptr;
+	return _ecs ? static_cast<T*>(_ecs->_mutable_component_data(_id, _ecs->component<T>())) : nullptr;
+}
+
+template <ClassDbNamed T>
+Entity& Entity::modified() {
+	if (_ecs) {
+		_ecs->_modified(_id, _ecs->component<T>());
+	}
+	return *this;
 }
 
 template <ClassDbNamed T>
 bool Entity::has() const {
-	return _ecs && _ecs->has_component(_id, T::get_class_static());
+	return _ecs && _ecs->_has(_id, _ecs->component<T>());
 }
 
 template <ClassDbNamed T>
 Entity& Entity::remove() {
 	if (_ecs) {
-		_ecs->remove_component(_id, T::get_class_static());
+		_ecs->_remove(_id, _ecs->component<T>());
 	}
 	return *this;
 }

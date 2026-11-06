@@ -61,6 +61,8 @@ struct Term {
 struct QueryDesc {
 	std::string name;
 	std::vector<Term> terms;
+	// Uncached by default, as in flecs: a cache pays off only for a query kept and iterated repeatedly.
+	bool cached = false;
 };
 
 // Every system callback is reduced to this: `ctx` holds the user's callable, which only the trampoline knows the type
