@@ -800,7 +800,6 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
                     extra_includes.append(inc)
 
     lines = [GENERATED_NOTICE, "#pragma once", "",
-             "#include <cstddef>",
              "#include <utility>",
              "#include <framework/reflection_macros.h>"]
     for inc in extra_includes:
@@ -902,18 +901,15 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
 
 def _property_entry(c: ClassDesc, p: PropertyPlan) -> str:
     """A ::feather::PropertyDesc for one property: each side is the field itself,
-    a manual accessor, or nullptr. Only a value type's plain field has a known
-    offset (offsetof is only well-defined on standard-layout types)."""
+    a manual accessor, or nullptr."""
     def side(kind: str, method: str) -> str:
         if kind == "none":
             return "nullptr"
         return f"&{c.name}::{method if kind == 'manual' else p.member_name}"
 
-    field_backed = "manual" not in (p.getter_kind, p.setter_kind)
-    offset = f"offsetof({c.name}, {p.member_name})" if c.is_value_type and field_backed else "::feather::no_offset"
     return (f"::feather::PropertyDesc<{side(p.getter_kind, p.getter_method)}, "
             f"{side(p.setter_kind, p.setter_method)}> {{ \"{p.prop_name}\"_ss, "
-            f"::feather::{ACCESS_ENUM[p.getter_access]}, ::feather::{ACCESS_ENUM[p.setter_access]}, {offset} }}")
+            f"::feather::{ACCESS_ENUM[p.getter_access]}, ::feather::{ACCESS_ENUM[p.setter_access]} }}")
 
 
 def _method_entry(c: ClassDesc, m: MethodPlan) -> str:

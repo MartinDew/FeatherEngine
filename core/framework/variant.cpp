@@ -8,9 +8,6 @@ ObjectRef Variant::_object_ref() const {
 	if (auto* ref = std::get_if<ObjectRef>(&_data)) {
 		return *ref;
 	}
-	if (auto* owned = std::get_if<std::shared_ptr<Object>>(&_data)) {
-		return *owned ? (*owned)->ref() : ObjectRef {};
-	}
 	return {};
 }
 

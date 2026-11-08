@@ -106,13 +106,12 @@ class Variant {
 			Path,
 			VariantArray,
 			RID,
-			ObjectRef,
-			std::shared_ptr<Object>>;
+			ObjectRef>;
 
 	InternalVariant _data;
 	VariantType _type;
 
-	// The object of an OBJECT variant, borrowed or owned; a null ref otherwise.
+	// The object of an OBJECT variant; a null ref otherwise.
 	ObjectRef _object_ref() const;
 
 	// enforce_public denies non-Public methods; *_internal entry points pass false.
@@ -123,16 +122,13 @@ public:
 	// Default constructor - NIL
 	Variant() : _data(std::monostate {}), _type(VariantType::NIL) {}
 
-	// A Reflected object is always referenced, never copied in.
-	template <class T>
-		requires std::is_base_of_v<Reflected, T>
+	// A reflected object is referenced, never copied in. A type Variant stores natively (Vector3, Color...) is copied
+	// by the generic constructor instead.
+	template <is_reflected T>
+		requires(!VariantCompatible<T> || std::is_base_of_v<Reflected, T>)
 	Variant(T& object) : _data { ObjectRef(object) }, _type { VariantType::OBJECT } {}
 
 	Variant(ObjectRef ref) : _data { ref }, _type { VariantType::OBJECT } {}
-
-	// Takes ownership; copies of this Variant share the object.
-	Variant(Object&& object)
-			: _data { std::make_shared<Object>(std::move(object)) }, _type { VariantType::OBJECT } {}
 
 	// String literal constructor
 	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}

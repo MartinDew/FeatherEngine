@@ -7,12 +7,11 @@ import :framework.callable;
 import :framework.variant;
 export import :framework.reflection_utils;
 import :framework.object;
-import :framework.reflected;
 
 export namespace feather {
 
 // Operations a type does not support. Distinct from a null hook, which means the operation is trivial.
-enum class ValueTypeIllegal : uint8_t {
+enum class LifecycleIllegal : uint8_t {
 	None = 0,
 	DefaultConstruct = 1 << 0,
 	Copy = 1 << 1,
@@ -22,33 +21,33 @@ enum class ValueTypeIllegal : uint8_t {
 	Destruct = 1 << 5,
 };
 
-constexpr ValueTypeIllegal operator|(ValueTypeIllegal a, ValueTypeIllegal b) {
-	return static_cast<ValueTypeIllegal>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+constexpr LifecycleIllegal operator|(LifecycleIllegal a, LifecycleIllegal b) {
+	return static_cast<LifecycleIllegal>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
 }
 
-constexpr bool has_flag(ValueTypeIllegal flags, ValueTypeIllegal flag) {
+constexpr bool has_flag(LifecycleIllegal flags, LifecycleIllegal flag) {
 	return (static_cast<uint8_t>(flags) & static_cast<uint8_t>(flag)) != 0;
 }
 
 // Lifecycle of a run of `count` instances, callable without naming the type. A null hook that is not marked illegal
 // means the operation is trivial, which lets storage move or copy whole runs with memcpy.
-struct ValueTypeHooks {
+struct LifecycleHooks {
 	void (*default_construct)(void* ptr, size_t count) = nullptr;
 	void (*destruct)(void* ptr, size_t count) = nullptr;
 	void (*copy)(void* dst, const void* src, size_t count) = nullptr;
 	void (*move)(void* dst, void* src, size_t count) = nullptr;
 	void (*copy_construct)(void* dst, const void* src, size_t count) = nullptr;
 	void (*move_construct)(void* dst, void* src, size_t count) = nullptr;
-	ValueTypeIllegal illegal = ValueTypeIllegal::None;
+	LifecycleIllegal illegal = LifecycleIllegal::None;
 };
 
 // copy/move assign into constructed instances, the *_construct hooks into raw storage. Mirrors flecs' trait tests
 // (addons/cpp/lifecycle_traits.hpp), so storage treats a type as flecs' C++ API would.
 template <class T>
-constexpr ValueTypeHooks make_value_type_hooks() {
-	ValueTypeHooks hooks;
+constexpr LifecycleHooks make_lifecycle_hooks() {
+	LifecycleHooks hooks;
 	if constexpr (!std::is_default_constructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::DefaultConstruct;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::DefaultConstruct;
 	}
 	else if constexpr (!std::is_trivially_constructible_v<T>) {
 		hooks.default_construct = [](void* ptr, size_t count) {
@@ -56,13 +55,13 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 		};
 	}
 	if constexpr (!std::is_destructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::Destruct;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::Destruct;
 	}
 	else if constexpr (!std::is_trivially_destructible_v<T>) {
 		hooks.destruct = [](void* ptr, size_t count) { std::destroy_n(static_cast<T*>(ptr), count); };
 	}
 	if constexpr (!std::is_copy_assignable_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::Copy;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::Copy;
 	}
 	else if constexpr (!std::is_trivially_copyable_v<T>) {
 		hooks.copy = [](void* dst, const void* src, size_t count) {
@@ -70,7 +69,7 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 		};
 	}
 	if constexpr (!std::is_move_assignable_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::Move;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::Move;
 	}
 	else if constexpr (!std::is_trivially_move_assignable_v<T>) {
 		hooks.move = [](void* dst, void* src, size_t count) {
@@ -78,7 +77,7 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 		};
 	}
 	if constexpr (!std::is_copy_constructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::CopyConstruct;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::CopyConstruct;
 	}
 	else if constexpr (!std::is_trivially_copy_constructible_v<T>) {
 		hooks.copy_construct = [](void* dst, const void* src, size_t count) {
@@ -86,36 +85,12 @@ constexpr ValueTypeHooks make_value_type_hooks() {
 		};
 	}
 	if constexpr (!std::is_move_constructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::MoveConstruct;
+		hooks.illegal = hooks.illegal | LifecycleIllegal::MoveConstruct;
 	}
 	else if constexpr (!std::is_trivially_move_constructible_v<T>) {
 		hooks.move_construct = [](void* dst, void* src, size_t count) {
 			std::uninitialized_move_n(static_cast<T*>(src), count, static_cast<T*>(dst));
 		};
-	}
-	return hooks;
-}
-
-// A Reflected object has identity: it is created and destroyed, never copied or moved through its ClassInfo. The
-// copy traits of such classes also often lie (a vector of unique_ptr reports copyable), so they are never probed.
-template <class T>
-constexpr ValueTypeHooks make_object_hooks() {
-	ValueTypeHooks hooks;
-	hooks.illegal = ValueTypeIllegal::Copy | ValueTypeIllegal::Move | ValueTypeIllegal::CopyConstruct |
-			ValueTypeIllegal::MoveConstruct;
-	if constexpr (!std::is_default_constructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::DefaultConstruct;
-	}
-	else {
-		hooks.default_construct = [](void* ptr, size_t count) {
-			std::uninitialized_value_construct_n(static_cast<T*>(ptr), count);
-		};
-	}
-	if constexpr (!std::is_destructible_v<T>) {
-		hooks.illegal = hooks.illegal | ValueTypeIllegal::Destruct;
-	}
-	else {
-		hooks.destruct = [](void* ptr, size_t count) { std::destroy_n(static_cast<T*>(ptr), count); };
 	}
 	return hooks;
 }
@@ -128,14 +103,12 @@ struct ClassInfo {
 	// Abstract/singleton classes are never created through reflection.
 	bool is_abstract = false;
 	bool is_singleton = false;
-	// Derives from Reflected, so a base reference can report the dynamic type.
-	bool has_dynamic_type = false;
 
 	// An empty type still reports sizeof 1, so is_empty tells storage it needs none.
 	size_t size = 0;
 	size_t alignment = 1;
 	bool is_empty = false;
-	ValueTypeHooks value_hooks;
+	LifecycleHooks lifecycle;
 
 	// Adjusts a pointer to this class into a pointer to its parent subobject; null at a root.
 	void* (*to_parent)(void* object) = nullptr;
@@ -153,8 +126,6 @@ struct ClassInfo {
 		// Both take a pointer to an instance of the class that declares the property.
 		Variant (*getter)(void* object) = nullptr;
 		void (*setter)(void* object, const Variant& value) = nullptr;
-
-		size_t offset = no_offset;
 	};
 	std::vector<Property> properties;
 
@@ -169,12 +140,9 @@ struct ClassInfo {
 
 	std::vector<Method> methods;
 
-	// Live Objects of this class; ClassDB::clear() reports any left over, since their hooks die with the DLL.
-	mutable std::atomic<int32_t> live_objects = 0;
-
 	bool can_create() const {
-		return !has_flag(value_hooks.illegal, ValueTypeIllegal::DefaultConstruct) &&
-				!has_flag(value_hooks.illegal, ValueTypeIllegal::Destruct);
+		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&
+				!has_flag(lifecycle.illegal, LifecycleIllegal::Destruct);
 	}
 };
 
@@ -244,7 +212,7 @@ constexpr bool signature_bindable = VariantCompatible<std::decay_t<R>> && (Varia
 
 // Builds the runtime ClassInfo of T from its compile-time description. The description comes from the
 // codegen-emitted T::_feather_properties()/_feather_methods(); static reflection would compute the same tuples.
-template <is_reflected_class_type T>
+template <is_reflected T>
 struct ClassInfoBuilder {
 	static constexpr auto properties = [] {
 		if constexpr (requires { T::_feather_properties(); }) {
@@ -265,25 +233,16 @@ struct ClassInfoBuilder {
 	}();
 
 	static void fill(ClassInfo& info, ClassKind kind = ClassKind::Auto) {
-		constexpr bool has_dynamic_type = std::is_base_of_v<Reflected, T>;
-
 		info.name = T::get_class_static();
 		info.parent = T::get_parent_name();
-		info.has_dynamic_type = has_dynamic_type;
-		info.is_abstract = kind == ClassKind::Abstract ||
-				(has_dynamic_type && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>));
+		info.is_abstract = kind == ClassKind::Abstract;
 		info.is_singleton = kind == ClassKind::Singleton;
 		info.size = sizeof(T);
 		info.alignment = alignof(T);
 		info.is_empty = std::is_empty_v<T>;
-		if constexpr (has_dynamic_type) {
-			info.value_hooks = make_object_hooks<T>();
-		}
-		else {
-			info.value_hooks = make_value_type_hooks<T>();
-		}
+		info.lifecycle = make_lifecycle_hooks<T>();
 		if (info.is_abstract || info.is_singleton) {
-			info.value_hooks.illegal = info.value_hooks.illegal | ValueTypeIllegal::DefaultConstruct;
+			info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
 		}
 
 		if constexpr (requires { typename T::_feather_parent; }) {
@@ -313,8 +272,7 @@ private:
 			ClassInfo::Property prop { .name = desc.name,
 									   .type = get_variant_type<U>(),
 									   .getter_access = desc.getter_access,
-									   .setter_access = desc.setter_access,
-									   .offset = desc.offset };
+									   .setter_access = desc.setter_access };
 
 			if constexpr (!std::is_void_v<GetType>) {
 				prop.getter = [](void* object) -> Variant {

@@ -25,6 +25,8 @@ protected:
 	}
 
 public:
+	using _feather_self = Reflected;
+
 	virtual ~Reflected() = default;
 
 	constexpr static StaticString get_class_static() { return "Reflected"_ss; }
@@ -33,7 +35,7 @@ public:
 	virtual StaticString get_class_name() = 0;
 	virtual ObjectRef _get_object_ref() = 0;
 	const ClassInfo* get_class_info() { return find_class_info(get_class_name()); }
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	bool is_of_type() const {
 		return is_of_type(T::get_class_static());
 	}

@@ -38,7 +38,7 @@ private:
 
 	static ClassInfo* _get_class_info_internal(std::string_view name);
 
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	static void _register(ClassKind kind);
 
 public:
@@ -50,7 +50,7 @@ public:
 
 	static const ClassInfo* get_class_info(std::string_view name) { return _get_class_info_internal(name); };
 
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	static const ClassInfo* get_class_info() {
 		return get_class_info(T::get_class_static());
 	}
@@ -58,29 +58,35 @@ public:
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
 
 	// Abstract, non-default-constructible and singleton classes are detected from T itself.
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	static void register_class() {
 		_register<T>(ClassKind::Auto);
 	}
 
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	static void register_abstract_class() {
 		_register<T>(ClassKind::Abstract);
 	}
 
-	template <is_reflected_class_type T>
+	template <is_reflected T>
 	static void register_singleton_class() {
 		_register<T>(ClassKind::Singleton);
 	}
 
-	// Owning Variant holding a new default-constructed instance; NIL when the class can't be created.
-	static Variant create_object(std::string_view object_name);
+	// New default-constructed instance owned by the caller, who frees it with destroy(); a Reflected one may instead
+	// be deleted. Null when the class can't be created.
+	static ObjectRef instantiate(std::string_view class_name);
+	static void destroy(ObjectRef object);
 
 	// Null when the class can't be created or isn't a T.
-	template <is_reflected_class_type T>
-	static std::unique_ptr<T> create_object(std::string_view object_name) {
-		Object object = Object::create(object_name);
-		return std::unique_ptr<T> { object.release<T>() };
+	template <is_reflected T>
+	static std::unique_ptr<T> create_object(std::string_view class_name) {
+		ObjectRef object = instantiate(class_name);
+		T* typed = object.cast<T>();
+		if (!typed) {
+			destroy(object);
+		}
+		return std::unique_ptr<T> { typed };
 	}
 
 	static Delegate<std::string_view>::id_t on_subclass_registered(
@@ -97,23 +103,19 @@ public:
 	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
 
-template <is_reflected_class_type T>
+template <is_reflected T>
 void ClassDB::_register(ClassKind kind) {
-	constexpr bool has_dynamic_type = std::is_base_of_v<Reflected, T>;
-	if constexpr (has_dynamic_type && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>)) {
-		if (kind == ClassKind::Auto) {
+	if (kind == ClassKind::Auto) {
+		if constexpr (std::is_abstract_v<T> || !std::is_default_constructible_v<T>) {
 			kind = ClassKind::Abstract;
 		}
-	}
-	else if constexpr (has_dynamic_type && is_singleton_v<T>) {
-		if (kind == ClassKind::Auto) {
+		else if constexpr (is_singleton_v<T>) {
 			kind = ClassKind::Singleton;
 		}
 	}
 	const char* kind_name = kind == ClassKind::Abstract ? "abstract"
 			: kind == ClassKind::Singleton				 ? "singleton"
-			: has_dynamic_type							 ? "implementation"
-														 : "value type";
+														 : "concrete";
 	std::println("Registering class '{}' as {} object", T::get_class_static(), kind_name);
 
 	ClassDB& instance = *get();

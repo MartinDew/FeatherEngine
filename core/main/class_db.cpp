@@ -24,21 +24,58 @@ ClassDB::~ClassDB() {
 }
 
 void ClassDB::clear() {
-	for (auto& [name, info] : _instance->_class_infos) {
-		if (int32_t live = info.live_objects.load(); live != 0) {
-			std::println("ClassDB cleared while {} object(s) of class '{}' are still alive", live, name);
-		}
-	}
 	_instance->_class_infos.clear();
 	_instance->_subclass_delegates.clear();
 }
 
-Variant ClassDB::create_object(std::string_view name) {
-	Object object = Object::create(name);
-	if (!object) {
+// Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
+static void* allocate_instance(const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		return ::operator new(info.size, std::align_val_t { info.alignment });
+	}
+	return ::operator new(info.size);
+}
+
+static void free_instance(void* ptr, const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
+	}
+	else {
+		::operator delete(ptr, info.size);
+	}
+}
+
+ObjectRef ClassDB::instantiate(std::string_view class_name) {
+	const ClassInfo* info = get_class_info(class_name);
+	if (!info || !info->can_create()) {
 		return {};
 	}
-	return Variant(std::move(object));
+	void* ptr = allocate_instance(*info);
+	if (info->lifecycle.default_construct) {
+		try {
+			info->lifecycle.default_construct(ptr, 1);
+		}
+		catch (...) {
+			free_instance(ptr, *info);
+			throw;
+		}
+	}
+	else {
+		// Trivially default-constructible: value-initialization zeroes it.
+		std::memset(ptr, 0, info->size);
+	}
+	return ObjectRef(ptr, info);
+}
+
+void ClassDB::destroy(ObjectRef object) {
+	if (!object) {
+		return;
+	}
+	const ClassInfo& info = *object.get_class_info();
+	if (info.lifecycle.destruct) {
+		info.lifecycle.destruct(object.get(), 1);
+	}
+	free_instance(object.get(), info);
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {
