@@ -4,13 +4,13 @@ import std.compat;
 
 export namespace feather {
 
-struct RID {
+struct FEATHER_FRAMEWORK_API RID {
 	size_t id { 0 };
 
 	static constexpr RID invalid();
 	[[nodiscard]] bool is_valid() const;
 	bool operator==(const RID&) const = default;
-	bool operator<(const RID& o) const { return id < o.id; }
+	inline bool operator<(const RID& o) const { return id < o.id; }
 };
 
 } // namespace feather
@@ -18,7 +18,7 @@ struct RID {
 // Hash support for use in unordered_map/set
 namespace std {
 template <>
-struct hash<feather::RID> {
-	size_t operator()(const feather::RID& r) const noexcept { return r.id; }
+struct FEATHER_FRAMEWORK_API hash<feather::RID> {
+	inline size_t operator()(const feather::RID& r) const noexcept { return r.id; }
 };
 } //namespace std

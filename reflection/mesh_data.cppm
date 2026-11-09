@@ -8,7 +8,7 @@ export namespace feather {
 
 using Index = uint32_t;
 
-class MeshData {
+class FEATHER_REFLECTION_API MeshData {
 public:
 	MeshData() = default;
 	MeshData(std::vector<Vertex> vertices, std::vector<Index> indices);

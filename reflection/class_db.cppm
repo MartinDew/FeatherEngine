@@ -65,7 +65,7 @@ public:
 	// registered classes gets unloaded -- see Main::~Main().
 	static void clear();
 
-	static const ClassInfo* get_class_info(std::string_view name) { return _get_class_info_internal(name); };
+	inline static const ClassInfo* get_class_info(std::string_view name) { return _get_class_info_internal(name); };
 
 	template <is_reflected_class_type T>
 	static const ClassInfo* get_class_info() {

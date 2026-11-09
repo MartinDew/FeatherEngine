@@ -10,7 +10,7 @@ import :notification;
 
 export namespace feather {
 
-class Window {
+class FEATHER_CORE_API Window {
 public:
 	struct WindowProperties {
 		int width;
@@ -44,7 +44,7 @@ public:
 	// Resolve events
 	bool update();
 
-	SDL_Window* get_internal_window() const { return _internal_window; }
+	inline SDL_Window* get_internal_window() const { return _internal_window; }
 
 	const WindowProperties& properties = _properties;
 	const FullscreenMode& fullscreen_mode = _fullscreen_mode;

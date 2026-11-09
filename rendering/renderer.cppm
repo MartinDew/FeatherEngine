@@ -26,7 +26,7 @@ protected:
 	Renderer();
 
 	virtual void _on_resize() = 0;
-	virtual void _compile_shader(Shader& shader) {}
+	inline virtual void _compile_shader(Shader& shader) {}
 
 	static SDL_Window* _extract_internal_window(Window& window);
 

@@ -29,7 +29,7 @@ protected:
 	virtual void load(std::shared_ptr<Resource> resource, const Path& path) = 0;
 
 	// If true, index_project calls load() immediately after instantiate
-	virtual bool requires_immediate_load() const { return false; }
+	inline virtual bool requires_immediate_load() const { return false; }
 
 	ResourceFormatLoader() = default;
 

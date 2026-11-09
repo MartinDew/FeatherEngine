@@ -90,7 +90,7 @@ concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 
 struct ClassInfo;
 
-class Variant {
+class FEATHER_REFLECTION_API Variant {
 	using InternalVariant = std::variant<
 			std::monostate,
 			bool,
@@ -118,12 +118,12 @@ class Variant {
 
 public:
 	// Default constructor - NIL
-	Variant() : _data(std::monostate {}), _type(VariantType::NIL) {}
+	inline Variant() : _data(std::monostate {}), _type(VariantType::NIL) {}
 
 	Variant(Reflected& ref);
 
 	// String literal constructor
-	Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
+	inline Variant(const char* str) : _data(std::string(str)), _type(VariantType::STRING) {}
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
@@ -184,9 +184,9 @@ public:
 	Variant& operator=(Variant&& other) noexcept = default;
 
 	// Type checking
-	VariantType get_type() const { return _type; }
-	bool is_type(VariantType type) const { return type == _type; }
-	bool is_nil() const { return _type == VariantType::NIL; }
+	inline VariantType get_type() const { return _type; }
+	inline bool is_type(VariantType type) const { return type == _type; }
+	inline bool is_nil() const { return _type == VariantType::NIL; }
 
 	// Type conversion with std::expected
 	template <VariantCompatible T>
@@ -218,13 +218,13 @@ public:
 	// Equality operators
 	bool operator==(const Variant& other) const;
 
-	bool operator!=(const Variant& other) const { return !(*this == other); }
+	inline bool operator!=(const Variant& other) const { return !(*this == other); }
 
 	// String conversion for debugging
 	std::string to_string() const;
 
 	// Direct access to internal variant (for advanced usage)
-	const InternalVariant& internal() const { return _data; }
+	inline const InternalVariant& internal() const { return _data; }
 
 	// Object property access
 	std::string get_name() const;
@@ -250,18 +250,18 @@ public:
 	// In variant.h, inside the Variant class:
 
 	// Implicit conversion operators
-	explicit operator bool() const { return as<bool>().value(); }
-	operator int() const { return as<int>().value(); }
-	operator real_t() const { return as<real_t>().value(); }
-	operator Vector2() const { return as<Vector2>().value(); }
-	operator Vector3() const { return as<Vector3>().value(); }
-	operator Color() const { return as<Color>().value(); }
-	operator Vertex() const { return as<Vertex>().value(); }
-	operator std::string() const { return as<std::string>().value(); }
-	operator Path() const { return as<Path>().value(); }
-	operator RID() const { return as<RID>().value(); }
-	operator VariantArray() const { return as<VariantArray>().value(); }
-	operator Reflected*() const { return as<Reflected*>().value(); }
+	inline explicit operator bool() const { return as<bool>().value(); }
+	inline operator int() const { return as<int>().value(); }
+	inline operator real_t() const { return as<real_t>().value(); }
+	inline operator Vector2() const { return as<Vector2>().value(); }
+	inline operator Vector3() const { return as<Vector3>().value(); }
+	inline operator Color() const { return as<Color>().value(); }
+	inline operator Vertex() const { return as<Vertex>().value(); }
+	inline operator std::string() const { return as<std::string>().value(); }
+	inline operator Path() const { return as<Path>().value(); }
+	inline operator RID() const { return as<RID>().value(); }
+	inline operator VariantArray() const { return as<VariantArray>().value(); }
+	inline operator Reflected*() const { return as<Reflected*>().value(); }
 };
 
 // Force std::span<Variant> to be instantiated in this partition. Otherwise GCC

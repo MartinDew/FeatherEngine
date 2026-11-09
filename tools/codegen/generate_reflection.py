@@ -749,16 +749,18 @@ def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, cond
         access = access_tok or member_access
         method = f"{which}_{prop}"
         kind = "generate"
+        # Explicitly inline: in a module interface an in-class definition isn't, and a
+        # dllimport class may only define inline functions.
         if which == "get":
             if is_ref:
-                code = f"\tconst {ty}& {method}() const {{ return {member}; }}"
+                code = f"\tinline const {ty}& {method}() const {{ return {member}; }}"
             else:
-                code = f"\t{ty} {method}() const {{ return {member}; }}"
+                code = f"\tinline {ty} {method}() const {{ return {member}; }}"
         else:
             if is_ref:
-                code = f"\tvoid {method}(const {ty}& value) {{ {member} = value; }}"
+                code = f"\tinline void {method}(const {ty}& value) {{ {member} = value; }}"
             else:
-                code = f"\tvoid {method}({ty} value) {{ {member} = std::move(value); }}"
+                code = f"\tinline void {method}({ty} value) {{ {member} = std::move(value); }}"
         cls.gen_getters.append((access, code, condition))
 
     if which == "get":
@@ -882,9 +884,9 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
         if not c.is_value_type:
-            body.append("\tbool is_of_type(StaticString type_name) const override "
+            body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
-            body.append("\tvirtual StaticString get_class_name() override { return get_class_static(); }")
+            body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -1105,7 +1107,8 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
     lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
     if imports:
         lines += imports + [""]
-    lines += ["export namespace feather {", "", f"void {func}();", ""]
+    # Called by main across module libraries: exported with the module's API macro.
+    lines += ["export namespace feather {", "", f"FEATHER_{subfolder.upper()}_API void {func}();", ""]
     for de in dir_emissions:
         lines.extend(de.header_decls)
     lines += ["} // namespace feather", ""]

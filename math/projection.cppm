@@ -10,7 +10,7 @@ enum class ProjectionType : uint8_t {
 	Orthographic
 };
 
-class Projection {
+class FEATHER_MATH_API Projection {
 	Matrix _projection_matrix = Matrix::identity;
 	ProjectionType _type = ProjectionType::Perspective;
 
@@ -53,20 +53,20 @@ public:
 	create_orthographic_off_center(float left, float right, float bottom, float top, float near_plane, float far_plane);
 
 	// Getters
-	const Matrix& get_matrix() const noexcept { return _projection_matrix; }
-	ProjectionType get_type() const noexcept { return _type; }
+	inline const Matrix& get_matrix() const noexcept { return _projection_matrix; }
+	inline ProjectionType get_type() const noexcept { return _type; }
 
-	float get_near_plane() const noexcept { return _near_plane; }
-	float get_far_plane() const noexcept { return _far_plane; }
-	float get_aspect_ratio() const noexcept { return _aspect_ratio; }
+	inline float get_near_plane() const noexcept { return _near_plane; }
+	inline float get_far_plane() const noexcept { return _far_plane; }
+	inline float get_aspect_ratio() const noexcept { return _aspect_ratio; }
 
 	// Perspective-specific getters
-	float get_fov_y() const noexcept { return _fov_y; }
+	inline float get_fov_y() const noexcept { return _fov_y; }
 	float get_fov_x() const noexcept;
 
 	// Orthographic-specific getters
-	float get_width() const noexcept { return _width; }
-	float get_height() const noexcept { return _height; }
+	inline float get_width() const noexcept { return _width; }
+	inline float get_height() const noexcept { return _height; }
 
 	// Setters that rebuild the projection matrix
 	void set_aspect_ratio(float aspect_ratio);
@@ -83,7 +83,7 @@ public:
 	std::array<Vector3, 8> get_frustum_corners() const;
 
 	// Check if this is a reverse-Z projection (far = 0, near = 1)
-	bool is_reverse_z() const noexcept { return _is_reverse_z; }
+	inline bool is_reverse_z() const noexcept { return _is_reverse_z; }
 
 	// Create a reverse-Z version (useful for better depth precision)
 	Projection create_reverse_z() const;

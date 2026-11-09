@@ -6,7 +6,7 @@ import feather.framework;
 
 export namespace feather {
 
-class LaunchSettings {
+class FEATHER_CORE_API LaunchSettings {
 	args::ArgumentParser _parser { "Feather Engine" };
 
 	static LaunchSettings* _instance;

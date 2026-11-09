@@ -68,7 +68,7 @@ export namespace feather {
 class EngineSettings;
 
 // Base interface for type erasure
-class ISettingStorage {
+class FEATHER_CORE_API ISettingStorage {
 public:
 	virtual ~ISettingStorage() = default;
 };
@@ -172,7 +172,7 @@ private:
 	void register_self(std::unique_ptr<ISettingStorage> storage);
 };
 
-class EngineSettings {
+class FEATHER_CORE_API EngineSettings {
 	static EngineSettings* _instance;
 	std::unordered_map<std::string_view, std::unique_ptr<ISettingStorage>> _settings;
 
@@ -188,6 +188,10 @@ class EngineSettings {
 	EngineSettings();
 
 public:
+	// Deleted explicitly: an exported class otherwise instantiates a copy of its unique_ptr map.
+	EngineSettings(const EngineSettings&) = delete;
+	EngineSettings& operator=(const EngineSettings&) = delete;
+
 	// Check if setting exists
 	static bool has_setting(std::string_view name);
 

@@ -12,7 +12,7 @@ using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 struct Main;
 
-class Engine {
+class FEATHER_MAIN_API Engine {
 	friend Main;
 	static Engine* _instance;
 
@@ -31,9 +31,9 @@ public:
 
 	bool run();
 
-	static Engine& get() { return *_instance; }
+	inline static Engine& get() { return *_instance; }
 
-	Window& get_main_window() { return _main_window; }
+	inline Window& get_main_window() { return _main_window; }
 
 	double get_current_delta_time() const;
 

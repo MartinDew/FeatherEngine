@@ -56,9 +56,9 @@ public:
 	);
 
 	// Getters
-	const std::vector<uint8_t>& get_pixel_data() const { return _pixel_data; }
-	TextureFormat get_format() const { return _format; }
-	bool is_loaded() override { return _is_loaded; }
+	inline const std::vector<uint8_t>& get_pixel_data() const { return _pixel_data; }
+	inline TextureFormat get_format() const { return _format; }
+	inline bool is_loaded() override { return _is_loaded; }
 
 	// Get bytes per pixel for format
 	static uint32_t get_bytes_per_pixel(TextureFormat format);

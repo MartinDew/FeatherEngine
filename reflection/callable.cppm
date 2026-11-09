@@ -6,7 +6,7 @@ import :variant;
 
 export namespace feather {
 
-class Callable {
+class FEATHER_REFLECTION_API Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
 	uint8_t _param_amount;
 

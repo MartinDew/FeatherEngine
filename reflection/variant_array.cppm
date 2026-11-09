@@ -94,7 +94,7 @@ public:
 };
 
 // Iterator classes
-class VariantArray::iterator {
+class FEATHER_REFLECTION_API VariantArray::iterator {
 	Variant* ptr_;
 	friend class VariantArray;
 
@@ -128,7 +128,7 @@ public:
 	bool operator>=(const iterator& other) const;
 };
 
-class VariantArray::const_iterator {
+class FEATHER_REFLECTION_API VariantArray::const_iterator {
 	const Variant* ptr_;
 	friend class VariantArray;
 

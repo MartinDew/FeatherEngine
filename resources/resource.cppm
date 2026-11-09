@@ -32,11 +32,11 @@ protected:
 public:
 	// Resources may give specific ids
 	[[method]]
-	virtual RID get_rid() {
+	inline virtual RID get_rid() {
 		return _rid;
 	};
 
-	virtual bool is_loaded() { return false; };
+	inline virtual bool is_loaded() { return false; };
 };
 
 } // namespace feather

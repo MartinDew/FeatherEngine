@@ -9,7 +9,7 @@ import feather.reflection;
 
 export namespace feather {
 
-class SharedLibrary {
+class FEATHER_CORE_API SharedLibrary {
 	SDL_SharedObject* _handle;
 
 public:

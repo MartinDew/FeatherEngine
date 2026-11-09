@@ -11,7 +11,7 @@ export namespace feather {
 
 class Renderer;
 
-class RenderingServer {
+class FEATHER_RENDERING_API RenderingServer {
 	static RenderingServer* _instance;
 
 	std::unique_ptr<Renderer> _renderer = nullptr;

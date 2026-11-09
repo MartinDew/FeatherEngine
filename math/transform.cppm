@@ -14,7 +14,7 @@ import :math_defs;
 
 export namespace feather {
 
-struct Transform {
+struct FEATHER_MATH_API Transform {
 	FSTRUCT(Component);
 
 	// Feather uses right-handed coordinates
@@ -36,8 +36,8 @@ struct Transform {
 	Transform get_relative_transform_reverse(const Transform& other) const;
 	void set_to_relative_transform(const Transform& parent);
 
-	void translate(const Vector3& translation) noexcept { position += translation; }
-	void apply_scaling(const Vector3& scaling) noexcept { scale *= scaling; }
+	inline void translate(const Vector3& translation) noexcept { position += translation; }
+	inline void apply_scaling(const Vector3& scaling) noexcept { scale *= scaling; }
 
 	Vector3 get_forward_vector() const noexcept;
 	Vector3 get_up_vector() const noexcept;
@@ -62,9 +62,9 @@ struct Transform {
 	static Transform create_look_at(const Vector3& eye, const Vector3& target, const Vector3& up);
 
 	bool operator==(const Transform&) const;
-	Transform operator*(const Transform& other) const { return multiply(*this, other); }
+	inline Transform operator*(const Transform& other) const { return multiply(*this, other); }
 
-	Transform& operator*=(const Transform& other) {
+	inline Transform& operator*=(const Transform& other) {
 		*this = multiply(*this, other);
 		return *this;
 	}
@@ -83,6 +83,6 @@ Transform make_transform_screen_space_sized_billboard(
 		Vector2 minScreenSpaceSize,
 		Vector2 screenSize
 );
-Transform make_transform_billboard(Transform objectTransform, Vector3 cameraPosition);
+FEATHER_MATH_API Transform make_transform_billboard(Transform objectTransform, Vector3 cameraPosition);
 
 } //namespace feather

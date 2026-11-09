@@ -15,7 +15,7 @@ import feather.reflection;
 
 export namespace feather {
 
-struct Scene {
+struct FEATHER_WORLD_API Scene {
 	FSTRUCT(Component);
 
 	[[get, set]] int64_t _scene_id = -1;
@@ -31,11 +31,11 @@ struct Scene {
 };
 
 // Relationship Tag
-struct ActiveScene {
+struct FEATHER_WORLD_API ActiveScene {
 	FSTRUCT(Component);
 };
 
-struct InScene {
+struct FEATHER_WORLD_API InScene {
 	FSTRUCT(Component);
 };
 

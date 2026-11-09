@@ -13,7 +13,7 @@ import Vex;
 
 export namespace feather {
 
-class VexRenderer : public Renderer {
+class FEATHER_VEX_RENDERER_API VexRenderer : public Renderer {
 	FCLASS();
 
 	// Core rendering resources

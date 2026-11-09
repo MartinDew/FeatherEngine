@@ -23,10 +23,10 @@ protected:
 	Simulation() = default;
 
 public:
-	[[method]] virtual void init() {};
-	virtual void pre_update(double delta) {};
-	[[method]] virtual void fixed_update(double delta) {};
-	[[method]] virtual void update(double delta) {};
+	[[method]] inline virtual void init() {};
+	inline virtual void pre_update(double delta) {};
+	[[method]] inline virtual void fixed_update(double delta) {};
+	[[method]] inline virtual void update(double delta) {};
 
 	~Simulation() override = default;
 };

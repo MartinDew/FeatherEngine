@@ -22,8 +22,8 @@ class FEATHER_RENDERING_API NullRenderer final : public Renderer {
 	FCLASS();
 
 protected:
-	void _render_scene(RenderScene capture) override {}
-	void _on_resize() override {}
+	inline void _render_scene(RenderScene capture) override {}
+	inline void _on_resize() override {}
 };
 
 } //namespace feather

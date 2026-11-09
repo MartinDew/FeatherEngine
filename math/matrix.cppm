@@ -76,11 +76,11 @@ struct Matrix4x4f {
 
 	// Right-handed, looking down -Z, depth mapped to [0, 1]. RTM's own camera helpers are
 	// left-handed, so these are written out here.
-	static Matrix4x4f perspective(float fov_y_radians, float aspect_ratio, float near_plane, float far_plane);
-	static Matrix4x4f orthographic(float width, float height, float near_plane, float far_plane);
-	static Matrix4x4f
+	FEATHER_MATH_API static Matrix4x4f perspective(float fov_y_radians, float aspect_ratio, float near_plane, float far_plane);
+	FEATHER_MATH_API static Matrix4x4f orthographic(float width, float height, float near_plane, float far_plane);
+	FEATHER_MATH_API static Matrix4x4f
 	perspective_off_center(float left, float right, float bottom, float top, float near_plane, float far_plane);
-	static Matrix4x4f
+	FEATHER_MATH_API static Matrix4x4f
 	orthographic_off_center(float left, float right, float bottom, float top, float near_plane, float far_plane);
 
 	// The right-handed view matrix of a camera at `position` facing `target`: the inverse of its transform.
@@ -122,7 +122,7 @@ struct Matrix4x4f {
 	[[nodiscard]] inline float determinant() const { return rtm::scalar_cast(rtm::matrix_determinant(to_rtm())); }
 
 	// False when an axis has no length, which no rotation can be read from.
-	bool decompose(Vector3f& out_translation, Quaternionf& out_rotation, Vector3f& out_scale) const;
+	FEATHER_MATH_API bool decompose(Vector3f& out_translation, Quaternionf& out_rotation, Vector3f& out_scale) const;
 
 	[[nodiscard]] RTM_FORCE_INLINE Vector3f translation() const { return { w_axis.x, w_axis.y, w_axis.z }; }
 	RTM_FORCE_INLINE void set_translation(const Vector3f& t) { w_axis = { t.x, t.y, t.z, w_axis.w }; }

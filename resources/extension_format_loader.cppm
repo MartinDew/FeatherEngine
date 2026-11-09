@@ -20,7 +20,7 @@ class FEATHER_RESOURCES_API ExtensionFormatLoader : public ResourceFormatLoader 
 protected:
 	std::shared_ptr<Resource> instantiate(const Path& path) override;
 	void load(std::shared_ptr<Resource> resource, const Path& path) override;
-	bool requires_immediate_load() const override { return true; }
+	inline bool requires_immediate_load() const override { return true; }
 
 public:
 	bool recognize_extension(const std::string& extension) const override;

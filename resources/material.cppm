@@ -27,7 +27,7 @@ protected:
 	// Todo : shader params
 
 public:
-	std::shared_ptr<Shader> get_shader() const { return _shader; }
+	inline std::shared_ptr<Shader> get_shader() const { return _shader; }
 };
 
 class FEATHER_RESOURCES_API PlaceholderMaterial : public Material {
@@ -41,7 +41,7 @@ class FEATHER_RESOURCES_API ShaderMaterial : public Material {
 	FCLASS();
 
 public:
-	void set_shader(std::shared_ptr<Shader> shader) { _shader = std::move(shader); }
+	inline void set_shader(std::shared_ptr<Shader> shader) { _shader = std::move(shader); }
 };
 
 class FEATHER_RESOURCES_API PBRMaterial : public Material {
@@ -74,17 +74,17 @@ public:
 	PBRMaterial() = default;
 
 	// Texture getters/setters
-	void set_base_color_texture(std::shared_ptr<Texture> texture) { _base_color_texture = texture; }
-	std::shared_ptr<Texture> get_base_color_texture() const { return _base_color_texture; }
+	inline void set_base_color_texture(std::shared_ptr<Texture> texture) { _base_color_texture = texture; }
+	inline std::shared_ptr<Texture> get_base_color_texture() const { return _base_color_texture; }
 
-	void set_metallic_roughness_texture(std::shared_ptr<Texture> texture) { _metallic_roughness_texture = texture; }
-	std::shared_ptr<Texture> get_metallic_roughness_texture() const { return _metallic_roughness_texture; }
+	inline void set_metallic_roughness_texture(std::shared_ptr<Texture> texture) { _metallic_roughness_texture = texture; }
+	inline std::shared_ptr<Texture> get_metallic_roughness_texture() const { return _metallic_roughness_texture; }
 
-	void set_normal_texture(std::shared_ptr<Texture> texture) { _normal_texture = texture; }
-	std::shared_ptr<Texture> get_normal_texture() const { return _normal_texture; }
+	inline void set_normal_texture(std::shared_ptr<Texture> texture) { _normal_texture = texture; }
+	inline std::shared_ptr<Texture> get_normal_texture() const { return _normal_texture; }
 
-	void set_emissive_texture(std::shared_ptr<Texture> texture) { _emissive_texture = texture; }
-	std::shared_ptr<Texture> get_emissive_texture() const { return _emissive_texture; }
+	inline void set_emissive_texture(std::shared_ptr<Texture> texture) { _emissive_texture = texture; }
+	inline std::shared_ptr<Texture> get_emissive_texture() const { return _emissive_texture; }
 };
 
 } //namespace feather

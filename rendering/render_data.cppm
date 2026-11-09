@@ -7,13 +7,13 @@ import feather.math;
 
 export namespace feather {
 
-struct CameraBufferData {
+struct FEATHER_RENDERING_API CameraBufferData {
 	Matrix viewProj;
 	Vector3 cameraPos;
 	float _padding;
 };
 
-struct InstanceBufferData {
+struct FEATHER_RENDERING_API InstanceBufferData {
 	Matrix model;
 	Matrix normalMatrix;
 };

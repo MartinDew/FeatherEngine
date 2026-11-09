@@ -30,7 +30,7 @@ protected:
 	void set_indices(const CowVector<Index>& indices);
 
 public:
-	const std::shared_ptr<MeshData>& get_mesh_data() { return _mesh_data; };
+	inline const std::shared_ptr<MeshData>& get_mesh_data() { return _mesh_data; };
 };
 
 // Mesh using raw vertices and indices data

@@ -23,7 +23,7 @@ concept is_singleton_v =
 	_type& operator=(const _type&) = delete;                                                                           \
                                                                                                                        \
 public:                                                                                                                \
-	static _type* get() {                                                                                              \
+	inline static _type* get() {                                                                                       \
 		if (!_instance)                                                                                                \
 			fassert(false, std::format("Singleton {} not instantiated but an attempt to get was made", #_type));       \
 		return _instance;                                                                                              \

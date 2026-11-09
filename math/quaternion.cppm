@@ -47,7 +47,7 @@ struct Quaternionf {
 				from_axis_angle(Vector3f::up, yaw);
 	}
 	// The rotation part of a matrix, which must already be free of scale.
-	static Quaternionf from_matrix(const Matrix4x4f& m);
+	FEATHER_MATH_API static Quaternionf from_matrix(const Matrix4x4f& m);
 
 	// `a * b` applies a, then b.
 	RTM_FORCE_INLINE Quaternionf operator*(const Quaternionf& o) const {

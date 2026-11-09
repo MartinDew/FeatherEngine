@@ -29,7 +29,7 @@ struct Vector4i {
 	int32_t x = 0, y = 0, z = 0, w = 0;
 };
 
-struct Vertex {
+struct FEATHER_MATH_API Vertex {
 	Vector3 position;
 	Vector3 normal;
 	Vector2 uv;
@@ -48,7 +48,7 @@ struct Vertex {
 	bool operator==(const Vertex&) const;
 };
 
-struct AABB {
+struct FEATHER_MATH_API AABB {
 	Vector3 min;
 	Vector3 max;
 
@@ -69,13 +69,13 @@ struct AABB {
 };
 
 // Helper Functions
-float deg_to_rad(float degrees);
-float rad_to_deg(float radians);
+FEATHER_MATH_API float deg_to_rad(float degrees);
+FEATHER_MATH_API float rad_to_deg(float radians);
 
-Vector3 deg_to_rad(const Vector3& degrees);
-Vector3 rad_to_deg(const Vector3& radians);
+FEATHER_MATH_API Vector3 deg_to_rad(const Vector3& degrees);
+FEATHER_MATH_API Vector3 rad_to_deg(const Vector3& radians);
 
-uint32_t round_up_to_next_pow_2(uint32_t x);
+FEATHER_MATH_API uint32_t round_up_to_next_pow_2(uint32_t x);
 
 template <class T>
 	requires std::is_integral_v<T>
@@ -85,7 +85,7 @@ bool is_power_of_two(T x) {
 
 constexpr uint32_t raise_to_next_multiple_of(uint32_t val, uint32_t multiple);
 
-Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
+FEATHER_MATH_API Matrix convert_direction_vector_to_rotation_matrix(Vector3 forward);
 
 inline bool is_power_of_two(int n) {
 	if (n == 0) {
