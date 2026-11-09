@@ -47,8 +47,6 @@ protected:
 	}
 
 public:
-	static constexpr double simulation_time = 1.0 / 60.0;
-
 	const EcsTimer fixed_tick;
 
 	WorldSim();

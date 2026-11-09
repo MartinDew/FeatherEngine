@@ -1,4 +1,4 @@
-export module feather.main:engine;
+export module feather.main:default_engine;
 
 import std;
 import feather.core;
@@ -12,9 +12,8 @@ using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
 struct Main;
 
-class FEATHER_MAIN_API Engine {
+class DefaultEngine final : public Engine {
 	friend Main;
-	static Engine* _instance;
 
 	DisplayServer _display_server;
 	RenderingServer _rendering_server;
@@ -22,18 +21,13 @@ class FEATHER_MAIN_API Engine {
 
 	// the time accumulator
 	TimePoint start_time = Clock::now();
-	double _current_dt = 0.0;
 
-	Engine();
+	DefaultEngine();
 
 public:
-	~Engine();
+	~DefaultEngine() override;
 
-	bool run();
-
-	inline static Engine& get() { return *_instance; }
-
-	double get_current_delta_time() const;
+	bool run() override;
 };
 
 } //namespace feather

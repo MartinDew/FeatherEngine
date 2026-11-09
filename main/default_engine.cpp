@@ -22,19 +22,11 @@ void _on_terminate_signal(int) {
 
 } //namespace
 
-Engine* Engine::_instance = nullptr;
-
-Engine::Engine() {
-	// Todo replace sdl assert by custom one
-	fassert(!_instance);
-
-	_instance = this;
+DefaultEngine::DefaultEngine() {
 	_rendering_server.init();
 }
 
-Engine::~Engine() {
-	// unregister_modules();
-}
+DefaultEngine::~DefaultEngine() = default;
 
 #if BETA
 inline void _setup_demo_scene(WorldSim& _world_sim) {
@@ -104,7 +96,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 }
 #endif
 
-bool Engine::run() {
+bool DefaultEngine::run() {
 	auto current_time = start_time;
 
 	bool keep_running = true;
@@ -143,10 +135,10 @@ bool Engine::run() {
 		current_time = new_time;
 
 		accumulator += frame_time;
-		_current_dt = WorldSim::simulation_time;
-		while (accumulator >= WorldSim::simulation_time) {
-			accumulator -= WorldSim::simulation_time;
-			_world_sim.fixed_update(WorldSim::simulation_time);
+		_current_dt = simulation_time;
+		while (accumulator >= simulation_time) {
+			accumulator -= simulation_time;
+			_world_sim.fixed_update(simulation_time);
 		}
 
 		_current_dt = frame_time;
@@ -159,10 +151,6 @@ bool Engine::run() {
 	_rendering_server.stop();
 
 	return true;
-}
-
-double Engine::get_current_delta_time() const {
-	return _current_dt;
 }
 
 } //namespace feather

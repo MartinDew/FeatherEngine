@@ -1,6 +1,6 @@
 module feather.modules;
 
-import feather.main;
+import feather.world;
 
 #if FEATHER_VEX_RENDERER_ENABLED
 import feather.vex_renderer;

@@ -1,6 +1,7 @@
 module feather.main;
 
 import std;
+import feather.modules;
 
 namespace feather {
 
@@ -10,27 +11,24 @@ struct Main {
 	ProjectSettings _project_settings;
 	ResourceLoader _resource_loader;
 
-	ModuleHooks _hooks;
-
-	Main(int argc, char* argv[], ModuleHooks hooks);
+	Main(int argc, char* argv[]);
 	~Main();
 	void setup_db();
 };
 
-Main::Main(int argc, char* argv[], ModuleHooks hooks)
+Main::Main(int argc, char* argv[])
 		: _class_db()
-		, _launch_settings(std::move(argc), std::move(argv))
-		, _hooks(hooks) {
+		, _launch_settings(std::move(argc), std::move(argv)) {
 	if (!_project_settings.init() && !_launch_settings.demo_mode.Get())
 		return;
 
 	setup_db();
 
-	Engine engine;
+	DefaultEngine engine;
 
 	engine.run();
 
-	_hooks.unregister_modules();
+	unregister_modules();
 }
 
 Main::~Main() {
@@ -45,14 +43,13 @@ void Main::setup_db() {
 	register_resources_types();
 	register_rendering_types();
 	register_world_types();
-	register_main_types();
 
 	// then register module types
-	_hooks.register_modules();
+	register_modules();
 }
 
-int run(int argc, char* argv[], ModuleHooks hooks) {
-	Main fmain(argc, argv, hooks);
+int run(int argc, char* argv[]) {
+	Main fmain(argc, argv);
 	return 0;
 }
 

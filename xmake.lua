@@ -57,10 +57,10 @@ includes("thirdparty/xmake.lua")
 
 -- ---- Modules ------------------------------------------------------------
 -- Engine modules, lowest layer first; each declares its own deps in its xmake.lua.
-includes("framework", "math", "reflection", "core", "resources", "rendering", "world", "main")
+includes("framework", "math", "reflection", "core", "resources", "rendering", "world")
 
 -- ---- Executable (default target) ----------------------------------------
-includes("app")
+includes("main")
 
 -- Optional modules, linked into the executable when enabled. After the executable,
 -- so their xmake.lua can add packages and rules to it.
