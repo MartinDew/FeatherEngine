@@ -32,7 +32,7 @@ DEFINE_RENDER_DATA_TYPES(vex::BindlessHandle);
 using namespace vex;
 
 vex::PlatformWindowHandle VexRenderer::_create_vex_window(Window& window) {
-	Window& engine_window = EngineContext::get_main_window();
+	Window& engine_window = Engine::get().get_main_window();
 	SDL_Window* internal_window = Renderer::_extract_internal_window(engine_window);
 
 	PlatformWindowHandle vex_window;
@@ -78,19 +78,19 @@ static std::filesystem::path _engine_shader_path() {
 VexRenderer::VexRenderer()
 		: graphics(
 				  vex::GraphicsCreateDesc {
-						  .platformWindow = { .windowHandle = _create_vex_window(EngineContext::get_main_window()),
+						  .platformWindow = { .windowHandle = _create_vex_window(Engine::get().get_main_window()),
 											  .width = static_cast<uint32_t>(
-													  EngineContext::get_main_window().properties.width
+													  Engine::get().get_main_window().properties.width
 											  ),
 											  .height = static_cast<uint32_t>(
-													  EngineContext::get_main_window().properties.height
+													  Engine::get().get_main_window().properties.height
 											  ) },
 						  .enableGPUDebugLayer = !VEX_SHIPPING,
 						  .enableGPUBasedValidation = !VEX_SHIPPING,
 				  }
 		  )
 		, _use_reverse_z { true } {
-	auto main_window = EngineContext::get_main_window();
+	auto main_window = Engine::get().get_main_window();
 	uint32_t width = main_window.properties.width;
 	uint32_t height = main_window.properties.height;
 

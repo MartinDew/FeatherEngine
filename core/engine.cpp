@@ -4,16 +4,29 @@ import std;
 
 namespace feather {
 
-Window* EngineContext::_main_window = nullptr;
+Engine* Engine::_instance = nullptr;
 
-bool EngineContext::is_editor() {
+Engine::Engine() {
+	fassert(!_instance);
+	_instance = this;
+}
+
+Engine::~Engine() {
+	_instance = nullptr;
+}
+
+Engine& Engine::get() {
+	return *_instance;
+}
+
+bool Engine::is_editor() {
 	if constexpr (!EDITOR_BUILD)
 		return false;
 	else
 		return LaunchSettings::get().editor_mode.Get();
 }
 
-bool EngineContext::is_headless() {
+bool Engine::is_headless() {
 	static const bool headless = [] {
 		const std::string& mode = LaunchSettings::get().windowed.Get();
 		if (mode == "headless")
@@ -26,13 +39,16 @@ bool EngineContext::is_headless() {
 	return headless;
 }
 
-Window& EngineContext::get_main_window() {
-	fassert(_main_window, "no main window registered");
-	return *_main_window;
+Window& Engine::get_main_window() {
+	return _main_window;
 }
 
-void EngineContext::set_main_window(Window* window) {
-	_main_window = window;
+double Engine::get_current_delta_time() const {
+	return _current_dt;
+}
+
+void Engine::set_current_delta_time(double dt) {
+	_current_dt = dt;
 }
 
 } //namespace feather

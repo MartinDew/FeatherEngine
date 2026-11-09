@@ -5,7 +5,7 @@ module feather.rendering;
 
 namespace feather {
 
-Renderer::Renderer() : _window(&EngineContext::get_main_window()) {
+Renderer::Renderer() : _window(&Engine::get().get_main_window()) {
 }
 
 SDL_Window* Renderer::_extract_internal_window(Window& window) {
