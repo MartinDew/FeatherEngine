@@ -5,7 +5,7 @@ target("feather")
     set_default(true)
     set_basename("feather")
     set_targetdir("$(builddir)/bin")
-    add_rules("feather.base")
+    add_rules("feather.base", "feather.link_modules")
 
     add_files("*.cppm", "*.cpp")
     add_deps("main")

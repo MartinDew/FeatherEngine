@@ -32,6 +32,19 @@ rule("feather.module")
         import("feather_codegen")
         feather_codegen.run(target)
     end)
+
+    before_link(function (target)
+        import("feather_module")
+        feather_module.strip_std_objects(target)
+    end)
+rule_end()
+
+-- On the executable: links the static module libraries whole-archive.
+rule("feather.link_modules")
+    on_config(function (target)
+        import("feather_module")
+        feather_module.link_whole(target)
+    end)
 rule_end()
 
 -- Copies raw_resources/shaders next to the built executable. Modules needing

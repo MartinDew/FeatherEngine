@@ -70,10 +70,8 @@ function load(target)
     local dir = target:scriptdir()
     target:set("enabled", enabled(name))
 
-    -- static maps to object: xmake links every object of an object dep into the final
-    -- binary, so self-registering translation units are never dropped like from a .a.
     local shared = get_config("module_kind") == "shared"
-    target:set("kind", shared and "shared" or "object")
+    target:set("kind", shared and "shared" or "static")
     target:set("group", "modules")
     if shared then
         target:set("targetdir", path.join(config.builddir(), "bin"))
@@ -104,3 +102,46 @@ function load(target)
     target:add("files", register .. ".cpp", {always_added = true})
 end
 
+-- Every target archives its own copy of the std module objects; whole-archive linking
+-- would pull in each one, so module archives drop them and the executable keeps its own.
+function strip_std_objects(target)
+    if not target:is_static() then
+        return
+    end
+    local objectfiles = target:objectfiles()
+    for i = #objectfiles, 1, -1 do
+        local name = path.filename(objectfiles[i])
+        if name:match("^std%.") and (name:match("%.o$") or name:match("%.obj$")) then
+            table.remove(objectfiles, i)
+        end
+    end
+end
+
+-- Static module libraries link whole-archive: nothing may be dropped, since the executable
+-- exports engine symbols to dlopen'd project libraries (-rdynamic).
+function link_whole(target)
+    local names, files = {}, {}
+    for _, dep in ipairs(target:orderdeps()) do
+        if dep:is_static() and dep:get("group") == "modules" then
+            table.insert(names, dep:name())
+            table.insert(files, dep:targetfile())
+        end
+    end
+    if #names == 0 then
+        return
+    end
+    if target:is_plat("windows") then
+        for _, file in ipairs(files) do
+            target:add("ldflags", "/WHOLEARCHIVE:" .. file, {force = true})
+        end
+    elseif target:is_plat("macosx") then
+        for _, file in ipairs(files) do
+            target:add("ldflags", "-Wl,-force_load," .. file, {force = true})
+        end
+    elseif target:is_plat("mingw") then
+        -- xmake's linkgroups ignore `whole` on mingw.
+        target:add("ldflags", "-Wl,--whole-archive", files, "-Wl,--no-whole-archive", {force = true})
+    else
+        target:add("linkgroups", names, {whole = true})
+    end
+end
