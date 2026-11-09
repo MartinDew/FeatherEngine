@@ -53,13 +53,15 @@ function enabled_modules()
 end
 
 -- The API macro is defined on the command line: the export form for the module
--- itself, the import form (interface define) for everything that depends on it.
+-- itself, the dependent form (interface define) for everything that depends on it.
 local function _api_defines(target, shared)
     if not shared then
         return "", ""
     end
+    -- No dllimport for dependents: clang doesn't emit a dllexport class's inline members from a
+    -- module interface, so each binary keeps its own; functions resolve through import thunks.
     if target:is_plat("windows", "mingw") then
-        return "__declspec(dllexport)", "__declspec(dllimport)"
+        return "__declspec(dllexport)", ""
     end
     local visible = "__attribute__((visibility(\"default\")))"
     return visible, visible

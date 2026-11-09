@@ -17,21 +17,25 @@ concept is_singleton_v =
 
 } // namespace feather
 
+// get() is defined next to _instance (FSINGLETON_INSTANCE) so the data access stays in the
+// module that owns it: dependents call the exported function instead of reading _instance.
 #define FDECLARE_SINGLETON(_type)                                                                                      \
 	static _type* _instance;                                                                                           \
 	_type(_type&) = delete;                                                                                            \
 	_type& operator=(const _type&) = delete;                                                                           \
                                                                                                                        \
 public:                                                                                                                \
-	inline static _type* get() {                                                                                       \
-		if (!_instance)                                                                                                \
-			fassert(false, std::format("Singleton {} not instantiated but an attempt to get was made", #_type));       \
-		return _instance;                                                                                              \
-	}                                                                                                                  \
+	static _type* get();                                                                                               \
                                                                                                                        \
 private:
 
-#define FSINGLETON_INSTANCE(_name) _name* _name::_instance = nullptr;
+#define FSINGLETON_INSTANCE(_name)                                                                                     \
+	_name* _name::_instance = nullptr;                                                                                 \
+	_name* _name::get() {                                                                                              \
+		if (!_instance)                                                                                                \
+			fassert(false, std::format("Singleton {} not instantiated but an attempt to get was made", #_name));       \
+		return _instance;                                                                                              \
+	}
 
 #define FSINGLETON_CONSTRUCT_INSTANCE()                                                                                \
 	fassert(!_instance, "Singleton is already initialized");                                                           \

@@ -33,11 +33,6 @@ function apply(target)
             -- clang-cl matches is_msvc() above but emits Clang diagnostics for
             -- the bare attributes, not MSVC's C5030, so /wd5030 alone misses it.
             target:add("cxflags", "-Wno-attributes", "-Wno-unknown-attributes", {force = true})
-            -- clang doesn't emit a dllexport class's inline members from a module interface, so
-            -- importers must keep their own copies instead of importing them.
-            if get_config("module_kind") == "shared" then
-                target:add("cxflags", "/Zc:dllexportInlines-", {force = true})
-            end
         end
         if is_mode("debug") then
             target:add("cxflags", "/Od", "/Zi", {force = true})
