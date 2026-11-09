@@ -16,9 +16,7 @@ struct Main {
 	void setup_db();
 };
 
-Main::Main(int argc, char* argv[])
-		: _class_db()
-		, _launch_settings(std::move(argc), std::move(argv)) {
+Main::Main(int argc, char* argv[]) : _class_db(), _launch_settings(std::move(argc), std::move(argv)) {
 	if (!_project_settings.init() && !_launch_settings.demo_mode.Get())
 		return;
 

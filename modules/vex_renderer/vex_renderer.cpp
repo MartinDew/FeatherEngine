@@ -78,7 +78,8 @@ static std::filesystem::path _engine_shader_path() {
 VexRenderer::VexRenderer()
 		: graphics(
 				  vex::GraphicsCreateDesc {
-						  .platformWindow = { .windowHandle = _create_vex_window(DisplayServer::get().get_main_window()),
+						  .platformWindow = { .windowHandle =
+													  _create_vex_window(DisplayServer::get().get_main_window()),
 											  .width = static_cast<uint32_t>(
 													  DisplayServer::get().get_main_window().properties.width
 											  ),

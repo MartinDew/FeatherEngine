@@ -77,7 +77,9 @@ public:
 	inline void set_base_color_texture(std::shared_ptr<Texture> texture) { _base_color_texture = texture; }
 	inline std::shared_ptr<Texture> get_base_color_texture() const { return _base_color_texture; }
 
-	inline void set_metallic_roughness_texture(std::shared_ptr<Texture> texture) { _metallic_roughness_texture = texture; }
+	inline void set_metallic_roughness_texture(std::shared_ptr<Texture> texture) {
+		_metallic_roughness_texture = texture;
+	}
 	inline std::shared_ptr<Texture> get_metallic_roughness_texture() const { return _metallic_roughness_texture; }
 
 	inline void set_normal_texture(std::shared_ptr<Texture> texture) { _normal_texture = texture; }

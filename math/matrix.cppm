@@ -76,7 +76,8 @@ struct Matrix4x4f {
 
 	// Right-handed, looking down -Z, depth mapped to [0, 1]. RTM's own camera helpers are
 	// left-handed, so these are written out here.
-	FEATHER_MATH_API static Matrix4x4f perspective(float fov_y_radians, float aspect_ratio, float near_plane, float far_plane);
+	FEATHER_MATH_API static Matrix4x4f
+	perspective(float fov_y_radians, float aspect_ratio, float near_plane, float far_plane);
 	FEATHER_MATH_API static Matrix4x4f orthographic(float width, float height, float near_plane, float far_plane);
 	FEATHER_MATH_API static Matrix4x4f
 	perspective_off_center(float left, float right, float bottom, float top, float near_plane, float far_plane);
