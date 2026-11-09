@@ -1,5 +1,7 @@
 export module feather.vex_renderer;
 
+export import feather.rendering;
+
 export import :renderer;
 export import :register_vex_renderer_types;
 
