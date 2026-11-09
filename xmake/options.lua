@@ -38,3 +38,8 @@ option("double_precision")
     set_description("Use double precision for real_t and the default vector/quaternion types (FEATHER_DOUBLE_PRECISION)")
 option_end()
 
+option("module_kind")
+    set_default("static")
+    set_values("static", "shared")
+    set_description("Build the feather modules into the executable (static) or as shared libraries (shared)")
+option_end()

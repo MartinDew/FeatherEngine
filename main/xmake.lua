@@ -1,0 +1,11 @@
+option("enable_main")
+    set_default(true)
+    set_category("feather_modules")
+    set_description("main: Engine and the engine entry point")
+    add_deps("enable_world")
+    after_check("feather_module_option")
+option_end()
+
+target("main")
+    add_rules("feather.module")
+    add_deps("world")

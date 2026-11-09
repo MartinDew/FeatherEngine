@@ -9,9 +9,9 @@ if is_mode("debug") then
     add_requireconfs("*", {debug = true})
 end
 
--- windows/mingw force shared regardless of static_deps: no -rdynamic there,
--- so a static flecs would duplicate ecs_os_api per binary.
-local FEATHER_FORCE_SHARED_DEPS = is_plat("windows", "mingw")
+-- Forced shared regardless of static_deps on windows/mingw (no -rdynamic there) and with shared
+-- modules: a static flecs would duplicate ecs_os_api per binary.
+local FEATHER_FORCE_SHARED_DEPS = is_plat("windows", "mingw") or is_config("module_kind", "shared")
 add_requires("flecs 4.1.5", {
     system = false,
     alias  = "flecs",

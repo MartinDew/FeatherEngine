@@ -1,0 +1,63 @@
+module feather.core;
+
+import std;
+import args;
+
+namespace feather {
+
+LaunchSettings* LaunchSettings::_instance = nullptr;
+
+LaunchSettings::LaunchSettings()
+		: renderer { _parser,
+					 "renderer",
+					 std::format(
+							 "choice of the renderer backend : ( {})",
+							 // Renderer lives in rendering, above core; it is looked up by name.
+							 ClassDB::get_children_names_string("Renderer"_ss)
+					 ),
+					 { "renderer" },
+					 "VexRenderer" } {
+	fassert(!_instance, "Attempt to create Launchsettings but it already exists");
+}
+
+LaunchSettings::LaunchSettings(int argc, char* argv[]) : LaunchSettings() {
+	if (_instance)
+		throw std::runtime_error("LaunchSettings instance already exists!");
+
+	_instance = this;
+
+	_parser.ParseCLI(argc, argv);
+
+	switch (_parser.GetError()) {
+	case args::Error::Help:
+		std::cout << _parser;
+		std::terminate();
+		break;
+	default:
+		break;
+	}
+}
+
+void LaunchSettings::init(int argc, char* argv[]) {
+	fassert(_instance, "LaunchSettings instance does not exists!");
+
+	_parser.ParseCLI(argc, argv);
+
+	switch (_parser.GetError()) {
+	case args::Error::Help:
+		std::cout << _parser;
+		std::terminate();
+		break;
+	default:
+		break;
+	}
+}
+
+LaunchSettings& LaunchSettings::get() {
+	if (!_instance)
+		_instance = new LaunchSettings();
+
+	return *_instance;
+}
+
+} //namespace feather

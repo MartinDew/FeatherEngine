@@ -4,7 +4,7 @@ module;
 export module feather.vex_renderer:renderer;
 
 import std.compat;
-import feather.core;
+import feather.rendering;
 import Vex;
 
 #ifndef FEATHER_REFLECTION_PARSER

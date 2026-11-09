@@ -6,7 +6,6 @@ CompileFlags:
   # Adjust these paths based on your actual project structure
   Add: [
     -I.,
-    -Icore,
     -Imodules/*
   ]
 

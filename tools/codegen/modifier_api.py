@@ -36,9 +36,8 @@ class ModifierError(RuntimeError):
 class EmitContext:
     """Passed to every Modifier hook.
 
-    dir_name is the source directory currently being processed (e.g. "world"
-    for core/world, or a module's own directory name) -- the same name that
-    ends up in register_<dir_name>_types.gen.{h,cpp}.
+    dir_name is the module currently being processed (e.g. "world") -- the
+    same name that ends up in register_<dir_name>_types.gen.{cppm,cpp}.
 
     hoist(code_lines, condition) is only meaningful while a class body is
     being emitted (gen_header_includes/gen_body_lines): it wraps code_lines in

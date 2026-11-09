@@ -1,0 +1,11 @@
+option("enable_rendering")
+    set_default(true)
+    set_category("feather_modules")
+    set_description("rendering: rendering server, render scene, renderer interface")
+    add_deps("enable_resources")
+    after_check("feather_module_option")
+option_end()
+
+target("rendering")
+    add_rules("feather.module")
+    add_deps("resources")

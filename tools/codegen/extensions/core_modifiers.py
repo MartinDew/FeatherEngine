@@ -16,7 +16,7 @@ from modifier_api import Modifier
 
 class SingletonModifier(Modifier):
     """FCLASS(singleton). Reflection contract with FDECLARE_SINGLETON/
-    FSINGLETON_INSTANCE (core/framework/singleton_helpers.h): adds the
+    FSINGLETON_INSTANCE (framework/singleton_helpers.h): adds the
     get()/instance boilerplate to the class body and routes registration
     through ClassDB::register_singleton_class, which -- unlike register_class
     -- never installs an object_create_func (the engine constructs the single
