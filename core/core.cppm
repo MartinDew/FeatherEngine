@@ -2,7 +2,7 @@ export module feather.core;
 
 export import feather.reflection;
 
-export import :engine;
+export import :display_server;
 export import :engine_settings;
 export import :launch_settings;
 export import :notification;
