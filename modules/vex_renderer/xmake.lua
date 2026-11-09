@@ -97,7 +97,7 @@ target("vex_renderer")
         import("core.base.option")
         import("feather_codegen")
         -- The renderer embeds raw_resources/shaders (raw_resources/shaders/*.slang.gen.h).
-        feather_codegen.run_embedded_resources()
+        feather_codegen.run_embedded_resources(target)
         if option.get("require") == false then return end
         local vex = target:pkg("vex")
         assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
