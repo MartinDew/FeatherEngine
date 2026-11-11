@@ -1,6 +1,5 @@
--- Toolchain-conditional compile/link flags, shared between the engine's own
--- targets and downstream project DLLs (tools/SDK/FeatherSDK.lua). Applied
--- from on_config, not on_load: queries the resolved toolchain.
+-- Toolchain-conditional compile/link flags for every feather target (rule
+-- feather.base). Applied from on_config, not on_load: queries the resolved toolchain.
 
 function apply(target)
     local want_lto     = has_config("production") or has_config("use_lto")
@@ -27,7 +26,7 @@ function apply(target)
     end
 
     -- Reflection's bare [[get]]/[[set(...)]]/[[method]] attributes just need
-    -- compilers to ignore them; consumers need these flags too (FCLASS/FSTRUCT).
+    -- compilers to ignore them (FCLASS/FSTRUCT).
     if is_msvc() then
         target:add("cxflags", "/W4", "/wd4100", "/wd5030", {force = true})
         if is_clang_cl() then

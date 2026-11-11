@@ -5,13 +5,11 @@ set_languages("cxx23", "clatest")
 -- The engine uses `import std;` / `import std.compat;`.
 set_policy("build.c++.modules.std", true)
 
--- Custom import()-able modules (xmake/modules/*.lua), e.g. feather_codegen --
--- registered before anything that might import() from a script-scope closure.
-add_moduledirs(path.join(os.scriptdir(), "xmake", "modules"))
+-- import()-able script modules (xmake/modules/*.lua): feather_module, feather_codegen, feather_flags.
+add_moduledirs("xmake/modules")
 
--- ---- Options and helpers ------------------------------------------------
 includes("xmake/options.lua")
-includes("xmake/helper.lua")
+includes("xmake/rules.lua")
 
 -- ---- Build modes --------------------------------------------------------
 -- debug      -> CMake Debug       (-O0, symbols, BETA, no NDEBUG)
@@ -28,13 +26,21 @@ end
 -- Keep compile_commands.json up to date for clangd / clang-tidy
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "$(builddir)"})
 
--- ---- Global platform defines --------------------------------------------
+-- ---- Global defines -----------------------------------------------------
+-- Every module sees the same values: BMIs are shared across targets, and a mismatch is an ODR bug.
+add_defines("EDITOR_BUILD=" .. (has_config("editor_build") and "1" or "0"))
+add_defines(is_mode("release") and "PRODUCTION" or "BETA")
+if has_config("double_precision") then
+    add_defines("FEATHER_DOUBLE_PRECISION")
+end
 if is_plat("windows") then
     add_defines("NOMINMAX", "WIN32_LEAN_AND_MEAN")
 end
 if is_plat("macosx") then
     add_cxflags("-fexperimental-library", {force = true})
 end
+-- Module sources include each other's plain headers as <module/header.h>.
+add_includedirs(".")
 
 -- ---- LTO ----------------------------------------------------------------
 if has_config("production") or has_config("use_lto") then
@@ -46,11 +52,16 @@ if has_config("production") or has_config("static_cpp") then
     set_runtimes(is_mode("debug") and "MTd" or "MT")
 end
 
--- ---- Third-party packages and local targets -----------------------------
+-- ---- Third-party packages -----------------------------------------------
 includes("thirdparty/xmake.lua")
 
--- ---- Engine targets -------------------------------------------------------
--- feather_core is shared with tools/SDK/FeatherSDK.lua, so both files are kept
--- free of set_project()/set_version() and the like.
-includes("xmake/core.lua")
-includes("xmake/engine.lua")
+-- ---- Modules ------------------------------------------------------------
+-- Engine modules, lowest layer first; each declares its own deps in its xmake.lua.
+includes("framework", "math", "reflection", "core", "resources", "rendering", "world")
+
+-- ---- Executable (default target) ----------------------------------------
+includes("main")
+
+-- Optional modules, linked into the executable when enabled. After the executable,
+-- so their xmake.lua can add packages and rules to it.
+includes("modules/*/xmake.lua")

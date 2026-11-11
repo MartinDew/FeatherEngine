@@ -53,15 +53,15 @@ ACCESS_ENUM = {"public": "AccessLevel::Public", "protected": "AccessLevel::Prote
 _FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(([^)]*)\)")
 _ATTR_RE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 
-# `class Name ... {` / `struct Name ... {`, optionally an export macro
-# (FEATHER_API, see core/framework/export_defs.h), optionally `final`,
+# `class Name ... {` / `struct Name ... {`, optionally a module export macro
+# (FEATHER_<MODULE>_API, defined by the build), optionally `final`,
 # optionally a base-clause. Requires the opening `{` right after, so a
 # forward declaration ("class Foo;") never matches.
 #
-# Matches the literal "FEATHER_API" only, not generic \w+: a generic token
+# The macro must match FEATHER_\w+_API, not generic \w+: a generic token
 # there would greedily misparse "class Foo final {" as name="final".
 _CLASS_DEF_RE = re.compile(
-    r"\b(class|struct)\s+(?:FEATHER_API\s+)?(\w+)\b\s*(?:final\s*)?(?::\s*([^{;]*))?\{"
+    r"\b(class|struct)\s+(?:FEATHER_\w+_API\s+)?(\w+)\b\s*(?:final\s*)?(?::\s*([^{;]*))?\{"
 )
 
 _ACCESS_SPEC_RE = re.compile(r"\s*(public|protected|private)\s*:")
@@ -749,16 +749,18 @@ def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, cond
         access = access_tok or member_access
         method = f"{which}_{prop}"
         kind = "generate"
+        # Explicitly inline: in a module interface an in-class definition isn't, and a
+        # dllimport class may only define inline functions.
         if which == "get":
             if is_ref:
-                code = f"\tconst {ty}& {method}() const {{ return {member}; }}"
+                code = f"\tinline const {ty}& {method}() const {{ return {member}; }}"
             else:
-                code = f"\t{ty} {method}() const {{ return {member}; }}"
+                code = f"\tinline {ty} {method}() const {{ return {member}; }}"
         else:
             if is_ref:
-                code = f"\tvoid {method}(const {ty}& value) {{ {member} = value; }}"
+                code = f"\tinline void {method}(const {ty}& value) {{ {member} = value; }}"
             else:
-                code = f"\tvoid {method}({ty} value) {{ {member} = std::move(value); }}"
+                code = f"\tinline void {method}({ty} value) {{ {member} = std::move(value); }}"
         cls.gen_getters.append((access, code, condition))
 
     if which == "get":
@@ -813,7 +815,8 @@ def file_id(header: Path, project_root: Path) -> str:
     return "feather_" + re.sub(r"[^0-9a-zA-Z]", "_", rel)
 
 
-def generate_gen_header(classes: list, header: Path, project_root: Path, registry: Registry, dir_name: str) -> str:
+def generate_gen_header(classes: list, header: Path, project_root: Path, registry: Registry, dir_name: str,
+                        external_bind: bool = False) -> str:
     fid = file_id(header, project_root)
 
     extra_includes, seen_inc = [], set()
@@ -870,7 +873,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
                 section_lines[section].append(line)
 
         body = []
-        body.append("friend class ClassDB;")
+        if not external_bind:
+            body.append("friend class ClassDB;")
         body.append("struct _class_type {};")
         body.extend(pre_lines)
         body.append("public:")
@@ -880,9 +884,9 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
         if not c.is_value_type:
-            body.append("\tbool is_of_type(StaticString type_name) const override "
+            body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
-            body.append("\tvirtual StaticString get_class_name() override { return get_class_static(); }")
+            body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -890,7 +894,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         # to alias -- `using Super = ;` would be a syntax error.
         if c.parent:
             body.append(f"\tusing Super = {c.parent};")
-        body.append("\tstatic void _bind_members();")
+        if not external_bind:
+            body.append("\tstatic void _bind_members();")
         body.extend(protected_lines)
 
         # Generated accessors, grouped by access level; within a group,
@@ -927,7 +932,7 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
     return "\n".join(lines) + "\n"
 
 
-def _bind_members_body(c: ClassDesc, dir_name: str) -> list:
+def _bind_members_body(c: ClassDesc, dir_name: str, external: bool = False) -> list:
     # Unlike the .gen.h macro, this is a real function body -- #if/#endif can
     # wrap a conditional binding call directly, no hoisted-helper-macro
     # indirection needed.
@@ -939,7 +944,8 @@ def _bind_members_body(c: ClassDesc, dir_name: str) -> list:
         else:
             out.append(stmt)
 
-    out = [f"void {c.name}::_bind_members() {{"]
+    # An external type is bound through a ClassDB::bind_members<T> specialization instead.
+    out = [f"template <> void ClassDB::bind_members<{c.name}>() {{" if external else f"void {c.name}::_bind_members() {{"]
     for p in c.properties:
         ga = ACCESS_ENUM[p.getter_access]
         sa = ACCESS_ENUM[p.setter_access]
@@ -996,30 +1002,34 @@ def _module_of(header: Path) -> str:
     return m.group(1)
 
 
-def _owner_module(dir_path: Path, classes: list):
-    """The module a directory's generated register code belongs to, or None for plain headers."""
-    if dir_path.resolve() == _CORE_PATH or _CORE_PATH in dir_path.resolve().parents:
-        return "feather.core"
-    owners = {_module_of(c.header) for c in classes if c.header.suffix == ".cppm"}
-    if len(owners) > 1:
-        raise ParseError(f"{dir_path}: classes span several modules: {sorted(owners)}")
-    return next(iter(owners), None)
+def _owner_module(dir_path: Path):
+    """The C++ module a directory's sources belong to; its generated register code joins it."""
+    owners = {_module_of(f) for f in dir_path.rglob("*.cppm") if ".gen." not in f.name}
+    if len(owners) != 1:
+        raise ParseError(f"{dir_path}: expected the .cppm files to belong to one module, got {sorted(owners)}")
+    return next(iter(owners))
 
 
-def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_emissions: list,
-                          owner) -> str:
+def _partition_of(header: Path):
+    text = header.read_text(encoding="utf-8-sig", errors="replace")
+    m = re.search(r"^\s*export\s+module\s+[\w.]+\s*:([\w.]+)\s*;", text, re.M)
+    return m.group(1) if m else None
+
+
+def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir_emissions: list,
+                          owner: str, external_bind: bool, bound_classes: list) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
+    bound = topological_sort(bound_classes)
     ctx = EmitContext(dir_name=subfolder)
 
     # Classes declared in a module are defined by an implementation unit of that module;
     # their own sources are never #included.
-
     includes, seen = [], set()
     for c in ordered:
         if c.header.suffix == ".cppm":
             continue
-        rel = _relative_include(c.header, core_path)
+        rel = _relative_include(c.header, include_base)
         if rel not in seen:
             seen.add(rel)
             includes.append(rel)
@@ -1035,34 +1045,30 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
                 seen.add(inc)
                 includes.append(inc)
 
-    # Headers that are partitions of feather.core arrive through the module import instead.
-    includes = [inc for inc in includes if not _is_core_module_header(inc)]
-    if owner:
-        lines = [GENERATED_NOTICE, "module;", ""]
-        for inc in includes:
-            lines.append(f'#include "{inc}"')
-        lines += ["", f"module {owner};", ""]
-        if owner != "feather.core":
-            lines.append("import feather.core;")
-    else:
-        lines = [GENERATED_NOTICE, f'#include "register_{subfolder}_types.gen.h"', ""]
-        for inc in includes:
-            lines.append(f'#include "{inc}"')
-        lines += ["", "import feather.core;"]
-    lines += ["", "namespace feather {", ""]
+    # Headers that are module partitions arrive through the module import instead.
+    includes = [inc for inc in includes if not _is_module_header(inc, include_base)]
+    lines = [GENERATED_NOTICE, "module;", ""]
+    for inc in includes:
+        lines.append(f'#include "{inc}"')
+    lines += ["", f"module {owner};", "", "namespace feather {", ""]
 
-    for c in ordered:
-        lines.extend(_bind_members_body(c, subfolder))
+    for c in bound:
+        lines.extend(_bind_members_body(c, subfolder, external=True))
         lines.append("")
-        for modifier, _arg in c.resolved_modifiers:
-            defs = modifier.register_cpp_definitions(c, ctx)
-            if defs:
-                lines.extend(defs)
-                lines.append("")
-
-    lines.append(f"void {func}() {{")
-    if ordered:
+    if not external_bind:
         for c in ordered:
+            lines.extend(_bind_members_body(c, subfolder))
+            lines.append("")
+            for modifier, _arg in c.resolved_modifiers:
+                defs = modifier.register_cpp_definitions(c, ctx)
+                if defs:
+                    lines.extend(defs)
+                    lines.append("")
+
+    registered = bound + ([] if external_bind else ordered)
+    lines.append(f"void {func}() {{")
+    if registered:
+        for c in registered:
             # A modifier may replace the default register_class
             # call entirely (e.g. singleton -> register_singleton_class); the first
             # applied modifier (in resolved/sorted order) that opts in wins.
@@ -1077,7 +1083,7 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
             for stmt in stmts:
                 lines.append(f"\t{stmt}")
     else:
-        lines.append("\t// No reflected classes found in this module.")
+        lines.append("\t// No reflected classes registered by this module.")
     lines += ["}", ""]
 
     for de in dir_emissions:
@@ -1087,29 +1093,22 @@ def generate_register_cpp(subfolder: str, classes: list, core_path: Path, dir_em
     return "\n".join(lines) + "\n"
 
 
-def generate_register_header(subfolder: str, dir_emissions: list, owner) -> str:
+def generate_register_header(subfolder: str, classes: list, dir_emissions: list, owner: str) -> str:
     func = f"register_{subfolder}_types"
 
-    extra_includes, seen = [], set()
-    for de in dir_emissions:
-        for inc in de.header_includes:
-            if inc not in seen and not _is_core_module_header(inc):
-                seen.add(inc)
-                extra_includes.append(inc)
+    # Emitted declarations (e.g. component templates) name the module's own types.
+    imports, seen = [], set()
+    for c in classes:
+        part = _partition_of(c.header) if c.header.suffix == ".cppm" else None
+        if part and part not in seen:
+            seen.add(part)
+            imports.append(f"import :{part};")
 
-    if owner:
-        # A partition of the owning module; World comes from feather.core's ECS definitions.
-        world = "import :world.ecs_defs;" if owner == "feather.core" else "import feather.core;"
-        lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", "", world, "",
-                 "export namespace feather {"]
-    else:
-        lines = [GENERATED_NOTICE, "#pragma once", ""]
-        for inc in extra_includes:
-            lines.append(f'#include "{inc}"')
-        if extra_includes:
-            lines.append("")
-        lines.append("namespace feather {")
-    lines += ["", f"void {func}();", ""]
+    lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
+    if imports:
+        lines += imports + [""]
+    # Called by main across module libraries: exported with the module's API macro.
+    lines += ["export namespace feather {", "", f"FEATHER_{subfolder.upper()}_API void {func}();", ""]
     for de in dir_emissions:
         lines.extend(de.header_decls)
     lines += ["} // namespace feather", ""]
@@ -1137,17 +1136,14 @@ def validate_hierarchy(classes: list):
         )
 
 
-_CORE_PATH = Path(".")
+def _is_module_header(inc: str, include_base: Path) -> bool:
+    """True when an include names a module partition (its .cppm exists next to where it would be)."""
+    return (include_base / inc).with_suffix(".cppm").is_file()
 
 
-def _is_core_module_header(inc: str) -> bool:
-    """True when a core-relative include names a partition of feather.core."""
-    return (_CORE_PATH / inc).with_suffix(".cppm").is_file()
-
-
-def _relative_include(header: Path, core_path: Path) -> str:
+def _relative_include(header: Path, include_base: Path) -> str:
     try:
-        return header.resolve().relative_to(core_path.resolve()).as_posix()
+        return header.resolve().relative_to(include_base.resolve()).as_posix()
     except ValueError:
         return header.name
 
@@ -1235,17 +1231,7 @@ def build_registry(dir_path: Path, extra_extensions: list) -> Registry:
     return registry
 
 
-def process_source_dir(dir_path: Path, name: str, include_base: Path, project_root: Path,
-                        extra_extensions: list) -> int:
-    """Scan dir_path recursively for FCLASS headers, emit each header's .gen.h,
-    and emit dir_path/register_<name>_types.gen.{h,cpp}. Shared by the core-
-    subfolder loop and the --module-path loop in main() -- a module dir is
-    processed exactly like a core subfolder. include_base is what generated
-    #include paths are computed relative to (core_path for core, the module
-    dir itself for modules, so e.g. "vex_renderer.h" not
-    "modules/vex_renderer/vex_renderer.h"). Returns files-written count."""
-    changed = 0
-    registry = build_registry(dir_path, extra_extensions)
+def _scan_dir(dir_path: Path, name: str, project_root: Path, registry: Registry):
     classes_by_header: dict = {}
     all_classes: list = []
     for header in find_headers(dir_path):
@@ -1257,6 +1243,22 @@ def process_source_dir(dir_path: Path, name: str, include_base: Path, project_ro
         if classes:
             classes_by_header[header] = classes
             all_classes.extend(classes)
+    return classes_by_header, all_classes
+
+
+def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_extensions: list,
+                       external_bind: bool = False, bound_dirs: tuple = ()) -> int:
+    """Scan dir_path recursively for FCLASS headers, emit each header's .gen.h,
+    and emit dir_path/register_<name>_types.gen.{cppm,cpp}. bound_dirs are
+    --external-bind dirs whose types this module binds and registers.
+    Returns the number of files written."""
+    changed = 0
+    registry = build_registry(dir_path, extra_extensions)
+    classes_by_header, all_classes = _scan_dir(dir_path, name, project_root, registry)
+    bound_classes = []
+    for bound_dir in bound_dirs:
+        _, classes = _scan_dir(bound_dir, bound_dir.name, project_root, build_registry(bound_dir, extra_extensions))
+        bound_classes.extend(classes)
 
     try:
         validate_hierarchy(all_classes)
@@ -1278,19 +1280,23 @@ def process_source_dir(dir_path: Path, name: str, include_base: Path, project_ro
     # Per-header gen.h files
     for header, classes in classes_by_header.items():
         gen_h = header.with_name(header.stem + ".gen.h")
-        if write_if_changed(gen_h, generate_gen_header(classes, header, project_root, registry, name)):
+        if write_if_changed(gen_h, generate_gen_header(classes, header, project_root, registry, name, external_bind)):
             changed += 1
             print(f"  [{name}] updated {gen_h.name}")
 
     # register_<name>_types.gen.{h,cpp} (always emitted so the caller has the symbol)
-    owner = _owner_module(dir_path, all_classes)
-    out_h = dir_path / f"register_{name}_types.gen.{'cppm' if owner else 'h'}"
-    (dir_path / f"register_{name}_types.gen.{'h' if owner else 'cppm'}").unlink(missing_ok=True)
+    try:
+        owner = _owner_module(dir_path)
+    except ParseError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
+    out_h = dir_path / f"register_{name}_types.gen.cppm"
     out_cpp = dir_path / f"register_{name}_types.gen.cpp"
-    if write_if_changed(out_h, generate_register_header(name, dir_emissions, owner)):
+    if write_if_changed(out_h, generate_register_header(name, all_classes, dir_emissions, owner)):
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
-    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, include_base, dir_emissions, owner)):
+    if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, project_root, dir_emissions, owner,
+                                                     external_bind, bound_classes)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed
@@ -1329,56 +1335,34 @@ def _parse_module_path_arg(raw: str) -> tuple:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--core-path", type=Path, default=Path("./core"))
-    ap.add_argument("--project-root", type=Path, default=Path("."))
+    ap.add_argument("--project-root", type=Path, default=Path("."),
+                    help="repo root: generated #includes and file ids are relative to it")
     ap.add_argument("--module-path", action="append", default=[], dest="module_paths",
-                    help="'DIR' or 'NAME=DIR': additional (non-core) source dir to scan "
-                         "(repeatable). NAME overrides the generated register_<NAME>_types "
-                         "name, which otherwise comes from DIR's basename -- needed when the "
-                         "dir is generically named (a project's src/).")
-    ap.add_argument("--skip-core", action="store_true",
-                    help="don't scan --core-path; only process --module-path dirs. "
-                         "For manually refreshing a single module's own generated "
-                         "files without re-scanning all of core. NOT used by the "
-                         "xmake wiring (xmake/modules/feather_codegen.lua): a "
-                         "module's headers transitively include core headers that "
-                         "need their own .gen.h too, and a module target's files "
-                         "may compile before the main executable's before_build has "
-                         "produced core's, so both the module's own before_build and "
-                         "the executable's must generate core in full.")
+                    help="'DIR' or 'NAME=DIR': a module source dir to scan (repeatable). NAME "
+                         "overrides the generated register_<NAME>_types name (default: DIR's basename).")
+    ap.add_argument("--external-bind", action="store_true",
+                    help="the scanned modules sit below reflection: their types get no ClassDB "
+                         "hook and are bound by the module that passes them to --bind-dir")
+    ap.add_argument("--bind-dir", action="append", default=[], type=Path, dest="bind_dirs",
+                    help="a dir scanned with --external-bind whose types this module binds and registers")
     ap.add_argument("--extension", action="append", default=[], dest="extensions",
                     help="'scope=path': load the FCLASS/FSTRUCT modifier extension at path "
                          "(a .py file or a directory of them) only when processing scope or a "
-                         "directory beneath it. Repeatable. See xmake/modules/feather_codegen.lua's "
-                         "add_extension() for how a project's own xmake.lua wires this in.")
+                         "directory beneath it. Repeatable.")
     args = ap.parse_args()
 
-    core_path = args.core_path.resolve()
-    global _CORE_PATH
-    _CORE_PATH = core_path.resolve()
     project_root = args.project_root.resolve()
     extra_extensions = [_parse_extension_arg(raw) for raw in args.extensions]
+    bound_dirs = tuple(d.resolve() for d in args.bind_dirs)
 
     total_changed = 0
-
-    if not args.skip_core:
-        if not core_path.is_dir():
-            print(f"[ERROR] core path not found: {core_path}", file=sys.stderr)
-            sys.exit(1)
-        subfolders = [e.name for e in sorted(core_path.iterdir()) if e.is_dir()]
-        for sub in subfolders:
-            folder = core_path / sub
-            total_changed += process_source_dir(folder, sub, core_path, project_root, extra_extensions)
-
     for mp in args.module_paths:
         mod_path, mod_name = _parse_module_path_arg(mp)
         if not mod_path.is_dir():
-            print(f"[WARN] module path not found: {mod_path}", file=sys.stderr)
-            continue
-        # Named after the directory itself by default, e.g.
-        # modules/vex_renderer/register_vex_renderer_types.gen.{h,cpp};
-        # NAME=DIR overrides that (see _parse_module_path_arg).
-        total_changed += process_source_dir(mod_path, mod_name, mod_path, project_root, extra_extensions)
+            print(f"[ERROR] module path not found: {mod_path}", file=sys.stderr)
+            sys.exit(1)
+        total_changed += process_source_dir(mod_path, mod_name, project_root, extra_extensions,
+                                            args.external_bind, bound_dirs)
 
     print(f"Done ({total_changed} file(s) updated).")
 

@@ -9,9 +9,9 @@ if is_mode("debug") then
     add_requireconfs("*", {debug = true})
 end
 
--- windows/mingw force shared regardless of static_deps: no -rdynamic there,
--- so a static flecs would duplicate ecs_os_api per binary.
-local FEATHER_FORCE_SHARED_DEPS = is_plat("windows", "mingw")
+-- Forced shared regardless of static_deps on windows/mingw (no -rdynamic there) and with shared
+-- modules: a static flecs would duplicate ecs_os_api per binary.
+local FEATHER_FORCE_SHARED_DEPS = is_plat("windows", "mingw") or is_config("module_kind", "shared")
 add_requires("flecs 4.1.5", {
     system = false,
     alias  = "flecs",
@@ -36,17 +36,18 @@ add_requires("rtm v2.3.1", {system = false, alias = "rtm"})
 -- SDL3 owns process-global state too; same reasoning as flecs above.
 add_requires("sdl3_feather", {system = false, alias = "sdl3", configs = {shared = FEATHER_FORCE_SHARED_DEPS or not has_config("static_deps")}})
 
-if not is_plat("macosx") then
+-- Only requested with the vex_renderer module (enable_vex_renderer, off on Apple).
+if has_config("enable_vex_renderer") and not is_plat("macosx") then
     add_requires("vex", {system = false, alias = "vex"})
-end
 
--- Version must track Vex's vendored DIRECTX_AGILITY_SDK_VERSION (618); xrepo
--- doesn't carry the exact patch Vex vendors, so use the closest 1.618.x.
-if is_plat("windows") then
-    add_requires("directx12-agility 1.618.1", {system = false, alias = "directx12-agility"})
-end
+    -- Version must track Vex's vendored DIRECTX_AGILITY_SDK_VERSION (618); xrepo
+    -- doesn't carry the exact patch Vex vendors, so use the closest 1.618.x.
+    if is_plat("windows") then
+        add_requires("directx12-agility 1.618.1", {system = false, alias = "directx12-agility"})
+    end
 
-if is_plat("mingw") then
-    add_requires("vulkan-headers 1.4.335+0", {system = false, alias = "vulkan-headers"})
-    add_requires("vulkan-loader 1.4.335+0", {system = false, alias = "vulkan-loader"})
+    if is_plat("mingw") then
+        add_requires("vulkan-headers 1.4.335+0", {system = false, alias = "vulkan-headers"})
+        add_requires("vulkan-loader 1.4.335+0", {system = false, alias = "vulkan-loader"})
+    end
 end

@@ -1,8 +1,8 @@
 module feather.modules;
 
-import feather.core;
+import feather.world;
 
-#if vex_renderer_ENABLED
+#if FEATHER_VEX_RENDERER_ENABLED
 import feather.vex_renderer;
 #endif
 
@@ -12,7 +12,7 @@ static bool registered = false;
 
 void register_modules() {
 	fassert(!registered, "modules already registered but register_modules was called!");
-#if vex_renderer_ENABLED
+#if FEATHER_VEX_RENDERER_ENABLED
 	register_vex_renderer();
 #endif
 
@@ -21,7 +21,7 @@ void register_modules() {
 
 void unregister_modules() {
 	fassert(registered, "modules not registered but unregister was called!");
-#if vex_renderer_ENABLED
+#if FEATHER_VEX_RENDERER_ENABLED
 	unregister_vex_renderer();
 #endif
 	registered = false;
