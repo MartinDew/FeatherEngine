@@ -1,5 +1,15 @@
 -- The feather executable: the engine entry point and main loop, plus every enabled optional
 -- module under modules/, registered through feather.modules (modules.cpp).
+
+-- Always on and hidden: its deps are the modules the executable needs, which stay enabled
+-- through feather_module.enabled() whatever their own enable_<name> says.
+option("feather_executable")
+    set_default(true)
+    set_showmenu(false)
+    set_category("feather_modules")
+    add_deps("enable_world")
+option_end()
+
 target("feather")
     set_kind("binary")
     set_default(true)
