@@ -1,16 +1,8 @@
 -- os.scriptdir(): the project root is this file's parent.
 local FEATHER_ROOT = path.directory(os.scriptdir())
 
--- Applied to every feather target: shared compile flags and the
--- FEATHER_<NAME>_ENABLED define of every enabled module.
+-- Shared compile flags, applied to every feather target.
 rule("feather.base")
-    on_load(function (target)
-        import("feather_module")
-        for _, name in ipairs(feather_module.enabled_modules()) do
-            target:add("defines", feather_module.macro_prefix(name) .. "_ENABLED")
-        end
-    end)
-
     -- Same flags on every target, so xmake reuses module BMIs instead of
     -- rebuilding them per target (GCC rejects mixing the two: CRC mismatch).
     on_config(function (target)
@@ -39,17 +31,24 @@ rule("feather.module")
     end)
 rule_end()
 
--- On the executable: links the static module libraries whole-archive.
+-- On the executable: FEATHER_<NAME>_ENABLED for every enabled module, kept off the modules
+-- so toggling one does not change every module's flags; links static modules whole-archive.
 rule("feather.link_modules")
+    on_load(function (target)
+        import("feather_module")
+        for _, name in ipairs(feather_module.enabled_modules()) do
+            target:add("defines", feather_module.macro_prefix(name) .. "_ENABLED")
+        end
+    end)
+
     on_config(function (target)
         import("feather_module")
         feather_module.link_whole(target)
     end)
 rule_end()
 
--- Copies raw_resources/shaders next to the built executable. Modules needing
--- their own post-build deploy steps should define their own rule (see
--- vex_renderer.deploy_runtime) -- rules stack across a target, closures don't.
+-- Copies raw_resources/shaders next to the executable. Modules deploy their own files with
+-- their own rule (vex_renderer.deploy_runtime): rules stack across a target, closures don't.
 rule("feather.deploy_shaders")
     after_build(function(target)
         -- "dir/*" copies the contents; copying the dir itself nests it inside an existing "shaders" dir
