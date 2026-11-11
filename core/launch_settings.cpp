@@ -11,12 +11,11 @@ LaunchSettings::LaunchSettings()
 		: renderer { _parser,
 					 "renderer",
 					 std::format(
-							 "choice of the renderer backend : ( {})",
+							 "choice of the renderer backend, defaults to the first non-null one : ( {})",
 							 // Renderer lives in rendering, above core; it is looked up by name.
 							 ClassDB::get_children_names_string("Renderer"_ss)
 					 ),
-					 { "renderer" },
-					 "VexRenderer" } {
+					 { "renderer" } } {
 	fassert(!_instance, "Attempt to create Launchsettings but it already exists");
 }
 

@@ -56,9 +56,10 @@ void RenderingServer::init() {
 	// Use a null renderer in headless mode, otherwise use the renderer specified in the launch settings.
 	// Eventually, it will be required to look into booting a renderer even if headless to support compute shaders among
 	// other things.
-	const std::string_view renderer_name = DisplayServer::is_headless()
-			? std::string_view { NullRenderer::get_class_static() }
-			: std::string_view { LaunchSettings::get().renderer.Get() };
+	std::string renderer_name = DisplayServer::is_headless() ? std::string { NullRenderer::get_class_static().str() }
+															 : LaunchSettings::get().renderer.Get();
+	if (renderer_name.empty())
+		renderer_name = _default_renderer_name();
 
 	_renderer = ClassDB::create_object<Renderer>(renderer_name);
 	fassert(_renderer.get(), std::format("Failed to create renderer of type {}", renderer_name));
@@ -70,6 +71,16 @@ void RenderingServer::init() {
 	// A render thread whose only job is to call a no-op isn't worth spawning.
 	if (!DisplayServer::is_headless() && !LaunchSettings::get().force_single_thread.Get())
 		_run();
+}
+
+std::string RenderingServer::_default_renderer_name() {
+	const StaticString null_name = NullRenderer::get_class_static();
+	for (const StaticString& name : ClassDB::get_children_names("Renderer"_ss)) {
+		const ClassInfo* info = ClassDB::get_class_info(name.str());
+		if (name != null_name && info && !info->is_abstract)
+			return std::string { name.str() };
+	}
+	return std::string { null_name.str() };
 }
 
 void RenderingServer::update(double dt) const {
