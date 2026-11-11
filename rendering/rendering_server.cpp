@@ -59,7 +59,7 @@ void RenderingServer::init() {
 	std::string renderer_name = DisplayServer::is_headless() ? std::string { NullRenderer::get_class_static().str() }
 															 : LaunchSettings::get().renderer.Get();
 	if (renderer_name.empty())
-		renderer_name = _default_renderer_name();
+		renderer_name = _get_default_renderer_name();
 
 	_renderer = ClassDB::create_object<Renderer>(renderer_name);
 	fassert(_renderer.get(), std::format("Failed to create renderer of type {}", renderer_name));
@@ -73,7 +73,7 @@ void RenderingServer::init() {
 		_run();
 }
 
-std::string RenderingServer::_default_renderer_name() {
+std::string RenderingServer::_get_default_renderer_name() {
 	const StaticString null_name = NullRenderer::get_class_static();
 	for (const StaticString& name : ClassDB::get_children_names("Renderer"_ss)) {
 		const ClassInfo* info = ClassDB::get_class_info(name.str());

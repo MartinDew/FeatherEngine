@@ -28,8 +28,7 @@ class FEATHER_RENDERING_API RenderingServer {
 	void _run();
 	void _render_function();
 
-	// Renderer modules are optional: the first concrete non-null renderer registered, else NullRenderer.
-	static std::string _default_renderer_name();
+	static std::string _get_default_renderer_name();
 
 	std::atomic<bool> _needs_resize { false };
 
