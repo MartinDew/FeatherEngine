@@ -88,7 +88,12 @@ void RenderingServer::update(double dt) const {
 }
 
 void RenderingServer::stop() {
-	_render_thread.request_stop();
+	// Under the wait mutex so the render thread can't miss the wakeup between its predicate check and sleep.
+	{
+		std::lock_guard lock(_wait_mutex);
+		_render_thread.request_stop();
+	}
+	_wait_cv.notify_all();
 	if (_render_thread.joinable())
 		_render_thread.join();
 }
