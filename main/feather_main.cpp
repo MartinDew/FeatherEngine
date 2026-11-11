@@ -5,9 +5,6 @@ import feather.modules;
 
 namespace feather {
 
-// Global module: ClassDB befriends this Main from feather.reflection (see class_db.cppm).
-extern "C++" {
-
 struct Main {
 	ClassDB _class_db;
 	LaunchSettings _launch_settings;
@@ -48,8 +45,6 @@ void Main::setup_db() {
 	// then register module types
 	register_modules();
 }
-
-} // extern "C++"
 
 int run(int argc, char* argv[]) {
 	Main fmain(argc, argv);
