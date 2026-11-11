@@ -11,16 +11,22 @@ import :class_info;
 import :reflection_utils;
 import :variant;
 
+namespace feather {
+// Defined in feather.main; attached to the global module so the friend below names the same entity.
+extern "C++" struct Main;
+} //namespace feather
+
 export namespace feather {
 
 class FEATHER_REFLECTION_API ClassDB {
 	friend Variant;
+	friend struct Main;
 	FDECLARE_SINGLETON(ClassDB);
 
-public:
 	ClassDB();
 	~ClassDB();
 
+public:
 	using subclass_delegate_t = Delegate<const std::string_view>;
 
 private:
@@ -57,8 +63,6 @@ public:
 	template <class T>
 	static void bind_members();
 
-private:
-public:
 	void print_db();
 
 	// Empties the class registry. Must run before any extension DLL that

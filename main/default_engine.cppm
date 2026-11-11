@@ -10,7 +10,7 @@ export namespace feather {
 using Clock = std::chrono::high_resolution_clock;
 using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-struct Main;
+extern "C++" struct Main;
 
 class DefaultEngine final : public Engine {
 	friend Main;
