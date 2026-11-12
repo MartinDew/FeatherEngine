@@ -8,15 +8,15 @@ import feather.framework;
 export namespace feather {
 // base class for reflected objects
 class FEATHER_REFLECTION_API Reflected {
-	friend class ClassDB;
 	struct _class_type {};
 
 protected:
 	using Type = Reflected;
 
+public:
+	// Public because ClassDB (core, above this module) can't be befriended from here.
 	static void _bind_members();
 
-public:
 	virtual ~Reflected() = default;
 
 	constexpr static StaticString get_class_static() { return "Reflected"_ss; }

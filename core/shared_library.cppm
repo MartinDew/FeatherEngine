@@ -6,6 +6,7 @@ export module feather.core:shared_library;
 
 import std;
 import feather.reflection;
+import :callable;
 
 export namespace feather {
 

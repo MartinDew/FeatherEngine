@@ -2,19 +2,19 @@ module;
 
 #include <framework/singleton_helpers.h>
 
-export module feather.reflection:class_db;
+export module feather.core:class_db;
 
 import std.compat;
 import feather.framework;
 import :callable;
 import :class_info;
-import :reflection_utils;
-import :variant;
+import feather.reflection;
 
 export namespace feather {
 
-class FEATHER_REFLECTION_API ClassDB {
-	friend Variant;
+// Implements ObjectAccess so Variant::get/set/call reach class metadata without reflection
+// depending on ClassDB. Registered in the constructor, unregistered in the destructor.
+class FEATHER_CORE_API ClassDB final : public ObjectAccess {
 	FDECLARE_SINGLETON(ClassDB);
 
 public:
@@ -30,6 +30,12 @@ private:
 	ClassInfo* _current_info = nullptr;
 
 	static void _fire_subclass_delegates(std::string_view class_name);
+
+	// ObjectAccess: walks the class chain of obj, honouring enforce_public.
+	Variant object_get(Reflected* obj, std::string_view key, bool enforce_public) const override;
+	void object_set(Reflected* obj, std::string_view key, const Variant& value, bool enforce_public) const override;
+	Variant object_call(Reflected* obj, std::string_view method, std::span<Variant> args, bool enforce_public)
+			const override;
 
 	template <typename T, typename U>
 	static constexpr size_t offset_of(U T::* member) {

@@ -88,8 +88,6 @@ consteval VariantType get_variant_type() {
 template <typename T>
 concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 
-struct ClassInfo;
-
 class FEATHER_REFLECTION_API Variant {
 	using InternalVariant = std::variant<
 			std::monostate,
@@ -108,9 +106,6 @@ class FEATHER_REFLECTION_API Variant {
 
 	InternalVariant _data;
 	VariantType _type;
-	ClassInfo* _object_info = nullptr;
-
-	void set_class_info(StaticString class_name);
 
 	// enforce_public denies non-Public methods; *_internal entry points pass false.
 	[[nodiscard]] Variant
@@ -156,11 +151,9 @@ public:
 		else if constexpr (type == VariantType::OBJECT) {
 			if constexpr (std::is_pointer_v<T>) {
 				_data = static_cast<Reflected*>(value);
-				set_class_info(value->get_class_name());
 			}
 			else {
 				_data = static_cast<Reflected*>(&value);
-				set_class_info(value.get_class_name());
 			}
 		}
 		else if constexpr (type == VariantType::NIL) {

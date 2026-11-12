@@ -1,12 +1,12 @@
-export module feather.reflection:callable;
+export module feather.core:callable;
 
 import std.compat;
 import feather.framework;
-import :variant;
+import feather.reflection;
 
 export namespace feather {
 
-class FEATHER_REFLECTION_API Callable {
+class FEATHER_CORE_API Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
 	uint8_t _param_amount;
 

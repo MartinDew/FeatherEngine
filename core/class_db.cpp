@@ -2,7 +2,7 @@ module;
 
 #include <framework/singleton_helpers.h>
 
-module feather.reflection;
+module feather.core;
 
 import std;
 
@@ -13,10 +13,72 @@ FSINGLETON_INSTANCE(ClassDB);
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
+	set_object_access(this);
 }
 
 ClassDB::~ClassDB() {
+	if (get_object_access() == this) {
+		set_object_access(nullptr);
+	}
 	clear();
+}
+
+Variant ClassDB::object_get(Reflected* obj, std::string_view key, bool enforce_public) const {
+	if (!obj) {
+		return {};
+	}
+	for (auto* info = _get_class_info_internal(obj->get_class_name()); info;
+		 info = _get_class_info_internal(info->parent)) {
+		for (auto& property : info->properties) {
+			if (property.name == key) {
+				// Script-facing access: only public getters are reachable.
+				if (!property.getter || (enforce_public && property.getter_access != AccessLevel::Public)) {
+					return {};
+				}
+				return property.getter(obj);
+			}
+		}
+	}
+	return {}; // property not found
+}
+
+void ClassDB::object_set(Reflected* obj, std::string_view key, const Variant& value, bool enforce_public) const {
+	if (!obj) {
+		return;
+	}
+	for (auto* info = _get_class_info_internal(obj->get_class_name()); info;
+		 info = _get_class_info_internal(info->parent)) {
+		for (auto& property : info->properties) {
+			if (property.name == key) {
+				// Script-facing access: only public setters are writable.
+				if (!property.setter || (enforce_public && property.setter_access != AccessLevel::Public)) {
+					return;
+				}
+				property.setter(obj, value);
+				return;
+			}
+		}
+	}
+}
+
+Variant ClassDB::object_call(Reflected* obj, std::string_view method_name, std::span<Variant> args, bool enforce_public)
+		const {
+	if (!obj) {
+		return {};
+	}
+	for (auto* info = _get_class_info_internal(obj->get_class_name()); info;
+		 info = _get_class_info_internal(info->parent)) {
+		for (auto& method : info->methods) {
+			if (method.name == method_name) {
+				// Script-facing calls only reach public methods.
+				if (enforce_public && method.access != AccessLevel::Public) {
+					return {};
+				}
+				return method.callable.call(args);
+			}
+		}
+	}
+	return {};
 }
 
 void ClassDB::clear() {
