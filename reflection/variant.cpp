@@ -162,23 +162,11 @@ std::string Variant::get_name() const {
 
 namespace {
 
-// Walks from the object's class up to its root, handing each level's ClassInfo and the object pointer adjusted to
-// that level to visit; stops at the first level visit returns true for.
+// Walks the object's class hierarchy; see ClassInfo::walk.
 template <class TVisit>
 bool walk_hierarchy(ObjectRef ref, TVisit&& visit) {
 	const ClassInfo* info = ref.get_class_info();
-	void* object = ref.get();
-	while (info && object) {
-		if (visit(*info, object)) {
-			return true;
-		}
-		if (!info->to_parent) {
-			break;
-		}
-		object = info->to_parent(object);
-		info = ClassDB::get_class_info(info->parent);
-	}
-	return false;
+	return info && info->walk(ref.get(), std::forward<TVisit>(visit));
 }
 
 Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {

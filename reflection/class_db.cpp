@@ -41,7 +41,7 @@ static void free_instance(void* ptr, const ClassInfo& info) {
 	}
 }
 
-ObjectRef ClassDB::instantiate(std::string_view class_name) {
+ObjectRef ClassDB::instantiate(StaticString class_name) {
 	const ClassInfo* info = get_class_info(class_name);
 	if (!info || !info->can_create()) {
 		return {};
@@ -88,18 +88,17 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 	return children;
 }
 
-ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
+ClassInfo* ClassDB::_get_class_info_internal(StaticString name) {
 	if (auto it = get()->_class_infos.find(name); it != get()->_class_infos.end()) {
 		return &it->second;
 	};
 	return nullptr;
 }
 
-std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
-	if (auto it = ClassDB::get()->_class_infos.find(object_name); it != ClassDB::get()->_class_infos.end()) {
-		return _get_children_names_internal(it->second, exclusive);
+std::vector<StaticString> ClassDB::get_children_names(StaticString object_name, bool exclusive) {
+	if (const ClassInfo* info = _get_class_info_internal(object_name)) {
+		return _get_children_names_internal(*info, exclusive);
 	}
-
 	return {};
 }
 
@@ -127,24 +126,21 @@ void ClassDB::unregister_subclass_delegate(std::string_view base_class_name, Del
 	}
 }
 
-void ClassDB::_fire_subclass_delegates(std::string_view class_name) {
-	ClassInfo* ci = _get_class_info_internal(class_name);
-	while (ci && ci->parent != ""_ss) {
-		auto it = get()->_subclass_delegates.find(ci->parent);
+void ClassDB::_fire_subclass_delegates(const ClassInfo& info) {
+	for (const ClassInfo* parent = info.parent_info; parent; parent = parent->parent_info) {
+		auto it = get()->_subclass_delegates.find(parent->name);
 		if (it != get()->_subclass_delegates.end()) {
-			it->second.execute(class_name);
+			it->second.execute(info.name);
 		}
-		ci = _get_class_info_internal(ci->parent);
 	}
 }
 
 bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
-	ClassInfo* ci = _get_class_info_internal(object_name);
-	while (ci && ci->parent != ""_ss) {
-		if (ci->parent == parent_name) {
+	const ClassInfo* info = _get_class_info_internal(object_name);
+	for (const ClassInfo* parent = info ? info->parent_info : nullptr; parent; parent = parent->parent_info) {
+		if (parent->name == parent_name) {
 			return true;
 		}
-		ci = _get_class_info_internal(ci->parent);
 	}
 	return false;
 }

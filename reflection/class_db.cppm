@@ -37,11 +37,11 @@ private:
 	std::unordered_map<StaticString, ClassInfo> _class_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
 
-	static void _fire_subclass_delegates(std::string_view class_name);
+	static void _fire_subclass_delegates(const ClassInfo& info);
 
 	static std::vector<StaticString> _get_children_names_internal(const ClassInfo& object, bool exclusive = false);
 
-	static ClassInfo* _get_class_info_internal(std::string_view name);
+	static ClassInfo* _get_class_info_internal(StaticString name);
 
 	template <is_reflected T>
 	static void _register(ClassKind kind);
@@ -59,7 +59,7 @@ public:
 	// registered classes gets unloaded -- see Main::~Main().
 	static void clear();
 
-	inline static const ClassInfo* get_class_info(std::string_view name) { return _get_class_info_internal(name); };
+	inline static const ClassInfo* get_class_info(StaticString name) { return _get_class_info_internal(name); };
 
 	template <is_reflected T>
 	static const ClassInfo* get_class_info() {
@@ -86,12 +86,12 @@ public:
 
 	// New default-constructed instance owned by the caller, who frees it with destroy(); a Reflected one may instead
 	// be deleted. Null when the class is unknown or can't be created.
-	static ObjectRef instantiate(std::string_view class_name);
+	static ObjectRef instantiate(StaticString class_name);
 	static void destroy(ObjectRef object);
 
 	// Null when the class can't be created or isn't a T.
 	template <is_reflected T>
-	static std::unique_ptr<T> create_object(std::string_view class_name) {
+	static std::unique_ptr<T> create_object(StaticString class_name) {
 		ObjectRef object = instantiate(class_name);
 		T* typed = object.cast<T>();
 		if (!typed) {
@@ -107,7 +107,7 @@ public:
 
 	static void unregister_subclass_delegate(std::string_view base_class_name, Delegate<std::string_view>::id_t id);
 
-	static std::vector<StaticString> get_children_names(std::string_view object_name, bool exclusive = false);
+	static std::vector<StaticString> get_children_names(StaticString object_name, bool exclusive = false);
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
 
@@ -158,8 +158,16 @@ void ClassDB::_register(ClassKind kind) {
 		info.to_parent = nullptr;
 	}
 
-	if (info.parent != "") {
-		instance._class_infos[info.parent].children.emplace_back(&info);
+	info.parent_info = nullptr;
+	if (info.parent != ""_ss) {
+		// Codegen orders registration parent-first within a module, and modules register bottom-up.
+		auto parent = instance._class_infos.find(info.parent);
+		fassert(parent != instance._class_infos.end(), "Class registered before its parent");
+		info.parent_info = &parent->second;
+		// Registering a class again (an extension reloaded without clear()) mustn't list it twice.
+		if (!std::ranges::contains(parent->second.children, &info)) {
+			parent->second.children.emplace_back(&info);
+		}
 	}
 
 	info.properties.clear();
@@ -167,7 +175,7 @@ void ClassDB::_register(ClassKind kind) {
 	info.methods.clear();
 	std::apply([&info](const auto&... desc) { (_add_method<T>(info, desc), ...); }, Desc::methods);
 
-	_fire_subclass_delegates(Desc::name);
+	_fire_subclass_delegates(info);
 }
 
 template <class T, auto Getter, auto Setter>

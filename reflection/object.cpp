@@ -17,22 +17,18 @@ bool ObjectRef::is_a(const ClassInfo* target) const {
 }
 
 void* ObjectRef::cast_to(const ClassInfo* target) const {
-	if (!target) {
+	if (!target || !_info) {
 		return nullptr;
 	}
-	const ClassInfo* info = _info;
-	void* object = _ptr;
-	while (info && object) {
-		if (info == target) {
-			return object;
+	void* result = nullptr;
+	_info->walk(_ptr, [&](const ClassInfo& info, void* object) {
+		if (&info == target) {
+			result = object;
+			return true;
 		}
-		if (!info->to_parent) {
-			return nullptr;
-		}
-		object = info->to_parent(object);
-		info = ClassDB::get_class_info(info->parent);
-	}
-	return nullptr;
+		return false;
+	});
+	return result;
 }
 
 } // namespace feather

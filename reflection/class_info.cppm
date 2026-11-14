@@ -110,6 +110,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 
 	// Adjusts a pointer to this class into a pointer to its parent subobject; null at a root.
 	void* (*to_parent)(void* object) = nullptr;
+	// The registered parent, set by ClassDB at registration; null at a root.
+	const ClassInfo* parent_info = nullptr;
 
 	struct Property {
 		StaticString name;
@@ -137,6 +139,22 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	};
 
 	std::vector<Method> methods;
+
+	// Visits (class, object adjusted to that class) from this class up to the root; stops at the first level visit
+	// returns true for, and returns whether one did.
+	template <class TVisit>
+	bool walk(void* object, TVisit&& visit) const {
+		for (const ClassInfo* info = this; info && object; info = info->parent_info) {
+			if (visit(*info, object)) {
+				return true;
+			}
+			if (!info->to_parent) {
+				break;
+			}
+			object = info->to_parent(object);
+		}
+		return false;
+	}
 
 	bool can_create() const {
 		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&
