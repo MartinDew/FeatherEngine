@@ -128,6 +128,9 @@ class ClassDesc:
     is_value_type: bool = False
     properties: list = dc_field(default_factory=list)     # list[PropertyPlan]
     methods: list = dc_field(default_factory=list)        # list[MethodPlan]
+    # C++ access of every member function declared in the body, reflected or not (all overloads of a name);
+    # lets external binds check a manual accessor's access.
+    method_access: dict = dc_field(default_factory=dict)  # name -> set[str]
 
 
 # --------------------------------------------------------------------------- #
@@ -757,6 +760,7 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
                     method_paths: dict, header: Path, body: str, fclass_line: int):
     name = info["name"]
     attrs = info["attrs"]
+    cls.method_access.setdefault(name, set()).add(access)
     if "ignore" in attrs:
         return
     # Opt-in: only [[method]] (or [[method(name)]] to rebind) binds a method.
@@ -936,10 +940,21 @@ def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -
     if external:
         # A type below reflection can't befriend FType, so its description may only name public members.
         for p in c.properties:
-            if p.member_access != "public":
+            sides = [(k, m) for k, m in ((p.getter_kind, p.getter_method), (p.setter_kind, p.setter_method))]
+            # A field side names the member itself; a manual side only names its accessor.
+            if any(k == "field" for k, _ in sides) and p.member_access != "public":
                 raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' binds "
                                  f"{p.member_access} member '{p.member_name}', but {c.name} is described from "
                                  f"the reflection module, which can only reach public members")
+            for kind, method in sides:
+                if kind != "manual":
+                    continue
+                # An accessor not declared in the body (e.g. inherited) is left to the compiler.
+                accesses = c.method_access.get(method, {"public"})
+                if accesses != {"public"}:
+                    raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' "
+                                     f"uses non-public accessor '{method}', but {c.name} is described from "
+                                     f"the reflection module, which can only reach public members")
         for m in c.methods:
             if m.access != "public":
                 raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: [[method]] '{m.name}' is "
