@@ -1,11 +1,3 @@
-module;
-
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "transform.gen.h"
-#endif
-
 export module feather.math:transform;
 
 import std;
