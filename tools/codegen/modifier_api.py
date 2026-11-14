@@ -124,9 +124,8 @@ class Modifier:
         return []
 
     def method_entries(self, cls, ctx: EmitContext) -> list:
-        """Extra MethodDesc<...>{...} expressions appended to the class's
-        generated FType<T>::methods tuple, e.g. for a method this modifier
-        declared in gen_body_lines."""
+        """Extra MethodDesc<...>{...} expressions appended to the class's generated FType<T>::methods
+        tuple, e.g. for a method this modifier declared in gen_body_lines."""
         return []
 
     def register_statements(self, cls, ctx: EmitContext):

@@ -298,8 +298,8 @@ public:
 	std::string to_string() const;
 	static std::string_view get_type_name(VariantType type);
 
-	// Operators
-	// on unrelated types give false/true instead of an error. operator== above stays strict (same type and value).
+	// `a op b` as in Godot. Equal/NotEqual on unrelated types give false/true instead of an error; operator== above
+	// stays strict (same type and value).
 	static std::expected<Variant, std::string> evaluate(VariantOperator op, const Variant& a, const Variant& b = {});
 	// Result type of `a op b` for these operand types, or INVALID when the combination isn't supported.
 	static VariantType get_operator_return_type(VariantOperator op, VariantType a, VariantType b = VariantType::NIL);
@@ -309,9 +309,8 @@ public:
 	// default (zero vector, identity quaternion...).
 	bool booleanize() const;
 
-	// C++ conveniences over evaluate(); an unsupported combination fails an fassert. Hidden friends, so they are only
-	// found for a Variant operand: `vector < vector` never converts both sides to Variant. The overloads taking a T
-	// keep `variant + 1` from being ambiguous with the built-in operators reached through the implicit conversions.
+	// C++ conveniences over evaluate(); unsupported operands fail an fassert. Hidden friends, so `vector < vector`
+	// never converts to Variant; the T overloads keep `variant + 1` unambiguous.
 	static Variant _evaluate_or_assert(VariantOperator op, const Variant& a, const Variant& b);
 
 #define FEATHER_VARIANT_OPERATOR(sym, op, ret, unwrap)                                                                 \

@@ -36,16 +36,7 @@ struct MethodDesc {
 	AccessLevel access = AccessLevel::Public;
 };
 
-// Compile-time description of a reflected type, specialized by codegen in each module's
-// register_<dir>_types.gen.cppm. ClassDB::register_class<T> builds the runtime ClassInfo from it.
-//
-// A specialization provides:
-//   using type = T;
-//   using parent = <reflected parent> or void;
-//   static constexpr StaticString name, parent_name;
-//   static constexpr auto properties = std::tuple { PropertyDesc<...> { ... }, ... };
-//   static constexpr auto methods = std::tuple { MethodDesc<...> { ... }, ... };
-//
+// Compile-time description of a reflected type, specialized by codegen (see FType<Reflected> for the shape).
 // Left undefined, so registering a type without a description is a compile error.
 template <class T>
 struct FType;

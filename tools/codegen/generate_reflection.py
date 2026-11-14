@@ -713,14 +713,8 @@ _REF_KEYWORD = "ref"
 
 def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, condition: str, cls: ClassDesc,
                     header: Path, body: str, offset: int, fclass_line: int):
-    """Resolve one side of a property. arg is the raw text inside [[get(...)]]/
-    [[set(...)]] -- e.g. "public", "protected", or a manual accessor name -- or
-    None for a bare [[get]]/[[set]].
-
-    Without a manual accessor the property reads/writes the field itself (kind
-    "field"); nothing is generated in the class. The access keyword only sets
-    the reflected access level. `ref` is still accepted for old annotations
-    but has nothing left to change."""
+    """Resolve one side of a property from the text inside [[get(...)]]/[[set(...)]] (None when bare).
+    Without a manual accessor name the property binds the field itself."""
     member = plan.member_name
 
     def err(msg: str):
@@ -912,9 +906,8 @@ def _method_entry(c: ClassDesc, m: MethodPlan) -> str:
 
 
 def _tuple_lines(member: str, entries: list) -> list:
-    """`static constexpr auto <member> = ...;` over (entry, condition) pairs. Each
-    #if-guarded group becomes its own tuple, concatenated after the
-    unconditional ones, so a disabled group simply drops out."""
+    """`static constexpr auto <member> = ...;` over (entry, condition) pairs. Each #if-guarded group is
+    its own tuple in a tuple_cat, so a disabled group drops out."""
     plain = [e for e, cond in entries if cond is None]
     by_condition: dict = {}
     for e, cond in entries:
