@@ -15,8 +15,6 @@ import :math_defs;
 export namespace feather {
 
 struct FEATHER_MATH_API Transform {
-	FSTRUCT(Component);
-
 	// Feather uses right-handed coordinates
 	// up = Y
 	// right = X
