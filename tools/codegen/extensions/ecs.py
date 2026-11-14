@@ -26,8 +26,8 @@ class EcsModuleModifier(Modifier):
     def gen_body_lines(self, cls, ctx):
         return [("protected", "static void _import_module(WorldSim* sim);")]
 
-    def bind_members_lines(self, cls, ctx):
-        return [f'ClassDB::bind_static_method(&{cls.name}::_import_module, "_import_module", AccessLevel::Public);']
+    def method_entries(self, cls, ctx):
+        return [f'MethodDesc<&{cls.name}::_import_module> {{ "_import_module"_ss, AccessLevel::Public }}']
 
     def register_cpp_definitions(self, cls, ctx):
         return [
@@ -39,9 +39,9 @@ class EcsModuleModifier(Modifier):
 
 class ComponentModifier(Modifier):
     """FSTRUCT(Component) (or FCLASS(novtable, Component)) marks a value type
-    as a Flecs component. Doesn't touch the class body or _bind_members at
+    as a Flecs component. Doesn't touch the class body or its FType at
     all -- world.component<T>("T") needs a live flecs::world&, which neither
-    the per-class .gen.h macro nor _bind_members()/ClassDB ever has access to.
+    the per-class .gen.h macro nor ClassDB registration ever has access to.
     Instead, registration is aggregated per source directory into one
     register_<dir>_components(world) via emit_dir(), which the engine calls
     once it actually has a world (see register_core_ecs_features)."""

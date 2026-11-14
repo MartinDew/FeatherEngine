@@ -26,6 +26,7 @@ public:
 	ProjectSettings();
 	bool init();
 
+	inline Path get_project_path() const { return _project_path; }
 	std::string get_project_name() const;
 	Path localize_path(const Path& path);
 };

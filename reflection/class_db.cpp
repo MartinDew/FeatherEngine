@@ -12,7 +12,9 @@ FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
+	ClassInfo& info = _class_infos[Reflected::get_class_static()];
+	info.name = Reflected::get_class_static();
+	info.is_abstract = true;
 }
 
 ClassDB::~ClassDB() {
@@ -22,7 +24,6 @@ ClassDB::~ClassDB() {
 void ClassDB::clear() {
 	_instance->_class_infos.clear();
 	_instance->_subclass_delegates.clear();
-	_instance->_current_info = nullptr;
 }
 
 Reflected* ClassDB::create_object_unsafe(std::string_view name) {
@@ -113,7 +114,15 @@ void ClassDB::print_db() {
 #ifdef BETA
 	std::println("Printing database");
 
+	std::vector<const ClassInfo*> sorted;
 	for (auto& [name, info] : _class_infos) {
+		sorted.push_back(&info);
+	}
+	std::ranges::sort(sorted, {}, [](const ClassInfo* info) { return info->name.str(); });
+
+	for (const ClassInfo* class_info : sorted) {
+		const ClassInfo& info = *class_info;
+		StaticString name = info.name;
 		std::println("Class: {} : ", info.name.str());
 		for (auto& prop : info.properties) {
 			std::println("\tProperty: {} Type: {}\n", prop.name.str(), std::to_underlying<VariantType>(prop.type));
