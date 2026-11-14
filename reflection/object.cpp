@@ -4,10 +4,6 @@ import std;
 
 namespace feather {
 
-const ClassInfo* find_class_info(std::string_view name) {
-	return ClassDB::get() ? ClassDB::get_class_info(name) : nullptr;
-}
-
 StaticString ObjectRef::get_class_name() const {
 	return _info ? _info->name : ""_ss;
 }

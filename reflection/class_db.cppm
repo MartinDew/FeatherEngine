@@ -247,4 +247,27 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 	}
 }
 
+template <class T>
+	requires(!std::is_const_v<T> && (std::is_base_of_v<Reflected, T> || is_reflected<T>))
+ObjectRef::ObjectRef(T& object) {
+	if constexpr (std::is_base_of_v<Reflected, T>) {
+		*this = static_cast<Reflected&>(object)._get_object_ref();
+	}
+	else {
+		_ptr = &object;
+		_info = ClassDB::get_class_info<T>();
+	}
+}
+
+template <is_reflected T>
+T* ObjectRef::cast() const {
+	using U = std::remove_const_t<T>;
+	if constexpr (std::is_base_of_v<Reflected, U>) {
+		return object_cast<T>(_reflected);
+	}
+	else {
+		return static_cast<T*>(cast_to(ClassDB::get_class_info<U>()));
+	}
+}
+
 } //namespace feather

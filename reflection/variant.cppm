@@ -384,7 +384,8 @@ public:
 	inline operator Path() const { return as<Path>().value(); }
 	inline operator RID() const { return as<RID>().value(); }
 	inline operator VariantArray() const { return as<VariantArray>().value(); }
-	inline operator Reflected*() const { return as<Reflected*>().value(); }
+	// Null when the Variant holds no object or a value type.
+	inline operator Reflected*() const { return _type == VariantType::OBJECT ? _object_ref().get_reflected() : nullptr; }
 	inline operator ObjectRef() const { return _object_ref(); }
 };
 

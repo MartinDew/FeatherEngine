@@ -866,7 +866,7 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
             body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
-                        "{ return _make_object_ref(this, get_class_static()); }")
+                        "{ return _make_object_ref(this, this, get_class_static()); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")

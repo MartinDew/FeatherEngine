@@ -18,9 +18,7 @@ protected:
 	using Type = Reflected;
 
 	// For the generated _get_object_ref overrides: `this` there is the most-derived type.
-	static ObjectRef _make_object_ref(void* ptr, StaticString class_name) {
-		return ObjectRef(ptr, find_class_info(class_name));
-	}
+	static ObjectRef _make_object_ref(void* ptr, Reflected* self, StaticString class_name);
 
 public:
 	using _feather_self = Reflected;
@@ -33,7 +31,7 @@ public:
 	virtual StaticString get_class_name() = 0;
 	// Reference to the whole object, typed by its most-derived reflected class.
 	virtual ObjectRef _get_object_ref() = 0;
-	const ClassInfo* get_class_info() { return find_class_info(get_class_name()); }
+	const ClassInfo* get_class_info();
 	template <is_reflected T>
 	bool is_of_type() const {
 		return is_of_type(T::get_class_static());

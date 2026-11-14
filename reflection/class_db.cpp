@@ -60,7 +60,9 @@ ObjectRef ClassDB::instantiate(StaticString class_name) {
 		// Trivially default-constructible: value-initialization zeroes it.
 		std::memset(ptr, 0, info->size);
 	}
-	return ObjectRef(ptr, info);
+	ObjectRef object(ptr, info);
+	object._reflected = static_cast<Reflected*>(object.cast_to(get_class_info(Reflected::get_class_static())));
+	return object;
 }
 
 void ClassDB::destroy(ObjectRef object) {
