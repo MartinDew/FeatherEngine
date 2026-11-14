@@ -21,8 +21,10 @@ class FEATHER_REFLECTION_API ObjectRef {
 	// is_of_type instead of the registered hierarchy.
 	Reflected* _reflected = nullptr;
 
-	ObjectRef(void* ptr, const ClassInfo* info, Reflected* reflected = nullptr) :
-			_ptr { ptr }, _info { info }, _reflected { reflected } {}
+	ObjectRef(void* ptr, const ClassInfo* info, Reflected* reflected = nullptr)
+			: _ptr { ptr }
+			, _info { info }
+			, _reflected { reflected } {}
 
 public:
 	ObjectRef() = default;

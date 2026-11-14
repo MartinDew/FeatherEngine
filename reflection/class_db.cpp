@@ -50,8 +50,7 @@ ObjectRef ClassDB::instantiate(StaticString class_name) {
 	if (info->lifecycle.default_construct) {
 		try {
 			info->lifecycle.default_construct(ptr, 1);
-		}
-		catch (...) {
+		} catch (...) {
 			free_instance(ptr, *info);
 			throw;
 		}

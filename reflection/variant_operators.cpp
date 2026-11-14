@@ -77,7 +77,8 @@ bool checked_add(int64_t a, int64_t b, int64_t& out) {
 	return !__builtin_add_overflow(a, b, &out);
 #else
 	if ((b > 0 && a > std::numeric_limits<int64_t>::max() - b) ||
-		(b < 0 && a < std::numeric_limits<int64_t>::min() - b)) {
+		(b < 0 && a < std::numeric_limits<int64_t>::min() - b))
+	{
 		return false;
 	}
 	out = a + b;
@@ -90,7 +91,8 @@ bool checked_sub(int64_t a, int64_t b, int64_t& out) {
 	return !__builtin_sub_overflow(a, b, &out);
 #else
 	if ((b < 0 && a > std::numeric_limits<int64_t>::max() + b) ||
-		(b > 0 && a < std::numeric_limits<int64_t>::min() + b)) {
+		(b > 0 && a < std::numeric_limits<int64_t>::min() + b))
+	{
 		return false;
 	}
 	out = a - b;
@@ -148,12 +150,18 @@ constexpr bool overflow_checked = std::is_same_v<A, int64_t> &&
 bool checked_int(VariantOperator op, int64_t a, int64_t b, int64_t& out) {
 	using enum VariantOperator;
 	switch (op) {
-	case Add: return checked_add(a, b, out);
-	case Subtract: return checked_sub(a, b, out);
-	case Multiply: return checked_mul(a, b, out);
-	case Power: return checked_pow(a, b, out);
-	case Negate: return checked_sub(0, a, out);
-	default: return false;
+	case Add:
+		return checked_add(a, b, out);
+	case Subtract:
+		return checked_sub(a, b, out);
+	case Multiply:
+		return checked_mul(a, b, out);
+	case Power:
+		return checked_pow(a, b, out);
+	case Negate:
+		return checked_sub(0, a, out);
+	default:
+		return false;
 	}
 }
 
@@ -179,12 +187,18 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 	// Comparison: numbers compare by value, anything else only against its own type.
 	else if constexpr (Op >= Equal && Op <= GreaterEqual) {
 		if constexpr (number<A> && number<B>) {
-			if constexpr (Op == Equal) return pa() == pb();
-			else if constexpr (Op == NotEqual) return pa() != pb();
-			else if constexpr (Op == Less) return pa() < pb();
-			else if constexpr (Op == LessEqual) return pa() <= pb();
-			else if constexpr (Op == Greater) return pa() > pb();
-			else return pa() >= pb();
+			if constexpr (Op == Equal)
+				return pa() == pb();
+			else if constexpr (Op == NotEqual)
+				return pa() != pb();
+			else if constexpr (Op == Less)
+				return pa() < pb();
+			else if constexpr (Op == LessEqual)
+				return pa() <= pb();
+			else if constexpr (Op == Greater)
+				return pa() > pb();
+			else
+				return pa() >= pb();
 		}
 		else if constexpr (!std::is_same_v<A, B>) {
 			return Unsupported {};
@@ -192,13 +206,15 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 		else if constexpr ((Op == Equal || Op == NotEqual) && requires { a == b; }) {
 			return Op == Equal ? static_cast<bool>(a == b) : !static_cast<bool>(a == b);
 		}
-		else if constexpr (
-				Op != Equal && Op != NotEqual && !std::is_same_v<A, std::monostate> && requires { a < b; }
-		) {
-			if constexpr (Op == Less) return static_cast<bool>(a < b);
-			else if constexpr (Op == LessEqual) return !static_cast<bool>(b < a);
-			else if constexpr (Op == Greater) return static_cast<bool>(b < a);
-			else return !static_cast<bool>(a < b);
+		else if constexpr (Op != Equal && Op != NotEqual && !std::is_same_v<A, std::monostate> && requires { a < b; }) {
+			if constexpr (Op == Less)
+				return static_cast<bool>(a < b);
+			else if constexpr (Op == LessEqual)
+				return !static_cast<bool>(b < a);
+			else if constexpr (Op == Greater)
+				return static_cast<bool>(b < a);
+			else
+				return !static_cast<bool>(a < b);
 		}
 		else {
 			return Unsupported {};
@@ -235,33 +251,50 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 		}
 	}
 	else if constexpr (Op == Negate) {
-		if constexpr (arithmetic<A> && requires { -a; }) return -a;
-		else return Unsupported {};
+		if constexpr (arithmetic<A> && requires { -a; })
+			return -a;
+		else
+			return Unsupported {};
 	}
 	else if constexpr (Op == Positive) {
-		if constexpr (arithmetic<A> && requires { +a; }) return +a;
-		else return Unsupported {};
+		if constexpr (arithmetic<A> && requires { +a; })
+			return +a;
+		else
+			return Unsupported {};
 	}
 	else if constexpr (Op == Module) {
-		if constexpr (std::is_same_v<A, int64_t> && std::is_same_v<B, int64_t>) return a % b;
-		else if constexpr (number<A> && number<B>) return static_cast<real_t>(std::fmod(pa(), pb()));
-		else return Unsupported {};
+		if constexpr (std::is_same_v<A, int64_t> && std::is_same_v<B, int64_t>)
+			return a % b;
+		else if constexpr (number<A> && number<B>)
+			return static_cast<real_t>(std::fmod(pa(), pb()));
+		else
+			return Unsupported {};
 	}
 	else if constexpr (Op == Power) {
-		if constexpr (number<A> && number<B>) return static_cast<real_t>(std::pow(pa(), pb()));
-		else return Unsupported {};
+		if constexpr (number<A> && number<B>)
+			return static_cast<real_t>(std::pow(pa(), pb()));
+		else
+			return Unsupported {};
 	}
 	else if constexpr (Op >= ShiftLeft && Op <= BitXor) {
-		if constexpr (!std::is_same_v<A, int64_t> || !std::is_same_v<B, int64_t>) return Unsupported {};
-		else if constexpr (Op == ShiftLeft) return static_cast<int64_t>(static_cast<uint64_t>(a) << b);
-		else if constexpr (Op == ShiftRight) return a >> b;
-		else if constexpr (Op == BitAnd) return a & b;
-		else if constexpr (Op == BitOr) return a | b;
-		else return a ^ b;
+		if constexpr (!std::is_same_v<A, int64_t> || !std::is_same_v<B, int64_t>)
+			return Unsupported {};
+		else if constexpr (Op == ShiftLeft)
+			return static_cast<int64_t>(static_cast<uint64_t>(a) << b);
+		else if constexpr (Op == ShiftRight)
+			return a >> b;
+		else if constexpr (Op == BitAnd)
+			return a & b;
+		else if constexpr (Op == BitOr)
+			return a | b;
+		else
+			return a ^ b;
 	}
 	else if constexpr (Op == BitNegate) {
-		if constexpr (std::is_same_v<A, int64_t>) return ~a;
-		else return Unsupported {};
+		if constexpr (std::is_same_v<A, int64_t>)
+			return ~a;
+		else
+			return Unsupported {};
 	}
 	else if constexpr (Op == And) {
 		return va.booleanize() && vb.booleanize();
@@ -293,7 +326,9 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 
 template <VariantOperator Op, class A, class B>
 using result_t = std::decay_t<decltype(apply<Op>(
-		std::declval<const A&>(), std::declval<const B&>(), std::declval<const Variant&>(),
+		std::declval<const A&>(),
+		std::declval<const B&>(),
+		std::declval<const Variant&>(),
 		std::declval<const Variant&>()
 ))>;
 
@@ -415,8 +450,7 @@ constexpr auto build_table() {
 						table[offset++] = element;
 					}
 				}(),
-				...
-		);
+				...);
 		return table;
 	}(std::make_index_sequence<operator_count> {});
 }
@@ -442,32 +476,58 @@ constexpr bool valid_type(VariantType type) {
 
 std::string_view Variant::get_operator_name(VariantOperator op) {
 	switch (op) {
-		case VariantOperator::Equal: return "==";
-		case VariantOperator::NotEqual: return "!=";
-		case VariantOperator::Less: return "<";
-		case VariantOperator::LessEqual: return "<=";
-		case VariantOperator::Greater: return ">";
-		case VariantOperator::GreaterEqual: return ">=";
-		case VariantOperator::Add: return "+";
-		case VariantOperator::Subtract: return "-";
-		case VariantOperator::Multiply: return "*";
-		case VariantOperator::Divide: return "/";
-		case VariantOperator::Negate: return "unary-";
-		case VariantOperator::Positive: return "unary+";
-		case VariantOperator::Module: return "%";
-		case VariantOperator::Power: return "**";
-		case VariantOperator::ShiftLeft: return "<<";
-		case VariantOperator::ShiftRight: return ">>";
-		case VariantOperator::BitAnd: return "&";
-		case VariantOperator::BitOr: return "|";
-		case VariantOperator::BitXor: return "^";
-		case VariantOperator::BitNegate: return "~";
-		case VariantOperator::And: return "and";
-		case VariantOperator::Or: return "or";
-		case VariantOperator::Xor: return "xor";
-		case VariantOperator::Not: return "not";
-		case VariantOperator::In: return "in";
-		case VariantOperator::MAX: break;
+	case VariantOperator::Equal:
+		return "==";
+	case VariantOperator::NotEqual:
+		return "!=";
+	case VariantOperator::Less:
+		return "<";
+	case VariantOperator::LessEqual:
+		return "<=";
+	case VariantOperator::Greater:
+		return ">";
+	case VariantOperator::GreaterEqual:
+		return ">=";
+	case VariantOperator::Add:
+		return "+";
+	case VariantOperator::Subtract:
+		return "-";
+	case VariantOperator::Multiply:
+		return "*";
+	case VariantOperator::Divide:
+		return "/";
+	case VariantOperator::Negate:
+		return "unary-";
+	case VariantOperator::Positive:
+		return "unary+";
+	case VariantOperator::Module:
+		return "%";
+	case VariantOperator::Power:
+		return "**";
+	case VariantOperator::ShiftLeft:
+		return "<<";
+	case VariantOperator::ShiftRight:
+		return ">>";
+	case VariantOperator::BitAnd:
+		return "&";
+	case VariantOperator::BitOr:
+		return "|";
+	case VariantOperator::BitXor:
+		return "^";
+	case VariantOperator::BitNegate:
+		return "~";
+	case VariantOperator::And:
+		return "and";
+	case VariantOperator::Or:
+		return "or";
+	case VariantOperator::Xor:
+		return "xor";
+	case VariantOperator::Not:
+		return "not";
+	case VariantOperator::In:
+		return "in";
+	case VariantOperator::MAX:
+		break;
 	}
 	return "<invalid operator>";
 }
@@ -489,10 +549,14 @@ std::expected<Variant, std::string> Variant::evaluate(VariantOperator op, const 
 		if (op == VariantOperator::Equal || op == VariantOperator::NotEqual) {
 			return Variant(op == VariantOperator::NotEqual);
 		}
-		return std::unexpected(std::format(
-				"Invalid operands '{}' and '{}' for operator '{}'", get_type_name(a._type), get_type_name(b._type),
-				get_operator_name(op)
-		));
+		return std::unexpected(
+				std::format(
+						"Invalid operands '{}' and '{}' for operator '{}'",
+						get_type_name(a._type),
+						get_type_name(b._type),
+						get_operator_name(op)
+				)
+		);
 	}
 	Variant result;
 	std::string error;

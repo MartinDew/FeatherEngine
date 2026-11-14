@@ -178,9 +178,9 @@ public:
 	// A reflected object is referenced, never copied in. A type Variant stores natively (Vector3, Color...) is copied
 	// by the generic constructor instead.
 	template <class T>
-		requires(!std::is_const_v<T> &&
-				 (std::is_base_of_v<Reflected, T> || (is_reflected<T> && !VariantCompatible<T>)))
-	Variant(T& object) : _data { ObjectRef(object) }, _type { VariantType::OBJECT } {}
+		requires(!std::is_const_v<T> && (std::is_base_of_v<Reflected, T> || (is_reflected<T> && !VariantCompatible<T>)))
+	Variant(T& object) : _data { ObjectRef(object) }
+					   , _type { VariantType::OBJECT } {}
 
 	inline Variant(ObjectRef ref) : _data { ref }, _type { VariantType::OBJECT } {}
 
@@ -385,7 +385,9 @@ public:
 	inline operator RID() const { return as<RID>().value(); }
 	inline operator VariantArray() const { return as<VariantArray>().value(); }
 	// Null when the Variant holds no object or a value type.
-	inline operator Reflected*() const { return _type == VariantType::OBJECT ? _object_ref().get_reflected() : nullptr; }
+	inline operator Reflected*() const {
+		return _type == VariantType::OBJECT ? _object_ref().get_reflected() : nullptr;
+	}
 	inline operator ObjectRef() const { return _object_ref(); }
 };
 

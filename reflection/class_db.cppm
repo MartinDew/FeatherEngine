@@ -129,9 +129,9 @@ void ClassDB::_register(ClassKind kind) {
 		}
 	}
 	const char* kind_name = kind == ClassKind::Abstract ? "abstract"
-			: kind == ClassKind::Singleton				 ? "singleton"
-			: is_value_type								 ? "value type"
-														 : "implementation";
+			: kind == ClassKind::Singleton				? "singleton"
+			: is_value_type								? "value type"
+														: "implementation";
 	std::println("Registering class '{}' as {} object", Desc::name, kind_name);
 
 	ClassDB& instance = *get();

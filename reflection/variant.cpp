@@ -43,24 +43,42 @@ bool Variant::operator==(const Variant& other) const {
 
 std::string_view Variant::get_type_name(VariantType type) {
 	switch (type) {
-	case VariantType::NIL: return "Nil";
-	case VariantType::BOOL: return "bool";
-	case VariantType::INT: return "int";
-	case VariantType::FLOAT: return "float";
-	case VariantType::VECTOR3: return "Vector3";
-	case VariantType::VECTOR2: return "Vector2";
-	case VariantType::VERTEX: return "Vertex";
-	case VariantType::COLOR: return "Color";
-	case VariantType::VECTOR4: return "Vector4";
-	case VariantType::QUATERNION: return "Quaternion";
-	case VariantType::MATRIX: return "Matrix";
-	case VariantType::TRANSFORM: return "Transform";
-	case VariantType::RID: return "RID";
-	case VariantType::STRING: return "String";
-	case VariantType::ARRAY: return "Array";
-	case VariantType::PATH: return "Path";
-	case VariantType::OBJECT: return "Object";
-	case VariantType::INVALID: break;
+	case VariantType::NIL:
+		return "Nil";
+	case VariantType::BOOL:
+		return "bool";
+	case VariantType::INT:
+		return "int";
+	case VariantType::FLOAT:
+		return "float";
+	case VariantType::VECTOR3:
+		return "Vector3";
+	case VariantType::VECTOR2:
+		return "Vector2";
+	case VariantType::VERTEX:
+		return "Vertex";
+	case VariantType::COLOR:
+		return "Color";
+	case VariantType::VECTOR4:
+		return "Vector4";
+	case VariantType::QUATERNION:
+		return "Quaternion";
+	case VariantType::MATRIX:
+		return "Matrix";
+	case VariantType::TRANSFORM:
+		return "Transform";
+	case VariantType::RID:
+		return "RID";
+	case VariantType::STRING:
+		return "String";
+	case VariantType::ARRAY:
+		return "Array";
+	case VariantType::PATH:
+		return "Path";
+	case VariantType::OBJECT:
+		return "Object";
+	case VariantType::INVALID:
+		break;
 	}
 	return "Invalid";
 }
@@ -78,8 +96,10 @@ bool Variant::booleanize() const {
 				else if constexpr (std::is_arithmetic_v<T>) {
 					return value != T {};
 				}
-				else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, Path> ||
-								   std::is_same_v<T, VariantArray>) {
+				else if constexpr (
+						std::is_same_v<T, std::string> || std::is_same_v<T, Path> || std::is_same_v<T, VariantArray>
+				)
+				{
 					return !value.empty();
 				}
 				else if constexpr (std::is_same_v<T, ObjectRef>) {
