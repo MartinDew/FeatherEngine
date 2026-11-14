@@ -34,6 +34,41 @@ enum class VariantType : uint8_t {
 	INVALID
 };
 
+// Operators Variant::evaluate applies, as in Godot. Unary ones (Negate, Positive, BitNegate, Not) ignore b.
+enum class VariantOperator : uint8_t {
+	// Comparison
+	Equal,
+	NotEqual,
+	Less,
+	LessEqual,
+	Greater,
+	GreaterEqual,
+	// Arithmetic
+	Add,
+	Subtract,
+	Multiply,
+	Divide,
+	Negate,
+	Positive,
+	Module,
+	Power,
+	// Bitwise (INT only)
+	ShiftLeft,
+	ShiftRight,
+	BitAnd,
+	BitOr,
+	BitXor,
+	BitNegate,
+	// Logical: operands are booleanized
+	And,
+	Or,
+	Xor,
+	Not,
+	// `a in b`: substring of a STRING, or element of an ARRAY
+	In,
+	MAX
+};
+
 #define VARIANT_TYPE_OPTION(class_name, variant_name)                                                                  \
 	else if constexpr (std::is_same_v<T, class_name>) {                                                                \
 		return VariantType::variant_name;                                                                              \
@@ -261,6 +296,51 @@ public:
 
 	// String conversion for debugging
 	std::string to_string() const;
+	static std::string_view get_type_name(VariantType type);
+
+	// Operators
+	// on unrelated types give false/true instead of an error. operator== above stays strict (same type and value).
+	static std::expected<Variant, std::string> evaluate(VariantOperator op, const Variant& a, const Variant& b = {});
+	// Result type of `a op b` for these operand types, or INVALID when the combination isn't supported.
+	static VariantType get_operator_return_type(VariantOperator op, VariantType a, VariantType b = VariantType::NIL);
+	static std::string_view get_operator_name(VariantOperator op);
+
+	// False for NIL, false, 0, 0.0, an empty string, path or array, a null object, and a math value equal to its
+	// default (zero vector, identity quaternion...).
+	bool booleanize() const;
+
+	// C++ conveniences over evaluate(); an unsupported combination fails an fassert. Hidden friends, so they are only
+	// found for a Variant operand: `vector < vector` never converts both sides to Variant. The overloads taking a T
+	// keep `variant + 1` from being ambiguous with the built-in operators reached through the implicit conversions.
+	static Variant _evaluate_or_assert(VariantOperator op, const Variant& a, const Variant& b);
+
+#define FEATHER_VARIANT_OPERATOR(sym, op, ret, unwrap)                                                                 \
+	friend ret operator sym(const Variant& a, const Variant& b) {                                                      \
+		return _evaluate_or_assert(VariantOperator::op, a, b) unwrap;                                                  \
+	}                                                                                                                  \
+	template <VariantCompatible T>                                                                                     \
+	friend ret operator sym(const Variant& a, const T& b) {                                                            \
+		return _evaluate_or_assert(VariantOperator::op, a, Variant(b)) unwrap;                                         \
+	}                                                                                                                  \
+	template <VariantCompatible T>                                                                                     \
+	friend ret operator sym(const T& a, const Variant& b) {                                                            \
+		return _evaluate_or_assert(VariantOperator::op, Variant(a), b) unwrap;                                         \
+	}
+
+	FEATHER_VARIANT_OPERATOR(+, Add, Variant, )
+	FEATHER_VARIANT_OPERATOR(-, Subtract, Variant, )
+	FEATHER_VARIANT_OPERATOR(*, Multiply, Variant, )
+	FEATHER_VARIANT_OPERATOR(/, Divide, Variant, )
+	FEATHER_VARIANT_OPERATOR(%, Module, Variant, )
+	FEATHER_VARIANT_OPERATOR(<, Less, bool, .as<bool>().value())
+	FEATHER_VARIANT_OPERATOR(<=, LessEqual, bool, .as<bool>().value())
+	FEATHER_VARIANT_OPERATOR(>, Greater, bool, .as<bool>().value())
+	FEATHER_VARIANT_OPERATOR(>=, GreaterEqual, bool, .as<bool>().value())
+
+#undef FEATHER_VARIANT_OPERATOR
+
+	friend Variant operator-(const Variant& a) { return _evaluate_or_assert(VariantOperator::Negate, a, {}); }
+	friend Variant operator+(const Variant& a) { return _evaluate_or_assert(VariantOperator::Positive, a, {}); }
 
 	// Direct access to internal variant (for advanced usage)
 	inline const InternalVariant& internal() const { return _data; }
