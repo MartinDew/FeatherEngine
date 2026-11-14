@@ -34,7 +34,7 @@ enum class VariantType : uint8_t {
 	INVALID
 };
 
-// Operators Variant::evaluate applies, as in Godot. Unary ones (Negate, Positive, BitNegate, Not) ignore b.
+// Operators Variant::evaluate applies. Unary ones (Negate, Positive, BitNegate, Not) ignore b.
 enum class VariantOperator : uint8_t {
 	// Comparison
 	Equal,
@@ -298,7 +298,7 @@ public:
 	std::string to_string() const;
 	static std::string_view get_type_name(VariantType type);
 
-	// `a op b` as in Godot. Equal/NotEqual on unrelated types give false/true instead of an error; operator== above
+	// Evaluates `a op b`. Equal/NotEqual on unrelated types give false/true instead of an error; operator== above
 	// stays strict (same type and value).
 	static std::expected<Variant, std::string> evaluate(VariantOperator op, const Variant& a, const Variant& b = {});
 	// Result type of `a op b` for these operand types, or INVALID when the combination isn't supported.
