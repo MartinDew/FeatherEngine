@@ -4,7 +4,6 @@ import std.compat;
 import feather.framework;
 import :variant_array;
 import :reflected;
-import :mesh_data;
 import feather.math;
 
 export namespace feather {
@@ -19,6 +18,10 @@ enum class VariantType : uint8_t {
 	VECTOR2,
 	VERTEX,
 	COLOR,
+	VECTOR4,
+	QUATERNION,
+	MATRIX,
+	TRANSFORM,
 	// Misc
 	RID,
 	STRING,
@@ -41,7 +44,7 @@ consteval VariantType get_variant_type() {
 	if constexpr (std::is_same_v<T, bool>) {
 		return VariantType::BOOL;
 	}
-	else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+	else if constexpr ((std::is_integral_v<T> && !std::is_same_v<T, bool>) || std::is_enum_v<T>) {
 		return VariantType::INT;
 	}
 	else if constexpr (std::is_floating_point_v<T>) {
@@ -58,6 +61,18 @@ consteval VariantType get_variant_type() {
 	}
 	else if constexpr (std::is_same_v<Vertex, T>) {
 		return VariantType::VERTEX;
+	}
+	else if constexpr (std::is_same_v<Vector4, T>) {
+		return VariantType::VECTOR4;
+	}
+	else if constexpr (std::is_same_v<Quaternion, T>) {
+		return VariantType::QUATERNION;
+	}
+	else if constexpr (std::is_same_v<Matrix, T>) {
+		return VariantType::MATRIX;
+	}
+	else if constexpr (std::is_same_v<Transform, T>) {
+		return VariantType::TRANSFORM;
 	}
 	else if constexpr (std::is_same_v<T, std::string>) {
 		return VariantType::STRING;
@@ -100,6 +115,10 @@ class FEATHER_REFLECTION_API Variant {
 			Vector3,
 			Vertex,
 			Color,
+			Vector4,
+			Quaternion,
+			Matrix,
+			Transform,
 			std::string,
 			Path,
 			VariantArray,
@@ -203,6 +222,9 @@ public:
 		else if constexpr (std::is_floating_point_v<T>) {
 			return static_cast<T>(std::get<real_t>(_data));
 		}
+		else if constexpr (std::is_enum_v<T>) {
+			return static_cast<T>(std::get<int>(_data));
+		}
 		// Reflected-derived only: a reflected value type (Vector3, Color) is held in the variant
 		// itself, not behind a Reflected*.
 		else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
@@ -257,6 +279,10 @@ public:
 	inline operator Vector3() const { return as<Vector3>().value(); }
 	inline operator Color() const { return as<Color>().value(); }
 	inline operator Vertex() const { return as<Vertex>().value(); }
+	inline operator Vector4() const { return as<Vector4>().value(); }
+	inline operator Quaternion() const { return as<Quaternion>().value(); }
+	inline operator Matrix() const { return as<Matrix>().value(); }
+	inline operator Transform() const { return as<Transform>().value(); }
 	inline operator std::string() const { return as<std::string>().value(); }
 	inline operator Path() const { return as<Path>().value(); }
 	inline operator RID() const { return as<RID>().value(); }

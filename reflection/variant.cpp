@@ -61,6 +61,18 @@ std::string Variant::to_string() const {
 		auto& c = std::get<Color>(_data);
 		return std::format("rgba({:f}, {:f}, {:f}, {:f})", c.r, c.g, c.b, c.a);
 	}
+	case VariantType::VECTOR4: {
+		auto& v = std::get<Vector4>(_data);
+		return std::format("({:f}, {:f}, {:f}, {:f})", v.x, v.y, v.z, v.w);
+	}
+	case VariantType::QUATERNION: {
+		auto& q = std::get<Quaternion>(_data);
+		return std::format("({:f}, {:f}, {:f}, {:f})", q.x, q.y, q.z, q.w);
+	}
+	case VariantType::MATRIX:
+		return "[Matrix]";
+	case VariantType::TRANSFORM:
+		return "[Transform]";
 	case VariantType::VERTEX:
 		return "[Vertex]"; // expand if Vertex gains a meaningful string form
 	case VariantType::PATH:

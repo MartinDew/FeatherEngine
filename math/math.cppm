@@ -5,6 +5,7 @@ export import feather.framework;
 export import :color;
 export import :math_defs;
 export import :matrix;
+export import :mesh_data;
 export import :precision;
 export import :projection;
 export import :quaternion;

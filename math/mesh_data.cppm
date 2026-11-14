@@ -2,6 +2,7 @@ export module feather.math:mesh_data;
 
 import std.compat;
 import feather.framework;
+import :math_defs;
 
 export namespace feather {
 

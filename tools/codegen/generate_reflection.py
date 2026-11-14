@@ -715,8 +715,8 @@ def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, cond
     `ref` makes a generated accessor pass/return by const-reference instead of
     by-value (getter returns `const T&`, setter takes `const T&` and
     copy-assigns rather than std::move()s). Only const-ref is supported, not
-    mutable T&: the getter must be `const` (bind_property_get(_if_bindable)
-    requires it, so it could never actually return a mutable reference), and
+    mutable T&: the getter must be `const` (bind_property_get requires
+    it, so it could never actually return a mutable reference), and
     the setter call site in class_db.inl passes `std::move(result.value())`,
     which won't bind to a non-const T& parameter. Both are real compile
     errors, so `ref` unconditionally means const-ref."""
@@ -952,14 +952,14 @@ def _bind_members_body(c: ClassDesc, dir_name: str, external: bool = False) -> l
         has_get = p.getter_kind != "none"
         has_set = p.setter_kind != "none"
         if has_get and has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_accessors_if_bindable("
+            emit(out, p.condition, f"\tClassDB::bind_property_accessors("
                  f"&{c.name}::{p.getter_method}, &{c.name}::{p.setter_method}, "
                  f'"{p.prop_name}", {ga}, {sa});')
         elif has_get:
-            emit(out, p.condition, f"\tClassDB::bind_property_get_if_bindable("
+            emit(out, p.condition, f"\tClassDB::bind_property_get("
                  f'&{c.name}::{p.getter_method}, "{p.prop_name}", {ga});')
         elif has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_set_if_bindable("
+            emit(out, p.condition, f"\tClassDB::bind_property_set("
                  f'&{c.name}::{p.setter_method}, "{p.prop_name}", {sa});')
     for m in c.methods:
         acc = ACCESS_ENUM[m.access]

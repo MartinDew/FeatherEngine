@@ -105,31 +105,6 @@ public:
 	static void
 	bind_property_set(void (T::*setter)(TSet), std::string_view name, AccessLevel access = AccessLevel::Public);
 
-	// Guarded binds: no-op when the property type isn't Variant-marshalable
-	// (e.g. std::shared_ptr<...>), so generated accessors never break the build.
-	template <class T, class TGet, class TSet>
-	static void bind_property_accessors_if_bindable(
-			TGet (T::*getter)() const,
-			void (T::*setter)(TSet),
-			std::string_view name,
-			AccessLevel getter_access = AccessLevel::Public,
-			AccessLevel setter_access = AccessLevel::Public
-	);
-
-	template <class T, class TGet>
-	static void bind_property_get_if_bindable(
-			TGet (T::*getter)() const,
-			std::string_view name,
-			AccessLevel access = AccessLevel::Public
-	);
-
-	template <class T, class TSet>
-	static void bind_property_set_if_bindable(
-			void (T::*setter)(TSet),
-			std::string_view name,
-			AccessLevel access = AccessLevel::Public
-	);
-
 	template <class T, class TRet, class... TArgs>
 	static void
 	bind_method(TRet (T::*method)(TArgs...), std::string_view name, AccessLevel access = AccessLevel::Public);
@@ -291,6 +266,7 @@ template <is_reflected_class_type T> void ClassDB::register_singleton_class() {
 
 template <class T, class U>
 inline void ClassDB::bind_property(U T::* member, std::string_view name, AccessLevel access) {
+	static_assert(VariantCompatible<U>, "Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member");
 	if (!get()->_current_info) {
 		return;
 	}
@@ -324,6 +300,7 @@ inline void ClassDB::bind_property_accessors(
 		AccessLevel getter_access,
 		AccessLevel setter_access
 ) {
+	static_assert(VariantCompatible<std::decay_t<TGet>> && VariantCompatible<std::decay_t<TSet>>, "Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member");
 	if (!get()->_current_info) {
 		return;
 	}
@@ -347,6 +324,7 @@ inline void ClassDB::bind_property_accessors(
 // Read-only property (getter only).
 template <class T, class TGet>
 inline void ClassDB::bind_property_get(TGet (T::*getter)() const, std::string_view name, AccessLevel access) {
+	static_assert(VariantCompatible<std::decay_t<TGet>>, "Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member");
 	if (!get()->_current_info) {
 		return;
 	}
@@ -361,6 +339,7 @@ inline void ClassDB::bind_property_get(TGet (T::*getter)() const, std::string_vi
 // Write-only property (setter only).
 template <class T, class TSet>
 inline void ClassDB::bind_property_set(void (T::*setter)(TSet), std::string_view name, AccessLevel access) {
+	static_assert(VariantCompatible<std::decay_t<TSet>>, "Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member");
 	if (!get()->_current_info) {
 		return;
 	}
@@ -421,35 +400,6 @@ inline void ClassDB::bind_static_method(TRet (*method)(TArgs...), std::string_vi
 	ClassInfo::Method method_info { .name = StaticString(name), .access = access, .callable = Callable { func } };
 
 	get()->_current_info->methods.push_back(std::move(method_info));
-}
-
-// Guarded property binds — no-op when the property type isn't Variant-marshalable.
-template <class T, class TGet, class TSet>
-inline void ClassDB::bind_property_accessors_if_bindable(
-		TGet (T::*getter)() const,
-		void (T::*setter)(TSet),
-		std::string_view name,
-		AccessLevel getter_access,
-		AccessLevel setter_access
-) {
-	if constexpr (VariantCompatible<std::decay_t<TGet>> && VariantCompatible<std::decay_t<TSet>>) {
-		bind_property_accessors(getter, setter, name, getter_access, setter_access);
-	}
-}
-
-template <class T, class TGet>
-inline void
-ClassDB::bind_property_get_if_bindable(TGet (T::*getter)() const, std::string_view name, AccessLevel access) {
-	if constexpr (VariantCompatible<std::decay_t<TGet>>) {
-		bind_property_get(getter, name, access);
-	}
-}
-
-template <class T, class TSet>
-inline void ClassDB::bind_property_set_if_bindable(void (T::*setter)(TSet), std::string_view name, AccessLevel access) {
-	if constexpr (VariantCompatible<std::decay_t<TSet>>) {
-		bind_property_set(setter, name, access);
-	}
 }
 
 // A method signature is bindable when its return type and every parameter type
