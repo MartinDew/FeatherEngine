@@ -145,7 +145,7 @@ class FEATHER_REFLECTION_API Variant {
 	using InternalVariant = std::variant<
 			std::monostate,
 			bool,
-			int,
+			int64_t,
 			real_t,
 			Vector2,
 			Vector3,
@@ -198,7 +198,7 @@ public:
 			_data = std::move(value);
 		}
 		else if constexpr (type == VariantType::INT) {
-			_data = static_cast<int>(value);
+			_data = static_cast<int64_t>(value);
 		}
 		else if constexpr (type == VariantType::FLOAT) {
 			_data = static_cast<real_t>(value);
@@ -254,13 +254,13 @@ public:
 			return std::get<bool>(_data);
 		}
 		else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-			return static_cast<T>(std::get<int>(_data));
+			return static_cast<T>(std::get<int64_t>(_data));
 		}
 		else if constexpr (std::is_floating_point_v<T>) {
 			return static_cast<T>(std::get<real_t>(_data));
 		}
 		else if constexpr (std::is_enum_v<T>) {
-			return static_cast<T>(std::get<int>(_data));
+			return static_cast<T>(std::get<int64_t>(_data));
 		}
 		else if constexpr (std::is_same_v<T, ObjectRef>) {
 			return _object_ref();
@@ -371,6 +371,7 @@ public:
 	// Implicit conversion operators
 	inline explicit operator bool() const { return as<bool>().value(); }
 	inline operator int() const { return as<int>().value(); }
+	inline operator int64_t() const { return as<int64_t>().value(); }
 	inline operator real_t() const { return as<real_t>().value(); }
 	inline operator Vector2() const { return as<Vector2>().value(); }
 	inline operator Vector3() const { return as<Vector3>().value(); }

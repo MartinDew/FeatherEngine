@@ -18,7 +18,7 @@ struct variant_storage;
 
 FEATHER_VARIANT_STORAGE(NIL, std::monostate)
 FEATHER_VARIANT_STORAGE(BOOL, bool)
-FEATHER_VARIANT_STORAGE(INT, int)
+FEATHER_VARIANT_STORAGE(INT, int64_t)
 FEATHER_VARIANT_STORAGE(FLOAT, real_t)
 FEATHER_VARIANT_STORAGE(VECTOR3, Vector3)
 FEATHER_VARIANT_STORAGE(VECTOR2, Vector2)
@@ -43,7 +43,7 @@ constexpr size_t operator_count = static_cast<size_t>(VariantOperator::MAX);
 constexpr size_t type_count = static_cast<size_t>(VariantType::INVALID);
 
 template <class T>
-concept number = std::is_same_v<T, int> || std::is_same_v<T, real_t>;
+concept number = std::is_same_v<T, int64_t> || std::is_same_v<T, real_t>;
 
 template <class T>
 concept math_value = std::is_same_v<T, Vector2> || std::is_same_v<T, Vector3> || std::is_same_v<T, Vector4> ||
@@ -57,7 +57,7 @@ concept arithmetic = number<T> || math_value<T>;
 // An INT next to anything but another INT is used as a real_t, so 1 + 0.5 and Vector3 * 2 work.
 template <class T, class Other>
 constexpr auto promote(const T& value) {
-	if constexpr (std::is_same_v<T, int> && !std::is_same_v<Other, int>) {
+	if constexpr (std::is_same_v<T, int64_t> && !std::is_same_v<Other, int64_t>) {
 		return static_cast<real_t>(value);
 	}
 	else {
@@ -71,16 +71,90 @@ using promoted_t = decltype(promote<A, B>(std::declval<const A&>()));
 // Marks an unsupported operand combination.
 struct Unsupported {};
 
-constexpr int int_pow(int base, int exponent) {
-	int result = 1;
-	while (exponent > 0) {
-		if (exponent & 1) {
-			result *= base;
-		}
-		base *= base;
-		exponent >>= 1;
+// Signed overflow is UB, so INT arithmetic reports it instead (as "Integer overflow").
+bool checked_add(int64_t a, int64_t b, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+	return !__builtin_add_overflow(a, b, &out);
+#else
+	if ((b > 0 && a > std::numeric_limits<int64_t>::max() - b) ||
+		(b < 0 && a < std::numeric_limits<int64_t>::min() - b)) {
+		return false;
 	}
-	return result;
+	out = a + b;
+	return true;
+#endif
+}
+
+bool checked_sub(int64_t a, int64_t b, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+	return !__builtin_sub_overflow(a, b, &out);
+#else
+	if ((b < 0 && a > std::numeric_limits<int64_t>::max() + b) ||
+		(b > 0 && a < std::numeric_limits<int64_t>::min() + b)) {
+		return false;
+	}
+	out = a - b;
+	return true;
+#endif
+}
+
+bool checked_mul(int64_t a, int64_t b, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+	return !__builtin_mul_overflow(a, b, &out);
+#else
+	constexpr int64_t max = std::numeric_limits<int64_t>::max();
+	constexpr int64_t min = std::numeric_limits<int64_t>::min();
+	if (a != 0 && b != 0) {
+		if ((a == -1 && b == min) || (b == -1 && a == min)) {
+			return false;
+		}
+		if (a != -1 && b != -1) {
+			const bool same_sign = (a > 0) == (b > 0);
+			if (same_sign ? (a > 0 ? a > max / b : a < max / b) : (a > 0 ? b < min / a : a < min / b)) {
+				return false;
+			}
+		}
+	}
+	out = a * b;
+	return true;
+#endif
+}
+
+// Exponentiation by squaring; exponent is non-negative (check_operands).
+bool checked_pow(int64_t base, int64_t exponent, int64_t& out) {
+	int64_t result = 1;
+	while (exponent > 0) {
+		if ((exponent & 1) && !checked_mul(result, base, result)) {
+			return false;
+		}
+		exponent >>= 1;
+		// Squaring is only needed while bits remain, and those bits will multiply it into the result.
+		if (exponent > 0 && !checked_mul(base, base, base)) {
+			return false;
+		}
+	}
+	out = result;
+	return true;
+}
+
+// INT operations that can overflow. Their value is computed in evaluate_thunk, with the overflow check.
+template <VariantOperator Op, class A, class B>
+constexpr bool overflow_checked = std::is_same_v<A, int64_t> &&
+		((std::is_same_v<B, int64_t> &&
+		  (Op == VariantOperator::Add || Op == VariantOperator::Subtract || Op == VariantOperator::Multiply ||
+		   Op == VariantOperator::Power)) ||
+		 (std::is_same_v<B, std::monostate> && Op == VariantOperator::Negate));
+
+bool checked_int(VariantOperator op, int64_t a, int64_t b, int64_t& out) {
+	using enum VariantOperator;
+	switch (op) {
+	case Add: return checked_add(a, b, out);
+	case Subtract: return checked_sub(a, b, out);
+	case Multiply: return checked_mul(a, b, out);
+	case Power: return checked_pow(a, b, out);
+	case Negate: return checked_sub(0, a, out);
+	default: return false;
+	}
 }
 
 // The value of `a op b`, or Unsupported. Every branch is guarded, so the deduced return type alone tells whether the
@@ -97,6 +171,10 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 
 	if constexpr (unary && !nil_b) {
 		return Unsupported {};
+	}
+	// Only the result type matters here; evaluate_thunk computes the value with an overflow check.
+	else if constexpr (overflow_checked<Op, A, B>) {
+		return int64_t {};
 	}
 	// Comparison: numbers compare by value, anything else only against its own type.
 	else if constexpr (Op >= Equal && Op <= GreaterEqual) {
@@ -165,25 +243,24 @@ auto apply(const A& a, const B& b, const Variant& va, const Variant& vb) {
 		else return Unsupported {};
 	}
 	else if constexpr (Op == Module) {
-		if constexpr (std::is_same_v<A, int> && std::is_same_v<B, int>) return a % b;
+		if constexpr (std::is_same_v<A, int64_t> && std::is_same_v<B, int64_t>) return a % b;
 		else if constexpr (number<A> && number<B>) return static_cast<real_t>(std::fmod(pa(), pb()));
 		else return Unsupported {};
 	}
 	else if constexpr (Op == Power) {
-		if constexpr (std::is_same_v<A, int> && std::is_same_v<B, int>) return int_pow(a, b);
-		else if constexpr (number<A> && number<B>) return static_cast<real_t>(std::pow(pa(), pb()));
+		if constexpr (number<A> && number<B>) return static_cast<real_t>(std::pow(pa(), pb()));
 		else return Unsupported {};
 	}
 	else if constexpr (Op >= ShiftLeft && Op <= BitXor) {
-		if constexpr (!std::is_same_v<A, int> || !std::is_same_v<B, int>) return Unsupported {};
-		else if constexpr (Op == ShiftLeft) return static_cast<int>(static_cast<unsigned>(a) << b);
+		if constexpr (!std::is_same_v<A, int64_t> || !std::is_same_v<B, int64_t>) return Unsupported {};
+		else if constexpr (Op == ShiftLeft) return static_cast<int64_t>(static_cast<uint64_t>(a) << b);
 		else if constexpr (Op == ShiftRight) return a >> b;
 		else if constexpr (Op == BitAnd) return a & b;
 		else if constexpr (Op == BitOr) return a | b;
 		else return a ^ b;
 	}
 	else if constexpr (Op == BitNegate) {
-		if constexpr (std::is_same_v<A, int>) return ~a;
+		if constexpr (std::is_same_v<A, int64_t>) return ~a;
 		else return Unsupported {};
 	}
 	else if constexpr (Op == And) {
@@ -227,15 +304,19 @@ constexpr bool supported = !std::is_same_v<result_t<Op, A, B>, Unsupported> && V
 template <VariantOperator Op, class A, class B>
 bool check_operands(const A& a, const B& b, std::string& error) {
 	using enum VariantOperator;
-	if constexpr (std::is_same_v<A, int> && std::is_same_v<B, int>) {
+	if constexpr (std::is_same_v<A, int64_t> && std::is_same_v<B, int64_t>) {
 		if constexpr (Op == Divide || Op == Module) {
 			if (b == 0) {
 				error = Op == Divide ? "Division by zero" : "Modulo by zero";
 				return false;
 			}
+			if (a == std::numeric_limits<int64_t>::min() && b == -1) {
+				error = "Integer overflow";
+				return false;
+			}
 		}
 		else if constexpr (Op == ShiftLeft || Op == ShiftRight) {
-			if (b < 0 || b >= std::numeric_limits<int>::digits + 1) {
+			if (b < 0 || b >= std::numeric_limits<int64_t>::digits + 1) {
 				error = "Invalid shift amount";
 				return false;
 			}
@@ -261,7 +342,21 @@ bool evaluate_thunk(const Variant& a, const Variant& b, Variant& result, std::st
 	if (!check_operands<Op>(x, y, error)) {
 		return false;
 	}
-	result = Variant(apply<Op>(x, y, a, b));
+	if constexpr (overflow_checked<Op, A, B>) {
+		int64_t rhs = 0;
+		if constexpr (std::is_same_v<B, int64_t>) {
+			rhs = y;
+		}
+		int64_t value;
+		if (!checked_int(Op, x, rhs, value)) {
+			error = "Integer overflow";
+			return false;
+		}
+		result = Variant(value);
+	}
+	else {
+		result = Variant(apply<Op>(x, y, a, b));
+	}
 	return true;
 }
 
