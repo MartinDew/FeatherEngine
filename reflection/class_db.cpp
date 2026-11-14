@@ -175,7 +175,8 @@ Callable ClassDB::get_static_method(const StaticString& class_name, std::string_
 	if (!ci)
 		return {};
 	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
-		return m.name == func_name;
+		// An instance method's callable expects the object first, which a static call can't supply.
+		return m.is_static && m.name == func_name;
 	});
 
 	if (it != ci->methods.end()) {
