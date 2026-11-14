@@ -9,9 +9,7 @@ struct NO_PARENT {};
 
 // Marks a reflected class; the generator (tools/codegen/generate_reflection.py)
 // recovers name/parent from the declaration itself. Optional modifiers:
-// singleton, abstract, novtable (no vtable -- see FSTRUCT; a non-static
-// [[method]] can't bind on such a type since bind_method dispatches through a
-// Reflected* via object_cast, so bind a static method instead). Properties and
+// singleton, abstract, novtable (no vtable -- see FSTRUCT). Properties and
 // methods are opt-in via [[get]]/[[set]]/[[name(...)]] / [[method]] attributes.
 //
 // Expands to a per-class body macro the generator writes into "<header>.gen.h";

@@ -763,16 +763,6 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
     forced = "method" in attrs
     if not forced:
         return
-    # bind_method dispatches through object_cast<T>(Reflected*), which a
-    # vtable-free value type has no way to support; a static method is fine.
-    if cls.is_value_type and not info["is_static"]:
-        raise ParseError(
-            f"{header}: class {cls.name} method '{name}' near line "
-            f"{_line_of(body, offset) + fclass_line - 1}: [[method]] on a non-static method of a "
-            f"value type (FSTRUCT / FCLASS(novtable)) can't be bound -- ClassDB::bind_method "
-            f"dispatches through object_cast<T>(Reflected*), which a vtable-free type has no way "
-            f"to support. Make the method static, or drop 'novtable'/use FCLASS instead."
-        )
     # Skip overloaded names (&T::name is ambiguous) unless every other
     # same-named occurrence is provably in a mutually exclusive #if branch of
     # the same chain (the "#if X ... #else ... #endif" duplicate-impl idiom).
@@ -875,6 +865,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
+            body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
+                        "{ return _make_object_ref(this, get_class_static()); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -1136,6 +1128,13 @@ def validate_hierarchy(classes: list):
     known = {c.name: c for c in classes}
     for c in classes:
         base = known.get(c.parent)
+        if base is not None and base.is_value_type:
+            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives
+            # from it.
+            raise ParseError(
+                f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
+                f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."
+            )
         if base is None or base.is_value_type == c.is_value_type:
             continue
         kind, base_kind = ("a value type", "not") if c.is_value_type else ("not a value type", "is")

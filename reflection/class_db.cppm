@@ -10,6 +10,7 @@ import :callable;
 import :class_info;
 import :reflection_utils;
 import :ftype;
+import :object;
 import :reflected;
 import :variant;
 
@@ -83,15 +84,20 @@ public:
 		_register<T>(ClassKind::Singleton);
 	}
 
-	// Returns an unmanaged raw pointer to a reflected object
-	static Reflected* create_object_unsafe(std::string_view object_name);
+	// New default-constructed instance owned by the caller, who frees it with destroy(); a Reflected one may instead
+	// be deleted. Null when the class is unknown or can't be created.
+	static ObjectRef instantiate(std::string_view class_name);
+	static void destroy(ObjectRef object);
 
-	// A somewhat safer function that validates if the requested object can be cast in the specified T
-	template <class T>
-	static std::unique_ptr<T> create_object(std::string_view object_name) {
-		Reflected* object = create_object_unsafe(object_name);
-		std::unique_ptr<T> ptr { object_cast<T>(object) };
-		return ptr;
+	// Null when the class can't be created or isn't a T.
+	template <is_reflected T>
+	static std::unique_ptr<T> create_object(std::string_view class_name) {
+		ObjectRef object = instantiate(class_name);
+		T* typed = object.cast<T>();
+		if (!typed) {
+			destroy(object);
+		}
+		return std::unique_ptr<T> { typed };
 	}
 
 	static Delegate<std::string_view>::id_t on_subclass_registered(
@@ -134,13 +140,22 @@ void ClassDB::_register(ClassKind kind) {
 	info.parent = Desc::parent_name;
 	info.is_abstract = kind == ClassKind::Abstract;
 	info.is_singleton = kind == ClassKind::Singleton;
-	info.is_value_type = is_value_type;
-	// Singletons are owned by the engine and resolved through T::get(); value types have no Reflected base to
-	// hand out.
-	if constexpr (!is_value_type && !std::is_abstract_v<T> && std::is_default_constructible_v<T>) {
-		if (kind == ClassKind::Auto) {
-			info.object_create_func = []() -> Variant { return new T(); };
-		}
+	info.size = sizeof(T);
+	info.alignment = alignof(T);
+	info.is_empty = std::is_empty_v<T>;
+	info.lifecycle = make_lifecycle_hooks<T>();
+	// Singletons are owned by the engine and resolved through T::get(); neither they nor abstract classes are
+	// created through reflection.
+	if (kind != ClassKind::Auto) {
+		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
+	}
+
+	if constexpr (!std::is_void_v<typename Desc::parent>) {
+		using Parent = typename Desc::parent;
+		info.to_parent = [](void* object) -> void* { return static_cast<Parent*>(static_cast<T*>(object)); };
+	}
+	else {
+		info.to_parent = nullptr;
 	}
 
 	if (info.parent != "") {
@@ -206,8 +221,9 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
 			using R = typename Traits::ret;
 			if constexpr (signature_bindable<R, A...>) {
-				std::function<R(Reflected*, A...)> func = [](Reflected* self, A... args) -> R {
-					return (object_cast<T>(self)->*Function)(args...);
+				// self is already adjusted to T by the caller (see Variant::_internal_call).
+				std::function<R(ObjectRef, A...)> func = [](ObjectRef self, A... args) -> R {
+					return (static_cast<T*>(self.get())->*Function)(args...);
 				};
 				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
 			}

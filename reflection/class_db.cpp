@@ -12,9 +12,7 @@ FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	ClassInfo& info = _class_infos[Reflected::get_class_static()];
-	info.name = Reflected::get_class_static();
-	info.is_abstract = true;
+	_register<Reflected>(ClassKind::Abstract);
 }
 
 ClassDB::~ClassDB() {
@@ -26,13 +24,54 @@ void ClassDB::clear() {
 	_instance->_subclass_delegates.clear();
 }
 
-Reflected* ClassDB::create_object_unsafe(std::string_view name) {
-	auto object_info_it = _instance->_class_infos.find(name);
-	if (object_info_it != _instance->_class_infos.end()) {
-		return object_info_it->second.object_create_func().as<Reflected*>().value();
+// Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
+static void* allocate_instance(const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		return ::operator new(info.size, std::align_val_t { info.alignment });
 	}
+	return ::operator new(info.size);
+}
 
-	return {};
+static void free_instance(void* ptr, const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
+	}
+	else {
+		::operator delete(ptr, info.size);
+	}
+}
+
+ObjectRef ClassDB::instantiate(std::string_view class_name) {
+	const ClassInfo* info = get_class_info(class_name);
+	if (!info || !info->can_create()) {
+		return {};
+	}
+	void* ptr = allocate_instance(*info);
+	if (info->lifecycle.default_construct) {
+		try {
+			info->lifecycle.default_construct(ptr, 1);
+		}
+		catch (...) {
+			free_instance(ptr, *info);
+			throw;
+		}
+	}
+	else {
+		// Trivially default-constructible: value-initialization zeroes it.
+		std::memset(ptr, 0, info->size);
+	}
+	return ObjectRef(ptr, info);
+}
+
+void ClassDB::destroy(ObjectRef object) {
+	if (!object) {
+		return;
+	}
+	const ClassInfo& info = *object.get_class_info();
+	if (info.lifecycle.destruct) {
+		info.lifecycle.destruct(object.get(), 1);
+	}
+	free_instance(object.get(), info);
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {

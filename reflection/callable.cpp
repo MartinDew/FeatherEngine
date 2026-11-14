@@ -9,7 +9,7 @@ namespace feather {
 Callable::Callable() : _internal_func { nullptr }, _param_amount(0) {
 }
 
-Variant Callable::call(std::span<Variant> params) {
+Variant Callable::call(std::span<Variant> params) const {
 	if (!is_valid()) {
 		std::println(std::cout, "Attempting to call an invalid Callable");
 		return {};
