@@ -63,12 +63,13 @@ jobs:
 
     steps:
       # ── Linux system dependencies (Debian trixie container, runs as root) ──
+      # setup-vulkan-sdk calls sudo and jq.
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           apt-get update -y
           apt-get install -y --no-install-recommends \
-            git make cmake ninja-build pkg-config python3 jq xz-utils unzip \
+            git make cmake ninja-build pkg-config python3 jq sudo xz-utils unzip \
             libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
             libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev libdecor-0-dev \
