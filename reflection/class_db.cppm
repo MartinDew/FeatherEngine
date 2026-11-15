@@ -68,6 +68,9 @@ public:
 
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
 
+	// TODO: runtime registration (C API / scripts) needs a public register_class(ClassInfo), and
+	// ClassInfo::Property getter/setter need user data, since only the templated _register<T> can insert today.
+
 	// Abstract, not default-constructible and singleton classes are detected from T itself.
 	template <is_reflected T>
 	static void register_class() {
