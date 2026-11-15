@@ -443,6 +443,8 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 	ctx.SetViewport(0, 0, _window->properties.width, _window->properties.height);
 	ctx.SetScissor(0, 0, _window->properties.width, _window->properties.height);
 
+	const DepthStencilBinding depthStencilBinding { .texture = depthTexture };
+
 	const auto& entities = capture.get_entities();
 	for (const auto& entity : entities) {
 		auto& meshBuffers = _get_or_create_mesh_buffers(entity.triangle_mesh, ctx);
@@ -456,15 +458,15 @@ void VexRenderer::_render_depth_pre_pass(const RenderScene& capture, vex::Comman
 		graphics.GetBindlessHandles(bindings, handles);
 		ConstantBinding constant_bindings { std::span(handles) };
 
-		vex::BufferBinding indexBufferBinding {
+		vex::IndexBufferBinding indexBufferBinding {
 			.buffer = meshBuffers.index_buffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+			.format = vex::IndexFormat::U32,
 		};
 
 		ctx.DrawIndexed(
 				_depth_pre_pass_desc,
 				{
-						.depthStencil = vex::TextureBinding(depthTexture),
+						.depthStencil = &depthStencilBinding,
 						.indexBuffer = indexBufferBinding,
 				},
 				constant_bindings,
@@ -517,6 +519,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 
 		// Set render target (depth-only)
 		ctx.ClearTexture(shadow_map);
+		const DepthStencilBinding shadowDepthBinding { .texture = shadow_map };
 		ctx.SetViewport(0, 0, w, h);
 		ctx.SetScissor(0, 0, w, h);
 
@@ -534,9 +537,9 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 			Matrix mvp = model * lightVP;
 
 			// Draw
-			vex::BufferBinding indexBufferBinding {
+			vex::IndexBufferBinding indexBufferBinding {
 				.buffer = meshBuffers.index_buffer,
-				.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+				.format = vex::IndexFormat::U32,
 			};
 
 			struct ShadowUniforms {
@@ -553,7 +556,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 			ctx.DrawIndexed(
 					_shadow_draw_desc,
 					{
-							.depthStencil = TextureBinding { shadow_map },
+							.depthStencil = &shadowDepthBinding,
 							.indexBuffer = indexBufferBinding,
 					},
 					vex::ConstantBinding(shadow_uniforms),
@@ -627,23 +630,22 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 		}
 
 		// Draw
-		vex::BufferBinding indexBufferBinding {
+		vex::IndexBufferBinding indexBufferBinding {
 			.buffer = meshBuffers.index_buffer,
-			.strideByteSize = static_cast<uint32_t>(sizeof(uint32_t)),
+			.format = vex::IndexFormat::U32,
 		};
 
-		std::array renderTargets = { vex::TextureBinding { .texture = backBuffer } };
+		std::array renderTargets = { vex::RenderTargetBinding { .texture = backBuffer } };
+		const DepthStencilBinding depthStencilBinding { .texture = depthTexture };
 
 		ctx.EnqueueDataUpload(_per_entity_uniform_buffer, to_bytes(entity_uniforms));
 
 		std::array<ResourceBinding, 5> bindings {
 			_vertex_buffer_binding(meshBuffers),
-			BufferBinding::CreateConstantBuffer(_camera_uniform_buffer),
-			BufferBinding::CreateConstantBuffer(_per_entity_uniform_buffer),
-			BufferBinding::CreateConstantBuffer(_material_buffer),
-			BufferBinding::CreateStructuredBuffer(
-					_lights_structured_buffer, sizeof(LightBufferData), 0, capture.get_light_count()
-			)
+			BufferBinding::CreateUniform(_camera_uniform_buffer),
+			BufferBinding::CreateUniform(_per_entity_uniform_buffer),
+			BufferBinding::CreateUniform(_material_buffer),
+			BufferBinding::CreateStructured<LightBufferData>(_lights_structured_buffer, 0, capture.get_light_count())
 		};
 
 		std::array<BindlessHandle, 5> handles;
@@ -658,7 +660,7 @@ void VexRenderer::_render_forward_pass(const RenderScene& capture, vex::CommandC
 				*draw_desc,
 				{
 						.renderTargets = renderTargets,
-						.depthStencil = vex::TextureBinding(depthTexture),
+						.depthStencil = &depthStencilBinding,
 						.indexBuffer = indexBufferBinding,
 				},
 				constant_bindings,
