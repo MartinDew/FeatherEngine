@@ -30,6 +30,8 @@ jobs:
   build:
     name: ${{ matrix.config.name }} / ${{ matrix.mode }}
     runs-on: ${{ matrix.config.os }}
+    # Empty for Windows, which runs on the host.
+    container: ${{ matrix.config.container }}
 
     strategy:
       fail-fast: false
@@ -43,9 +45,11 @@ jobs:
           #   toolchain_flag: ""
           
 
-          # ── Linux (LLVM/Clang) ───────────────────────────────────────────
+          # ── Linux (GCC) ──────────────────────────────────────────────────
+          # Ubuntu only packages pre-release GCC 16 snapshots, which ICE on class_db.cpp at -O2+.
           - name: Linux
             os: ubuntu-24.04
+            container: "gcc:16.2"
             toolchain_flag: "--toolchain=gcc"
 
           # ── Windows (clang-cl) ───────────────────────────────────────────
@@ -53,7 +57,25 @@ jobs:
             os: windows-latest
             toolchain_flag: "--toolchain=clang-cl"
 
+    env:
+      # The Linux container runs as root, which xmake refuses without this.
+      XMAKE_ROOT: y
+
     steps:
+      # ── Linux system dependencies (Debian trixie container, runs as root) ──
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update -y
+          apt-get install -y --no-install-recommends \
+            git make cmake ninja-build pkg-config python3 xz-utils unzip \
+            libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
+            libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev libdecor-0-dev \
+            libasound2-dev libpulse-dev libaudio-dev libjack-jackd2-dev libsndio-dev \
+            libpipewire-0.3-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev \
+            libfribidi-dev liburing-dev
+
       # ── Checkout ──────────────────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,7 +83,9 @@ jobs:
           submodules: recursive
 
       # ── Python (required by codegen scripts; stdlib only, no pip install) ──
+      # Linux uses the container's python3.
       - name: Set up Python
+        if: runner.os != 'Linux'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -84,7 +108,7 @@ jobs:
           vulkan-use-cache: true
           vulkan-query-version: latest
 
-      # ── LLVM (Linux + Windows) ────────────────────────────────────────────
+      # ── LLVM (Windows) ────────────────────────────────────────────────────
       # install-llvm-action stops at 21, and clang-cl 20/21 crash on the FType specializations.
       - name: Install LLVM
         if: runner.os == 'Windows'
@@ -99,49 +123,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Remove-Item llvm.tar.zst
           & "$dest\bin\clang-cl.exe" --version
-
-      # ── Linux system dependencies ─────────────────────────────────────────
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            lld \
-            python3 \
-            libgl1-mesa-dev \
-            libx11-dev \
-            libxext-dev \
-            libxrandr-dev \
-            libxi-dev \
-            libudev-dev
-
-      - name: Install GCC
-        uses: egor-tensin/setup-gcc@v2.0.2
-        if: runner.os == 'Linux'
-        with:
-          version: "16"
-
-      - name: Install SDL deps (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y git make \
-          pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
-          libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
-          libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
-          libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
-          libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev  \
-          libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
-
-      - name: Install LLVM Gold Plugin (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y binutils-gold llvm-20
-          # The install-llvm-action tarball doesn't ship LLVMgold.so.
-          # Clang resolves it relative to its own prefix, so we need it there.
-          sudo mkdir -p "$LLVM_PATH/lib"
-          sudo ln -sf /usr/lib/llvm-20/lib/LLVMgold.so "$LLVM_PATH/lib/LLVMgold.so"
-          sudo mkdir -p /usr/lib/bfd-plugins
-          sudo ln -sf /usr/lib/llvm-20/lib/LLVMgold.so /usr/lib/bfd-plugins/LLVMgold.so
 
       # ── Windows toolchain ─────────────────────────────────────────────────
       - name: Setup MSVC
