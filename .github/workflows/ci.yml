@@ -85,11 +85,20 @@ jobs:
           vulkan-query-version: latest
 
       # ── LLVM (Linux + Windows) ────────────────────────────────────────────
+      # install-llvm-action stops at 21, and clang-cl 20/21 crash on the FType specializations.
       - name: Install LLVM
         if: runner.os == 'Windows'
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "20"
+        shell: pwsh
+        run: |
+          $version = "23.1.4"
+          $dest = "C:\Program Files\LLVM"
+          Invoke-WebRequest "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/clang+llvm-$version-x86_64-pc-windows-msvc.tar.zst" -OutFile llvm.tar.zst
+          if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+          New-Item -ItemType Directory -Path $dest | Out-Null
+          C:\Windows\System32\tar.exe -xf llvm.tar.zst -C $dest --strip-components=1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Remove-Item llvm.tar.zst
+          & "$dest\bin\clang-cl.exe" --version
 
       # ── Linux system dependencies ─────────────────────────────────────────
       - name: Install dependencies (Linux)
