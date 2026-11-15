@@ -162,7 +162,7 @@ jobs:
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
-        run: xmake build -v
+        run: xmake build -y
 
       # ── Upload artifacts ───────────────────────────────────────────────────
       - name: Upload binaries
