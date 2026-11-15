@@ -858,7 +858,7 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         body.append(f"\tusing _feather_self = {c.name};")
         # The MSVC ABI fixes a class's member-pointer model when one is first formed; clang crashes when that
         # first happens in an importing partition (the FType descriptors), so form one in the defining unit.
-        body.append("\tstatic constexpr bool _feather_member_pointer_model() { return sizeof(int _feather_self::*) > 0; }")
+        body.append("\tstatic consteval bool _feather_member_pointer_model() { return sizeof(int _feather_self::*) > 0; }")
         # A value type gets no virtual member at all -- that's the point: no
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
