@@ -21,6 +21,7 @@ ClassDB::~ClassDB() {
 
 void ClassDB::clear() {
 	_instance->_class_infos.clear();
+	_instance->_enum_infos.clear();
 	_instance->_subclass_delegates.clear();
 }
 
@@ -94,6 +95,12 @@ ClassInfo* ClassDB::_get_class_info_internal(StaticString name) {
 		return &it->second;
 	};
 	return nullptr;
+}
+
+const EnumInfo* ClassDB::get_enum(StaticString name) {
+	auto& infos = get()->_enum_infos;
+	auto it = infos.find(name);
+	return it == infos.end() ? nullptr : &it->second;
 }
 
 std::vector<StaticString> ClassDB::get_children_names(StaticString object_name, bool exclusive) {

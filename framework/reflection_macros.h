@@ -27,3 +27,7 @@ struct NO_PARENT {};
 #define FCLASS(...) FEATHER_JOIN(CURRENT_FILE_ID, FEATHER_JOIN(_, FEATHER_JOIN(__LINE__, _GEN_BODY)))()
 #define FSTRUCT(...) FEATHER_JOIN(CURRENT_FILE_ID, FEATHER_JOIN(_, FEATHER_JOIN(__LINE__, _GEN_BODY)))()
 #endif
+
+// Marks a namespace-scope enum for runtime reflection (names <-> values, see ClassDB::get_enum). Prefix the
+// declaration: `FENUM() enum class Foo { A, B };`. Nothing is generated into the enum itself.
+#define FENUM(...)

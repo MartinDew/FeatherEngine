@@ -55,6 +55,11 @@ ACCESS_ENUM = {"public": "AccessLevel::Public", "protected": "AccessLevel::Prote
 _FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(([^)]*)\)")
 _ATTR_RE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 
+# `FENUM() enum [class|struct] Name [: underlying] {`; the marker must directly precede `enum`.
+_FENUM_RE = re.compile(
+    r"\bFENUM\b\s*\(\s*\)\s*enum\s+(?:(?:class|struct)\s+)?(?:FEATHER_\w+_API\s+)?(\w+)\s*(?::[^{;]*)?\{"
+)
+
 # `class Name ... {` / `struct Name ... {`, optionally a module export macro
 # (FEATHER_<MODULE>_API, defined by the build), optionally `final`,
 # optionally a base-clause. Requires the opening `{` right after, so a
@@ -1014,7 +1019,8 @@ def _partition_of(header: Path):
 
 
 def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir_emissions: list,
-                          owner: str, external_bind: bool, bound_classes: list) -> str:
+                          owner: str, external_bind: bool, bound_classes: list,
+                          enums: list, bound_enums: list) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
     bound = topological_sort(bound_classes)
@@ -1030,6 +1036,12 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
         if rel not in seen:
             seen.add(rel)
             includes.append(rel)
+    for e in enums:
+        if e.header.suffix != ".cppm":
+            rel = _relative_include(e.header, include_base)
+            if rel not in seen:
+                seen.add(rel)
+                includes.append(rel)
     for c in ordered:
         for modifier, _arg in c.resolved_modifiers:
             for inc in modifier.register_cpp_includes(c, ctx):
@@ -1059,6 +1071,9 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
 
     registered = bound + ([] if external_bind else ordered)
     lines.append(f"void {func}() {{")
+    # Enums first, so a property of an enum type links to its EnumInfo.
+    for e in bound_enums + ([] if external_bind else enums):
+        lines.append(f"\tClassDB::register_enum<{e.name}>();")
     if registered:
         for c in registered:
             # A modifier may replace the default register_class
@@ -1074,7 +1089,7 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
                 stmts = [f"ClassDB::register_class<{c.name}>();"]
             for stmt in stmts:
                 lines.append(f"\t{stmt}")
-    else:
+    elif not (enums or bound_enums):
         lines.append("\t// No reflected classes registered by this module.")
     lines += ["}", ""]
 
@@ -1086,7 +1101,7 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
 
 
 def generate_register_header(subfolder: str, classes: list, dir_emissions: list, owner: str,
-                             external_bind: bool, bound_classes: list) -> str:
+                             external_bind: bool, bound_classes: list, enums: list, bound_enums: list) -> str:
     func = f"register_{subfolder}_types"
     # A module below reflection is described by the module that binds it (see --bind-dir).
     described = ([] if external_bind else topological_sort(classes))
@@ -1094,19 +1109,21 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
 
     # Emitted declarations (e.g. component templates, FType<T>) name the module's own types.
     imports, seen = [], set()
-    for c in classes:
+    for c in list(classes) + list(enums):
         part = _partition_of(c.header) if c.header.suffix == ".cppm" else None
         if part and part not in seen:
             seen.add(part)
             imports.append(f"import :{part};")
-    if described or bound:
+    described_enums = [] if external_bind else enums
+    if described or bound or described_enums or bound_enums:
         imports.append("import std;")
         imports.append("import feather.framework;")
         if owner == "feather.reflection":
             imports.append("import :ftype;")
+            imports.append("import :enum_info;")
         else:
             imports.append("import feather.reflection;")
-        for module in sorted({_module_of(c.header) for c in bound}):
+        for module in sorted({_module_of(c.header) for c in list(bound) + list(bound_enums)}):
             imports.append(f"import {module};")
 
     lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
@@ -1119,8 +1136,10 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
     lines += ["} // namespace feather", ""]
 
     # Explicit specializations can't be exported; they are reachable through this partition anyway.
-    if described or bound:
+    if described or bound or described_enums or bound_enums:
         lines += ["namespace feather {", ""]
+        for e in bound_enums + described_enums:
+            lines.extend(_fenum_specialization(e))
         for c in bound:
             lines.extend(_ftype_specialization(c, subfolder, external=True))
         for c in described:
@@ -1222,6 +1241,68 @@ def process_header(header: Path, project_root: Path, registry: Registry, dir_nam
     return classes
 
 
+class EnumDecl:
+    def __init__(self, name: str, header: Path, enumerators: list):
+        self.name = name
+        self.header = header
+        self.enumerators = enumerators
+
+
+def scan_enums(header: Path) -> list:
+    """Every FENUM() enum in a header. Only namespace-scope enums are supported, since the
+    generated FEnum<T> names the enum unqualified."""
+    raw = header.open(encoding="utf-8", errors="replace", newline="").read()
+    text = blank_comments_and_literals(raw)
+    if "FENUM" not in text:
+        return []
+    class_ranges = [(start, end) for _n, _p, _t, start, end, _l in find_class_bodies(text)]
+    enums = []
+    for m in _FENUM_RE.finditer(text):
+        if "#define" in text[text.rfind("\n", 0, m.start()) + 1:m.start()]:
+            continue
+        if any(start <= m.start() < end for start, end in class_ranges):
+            raise ParseError(f"{header}: FENUM enum '{m.group(1)}' is nested in a class; declare it at namespace scope")
+        depth, i = 1, m.end()
+        while i < len(text) and depth:
+            depth += {"{": 1, "}": -1}.get(text[i], 0)
+            i += 1
+        if depth:
+            raise ParseError(f"{header}: unterminated enum '{m.group(1)}'")
+        names = []
+        for item in _split_top_level(text[m.end():i - 1]):
+            item = _ATTR_RE.sub("", item).strip()
+            if item:
+                names.append(re.match(r"\w+", item).group(0))
+        enums.append(EnumDecl(m.group(1), header, names))
+    return enums
+
+
+def _scan_dir_enums(dir_path: Path) -> list:
+    enums = []
+    for header in find_headers(dir_path):
+        if ".gen." in header.name:
+            continue
+        try:
+            enums.extend(scan_enums(header))
+        except ParseError as exc:
+            print(f"[ERROR] {exc}", file=sys.stderr)
+            sys.exit(1)
+    return enums
+
+
+def _fenum_specialization(e: EnumDecl) -> list:
+    lines = [
+        "template <>",
+        f"struct FEnum<{e.name}> {{",
+        f'\tstatic constexpr StaticString name = "{e.name}"_ss;',
+        f"\tstatic constexpr std::array<Enumerator, {len(e.enumerators)}> values {{ {{",
+    ]
+    for n in e.enumerators:
+        lines.append(f'\t\t{{ "{n}"_ss, static_cast<int64_t>({e.name}::{n}) }},')
+    lines += ["\t} };", "};", ""]
+    return lines
+
+
 def find_headers(folder: Path):
     return sorted(folder.rglob("*.h")) + sorted(folder.rglob("*.hpp")) + sorted(folder.rglob("*.cppm"))
 
@@ -1280,6 +1361,8 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
     for bound_dir in bound_dirs:
         _, classes = _scan_dir(bound_dir, bound_dir.name, project_root, build_registry(bound_dir, extra_extensions))
         bound_classes.extend(classes)
+    enums = _scan_dir_enums(dir_path)
+    bound_enums = [e for bound_dir in bound_dirs for e in _scan_dir_enums(bound_dir)]
 
     try:
         validate_hierarchy(all_classes)
@@ -1315,7 +1398,7 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
     out_cpp = dir_path / f"register_{name}_types.gen.cpp"
     try:
         register_header = generate_register_header(name, all_classes, dir_emissions, owner, external_bind,
-                                                   bound_classes)
+                                                   bound_classes, enums, bound_enums)
     except ParseError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         sys.exit(1)
@@ -1323,7 +1406,7 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
     if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, project_root, dir_emissions, owner,
-                                                     external_bind, bound_classes)):
+                                                     external_bind, bound_classes, enums, bound_enums)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed

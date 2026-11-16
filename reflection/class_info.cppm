@@ -3,6 +3,7 @@ export module feather.reflection:class_info;
 import std.compat;
 import feather.framework;
 import :callable;
+import :enum_info;
 import :ftype;
 import :variant;
 
@@ -117,6 +118,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		StaticString name;
 		// variant type to convert to
 		VariantType type;
+		// Set when the property is a registered enum; its Variant is still the INT value.
+		const EnumInfo* enum_info = nullptr;
 
 		// Tracked independently so a property can be e.g. publicly readable but
 		// privately writable; Variant::get/set only reach Public, *_internal bypasses this.

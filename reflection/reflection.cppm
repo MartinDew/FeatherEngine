@@ -5,6 +5,7 @@ export import feather.math;
 export import :callable;
 export import :class_db;
 export import :class_info;
+export import :enum_info;
 export import :ftype;
 export import :object;
 export import :reflected;

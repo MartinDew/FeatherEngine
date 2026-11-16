@@ -18,7 +18,7 @@ export namespace feather {
 // Free enum, not nested in Light: FSTRUCT's generated accessors are emitted at
 // the top of the class body, before a nested type declared later would be
 // visible to name lookup -- same reason Vector3/Color aren't nested either.
-enum class LightType : uint8_t {
+FENUM() enum class LightType : uint8_t {
 	Directional,
 	Point,
 	Spot

@@ -8,6 +8,7 @@ import std.compat;
 import feather.framework;
 import :callable;
 import :class_info;
+import :enum_info;
 import :reflection_utils;
 import :ftype;
 import :object;
@@ -35,6 +36,7 @@ public:
 private:
 	// Node-based, so a ClassInfo never moves once registered and ClassInfo* stays valid.
 	std::unordered_map<StaticString, ClassInfo> _class_infos;
+	std::unordered_map<StaticString, EnumInfo> _enum_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
 
 	static void _fire_subclass_delegates(const ClassInfo& info);
@@ -67,6 +69,25 @@ public:
 	}
 
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
+
+	// Register an enum before any class with a property of that type, so the property links to its EnumInfo.
+	template <class E>
+		requires std::is_enum_v<E>
+	static void register_enum() {
+		using Desc = FEnum<E>;
+		EnumInfo& info = get()->_enum_infos[Desc::name];
+		info.name = Desc::name;
+		info.underlying_size = sizeof(E);
+		info.values.assign(Desc::values.begin(), Desc::values.end());
+	}
+
+	static const EnumInfo* get_enum(StaticString name);
+
+	template <class E>
+		requires std::is_enum_v<E>
+	static const EnumInfo* get_enum() {
+		return get_enum(FEnum<E>::name);
+	}
 
 	// TODO: runtime registration (C API / scripts) needs a public register_class(ClassInfo), and
 	// ClassInfo::Property getter/setter need user data, since only the templated _register<T> can insert today.
@@ -218,6 +239,9 @@ void ClassDB::_add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>&
 				(static_cast<T*>(object)->*Setter)(std::move(result.value()));
 			}
 		};
+	}
+	if constexpr (std::is_enum_v<U> && requires { FEnum<U>::name; }) {
+		prop.enum_info = get_enum<U>();
 	}
 	info.properties.push_back(std::move(prop));
 }
