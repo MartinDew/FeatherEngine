@@ -2,6 +2,9 @@ package("vex")
     set_kind("library")
     set_homepage("https://github.com/Narvin-Chana/Vex")
     set_urls("https://github.com/Narvin-Chana/Vex.git", {branch = "main"})
+    -- Selects Vex's build type and its VEX_DEBUG/VEX_DEVELOPMENT/VEX_SHIPPING macros, which importers must share.
+    add_configs("vex_mode", {description = "Vex build mode.", default = "shipping",
+                             values = {"debug", "development", "shipping"}})
     -- Must match VexDX12.cmake's DX_AGILITY_VERSION
     local AGILITY_VERSION = "618"
     if is_plat("windows") then
@@ -13,7 +16,7 @@ package("vex")
     add_deps("cmake ~4.2.2")
 
     -- Shared by on_fetch and the module build in on_install, so both see the same includes/defines.
-    local function vex_fetch_info(package)
+    local function vex_platform_info(package)
         local libdir = package:installdir("lib")
         local inc    = package:installdir("include")
 
@@ -100,6 +103,21 @@ package("vex")
     end
     end
 
+    local VEX_MODE_DEFINES = {
+        debug       = {"VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0"},
+        development = {"VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0"},
+        shipping    = {"VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1"},
+    }
+    local VEX_BUILD_TYPES = {debug = "Debug", development = "RelWithDebInfo", shipping = "Release"}
+
+    local function vex_fetch_info(package)
+        local info = vex_platform_info(package)
+        if info then
+            info.defines = table.join(info.defines, VEX_MODE_DEFINES[package:config("vex_mode")])
+        end
+        return info
+    end
+
     on_install(function(package)
         local installdir = package:installdir()
         local builddir = path.join(installdir, ".cmake_build")
@@ -173,6 +191,7 @@ package("vex")
             "-DVEX_BUILD_TOOLS=OFF",
             "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
             "-DCMAKE_CXX_STANDARD=23",
+            "-DCMAKE_BUILD_TYPE=" .. VEX_BUILD_TYPES[package:config("vex_mode")],
         }
         if package:is_plat("windows") then
             -- table.insert(configs, "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW") -- so MSVC_RUNTIME_LIBRARY below takes effect
@@ -340,10 +359,6 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
         local module_src = path.join("src", "Vex.cppm")
         if os.isfile(module_src) then
             local info = vex_fetch_info(package)
-            -- The mode macros are per-config in Vex's CMake; the package only distinguishes debug from release.
-            local defines = table.join(info.defines, package:is_debug()
-                and {"VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0"}
-                or  {"VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1"})
             local function quoted(list)
                 local out = {}
                 for _, v in ipairs(list) do table.insert(out, string.format("%q", v)) end
@@ -358,7 +373,7 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
                     add_includedirs(%s)
                     add_defines(%s)
                     add_files(%q, {public = true})
-            ]], quoted(info.includedirs), quoted(defines), module_src:gsub("\\", "/")))
+            ]], quoted(info.includedirs), quoted(info.defines), module_src:gsub("\\", "/")))
             import("package.tools.xmake").install(package)
         end
 
