@@ -156,21 +156,22 @@ bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
 #ifdef BETA
 // TODO consider adding code directly in variant
 static std::string_view variant_type_name(VariantType type) {
-	static constexpr std::array<std::string_view, 18> names { "NIL",	"BOOL",		"INT",	  "FLOAT",	"VECTOR3", "VECTOR2",
-															  "VERTEX", "COLOR",	"VECTOR4", "QUATERNION", "MATRIX", "TRANSFORM",
-															  "RID",	"STRING",	"ARRAY",  "PATH",	"OBJECT",  "INVALID" };
+	static constexpr std::array<std::string_view, 18> names { "NIL",	 "BOOL",	  "INT",	"FLOAT",   "VECTOR3",
+															  "VECTOR2", "VERTEX",	  "COLOR",	"VECTOR4", "QUATERNION",
+															  "MATRIX",	 "TRANSFORM", "RID",	"STRING",  "ARRAY",
+															  "PATH",	 "OBJECT",	  "INVALID" };
 	size_t index = std::to_underlying(type);
 	return index < names.size() ? names[index] : "UNKNOWN";
 }
 
 static std::string_view access_name(AccessLevel access) {
 	switch (access) {
-		case AccessLevel::Public:
-			return "public";
-		case AccessLevel::Protected:
-			return "protected";
-		case AccessLevel::Private:
-			return "private";
+	case AccessLevel::Public:
+		return "public";
+	case AccessLevel::Protected:
+		return "protected";
+	case AccessLevel::Private:
+		return "private";
 	}
 	return "unknown";
 }
@@ -196,9 +197,13 @@ void ClassDB::print_db() {
 
 		std::println("\tProperties ({}):", info.properties.size());
 		for (const auto& prop : info.properties) {
-			std::print("\t\t{}: {} (get: {}, set: {})", prop.name.str(), variant_type_name(prop.type),
-					   prop.getter ? access_name(prop.getter_access) : "none",
-					   prop.setter ? access_name(prop.setter_access) : "none");
+			std::print(
+					"\t\t{}: {} (get: {}, set: {})",
+					prop.name.str(),
+					variant_type_name(prop.type),
+					prop.getter ? access_name(prop.getter_access) : "none",
+					prop.setter ? access_name(prop.setter_access) : "none"
+			);
 			if (prop.enum_info) {
 				std::print(" enum {}", prop.enum_info->name.str());
 			}
@@ -207,8 +212,9 @@ void ClassDB::print_db() {
 
 		std::println("\tMethods ({}):", info.methods.size());
 		for (const auto& method : info.methods) {
-			std::println("\t\t{}{} ({})", method.is_static ? "static " : "", method.name.str(),
-						 access_name(method.access));
+			std::println(
+					"\t\t{}{} ({})", method.is_static ? "static " : "", method.name.str(), access_name(method.access)
+			);
 		}
 	}
 
