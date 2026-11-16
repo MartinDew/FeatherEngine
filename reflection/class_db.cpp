@@ -153,25 +153,76 @@ bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
 	return false;
 }
 
+#ifdef BETA
+// TODO consider adding code directly in variant
+static std::string_view variant_type_name(VariantType type) {
+	static constexpr std::array<std::string_view, 18> names { "NIL",	"BOOL",		"INT",	  "FLOAT",	"VECTOR3", "VECTOR2",
+															  "VERTEX", "COLOR",	"VECTOR4", "QUATERNION", "MATRIX", "TRANSFORM",
+															  "RID",	"STRING",	"ARRAY",  "PATH",	"OBJECT",  "INVALID" };
+	size_t index = std::to_underlying(type);
+	return index < names.size() ? names[index] : "UNKNOWN";
+}
+
+static std::string_view access_name(AccessLevel access) {
+	switch (access) {
+		case AccessLevel::Public:
+			return "public";
+		case AccessLevel::Protected:
+			return "protected";
+		case AccessLevel::Private:
+			return "private";
+	}
+	return "unknown";
+}
+#endif
+
 void ClassDB::print_db() {
 #ifdef BETA
-	std::println("Printing database");
+	std::println("Class database: {} classes, {} enums", _class_infos.size(), _enum_infos.size());
 
-	std::vector<const ClassInfo*> sorted;
+	std::vector<const ClassInfo*> classes;
 	for (auto& [name, info] : _class_infos) {
-		sorted.push_back(&info);
+		classes.push_back(&info);
 	}
-	std::ranges::sort(sorted, {}, [](const ClassInfo* info) { return info->name.str(); });
+	std::ranges::sort(classes, {}, [](const ClassInfo* info) { return info->name.str(); });
 
-	for (const ClassInfo* class_info : sorted) {
+	for (const ClassInfo* class_info : classes) {
 		const ClassInfo& info = *class_info;
-		StaticString name = info.name;
-		std::println("Class: {} : ", info.name.str());
-		for (auto& prop : info.properties) {
-			std::println("\tProperty: {} Type: {}\n", prop.name.str(), std::to_underlying<VariantType>(prop.type));
+		const char* kind = info.is_singleton ? "singleton" : info.is_abstract ? "abstract" : "concrete";
+		std::println("\nClass: {} [{}]", info.name.str(), kind);
+		std::println("\tParent: {}", info.parent_info ? info.parent_info->name.str() : "(none)");
+		std::println("\tSize: {} Alignment: {} Creatable: {}", info.size, info.alignment, info.can_create());
+		std::println("\tChildren: {}", get_children_names_string(info.name, false));
+
+		std::println("\tProperties ({}):", info.properties.size());
+		for (const auto& prop : info.properties) {
+			std::print("\t\t{}: {} (get: {}, set: {})", prop.name.str(), variant_type_name(prop.type),
+					   prop.getter ? access_name(prop.getter_access) : "none",
+					   prop.setter ? access_name(prop.setter_access) : "none");
+			if (prop.enum_info) {
+				std::print(" enum {}", prop.enum_info->name.str());
+			}
+			std::println("");
 		}
 
-		std::println("Children : {}", get_children_names_string(name, false));
+		std::println("\tMethods ({}):", info.methods.size());
+		for (const auto& method : info.methods) {
+			std::println("\t\t{}{} ({})", method.is_static ? "static " : "", method.name.str(),
+						 access_name(method.access));
+		}
+	}
+
+	std::vector<const EnumInfo*> enums;
+	for (auto& [name, info] : _enum_infos) {
+		enums.push_back(&info);
+	}
+	std::ranges::sort(enums, {}, [](const EnumInfo* info) { return info->name.str(); });
+
+	for (const EnumInfo* enum_info : enums) {
+		std::println("\nEnum: {} ({} bytes)", enum_info->name.str(), enum_info->underlying_size);
+		for (const Enumerator& value : enum_info->values) {
+			std::println("\t{} = {}", value.name.str(), value.value);
+		}
 	}
 #endif
 }
