@@ -340,8 +340,6 @@ void VexRenderer::_build_draw_descs() {
 		.depthTestEnabled = true,
 		.depthWriteEnabled = true,
 		.depthCompareOp = _use_reverse_z ? vex::CompareOp::GreaterEqual : vex::CompareOp::Less,
-		.minDepthBounds = _use_reverse_z ? 1.0f : 0.0f,
-		.maxDepthBounds = _use_reverse_z ? 0.0f : 1.0f,
 	};
 
 	auto get_view = [&](const std::string& filepath, std::string_view entry_point, vex::ShaderType type) {
