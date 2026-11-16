@@ -14,7 +14,7 @@ end
 -- xmake/rules.lua), so Vex's runtime deploy step lives in a rule instead.
 rule("vex_renderer.deploy_runtime")
     -- target:pkg() only sees a target's own packages; vex_renderer adds them publicly, so ask it.
-    on_load(function(target)
+    after_load(function(target)
         -- D3D12 reads D3D12SDKVersion/D3D12SDKPath from the main exe at
         -- startup, so DX12AgilitySDK.cpp must compile into the exe itself.
         if not is_plat("windows") then return end

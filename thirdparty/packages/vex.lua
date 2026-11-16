@@ -372,6 +372,9 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
                     set_policy("build.c++.modules", true)
                     add_includedirs(%s)
                     add_defines(%s)
+                    if is_plat("windows", "mingw") then
+                        add_defines("NOMINMAX", "WIN32_LEAN_AND_MEAN")
+                    end
                     add_files(%q, {public = true})
             ]], quoted(info.includedirs), quoted(info.defines), module_src:gsub("\\", "/")))
             import("package.tools.xmake").install(package)
