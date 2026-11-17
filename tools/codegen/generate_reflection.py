@@ -55,7 +55,7 @@ ACCESS_ENUM = {"public": "AccessLevel::Public", "protected": "AccessLevel::Prote
 _FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(([^)]*)\)")
 _ATTR_RE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 
-# `FENUM() enum [class|struct] Name [: underlying] {`; the marker must directly precede `enum`.
+# `FENUM()` then `enum [class|struct] Name [: underlying] {`; the marker must directly precede `enum`.
 _FENUM_RE = re.compile(
     r"\bFENUM\b\s*\(\s*\)\s*enum\s+(?:(?:class|struct)\s+)?(?:FEATHER_\w+_API\s+)?(\w+)\s*(?::[^{;]*)?\{"
 )

@@ -29,5 +29,5 @@ struct NO_PARENT {};
 #endif
 
 // Marks a namespace-scope enum for runtime reflection (names <-> values, see ClassDB::get_enum). Prefix the
-// declaration: `FENUM() enum class Foo { A, B };`. Nothing is generated into the enum itself.
+// declaration: `FENUM()` on its own line before `enum class Foo { A, B };`. Nothing is generated into the enum itself.
 #define FENUM(...)

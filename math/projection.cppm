@@ -9,7 +9,8 @@ import :math_defs;
 
 export namespace feather {
 
-FENUM() enum class ProjectionType : uint8_t {
+FENUM()
+enum class ProjectionType : uint8_t {
 	Perspective,
 	Orthographic
 };

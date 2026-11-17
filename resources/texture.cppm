@@ -14,7 +14,8 @@ import feather.reflection;
 
 export namespace feather {
 
-FENUM() enum class TextureFormat : uint8_t {
+FENUM()
+enum class TextureFormat : uint8_t {
 	INVALID = 0,
 	R8_UNORM,
 	RG8_UNORM,
