@@ -3,8 +3,7 @@ export module feather.math:rtm_interop;
 import rtm;
 import std;
 
-// Feather's math types declare the same fields as RTM's storage structs instead of deriving
-// from them: a derived type could not carry [[get]]/[[set]] on inherited members.
+// Feather's math types declare the same fields as RTM's storage structs instead of deriving from them.
 export namespace feather::math {
 
 template <class TReal, std::size_t TCount>
