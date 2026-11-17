@@ -27,7 +27,8 @@ void WorldSim::init() {
 	_world.component<ReflectedComponent>("ReflectedComponent");
 	register_core_components(_world);
 
-	_scene_prefab = _world.prefab("Scene");
+	// Not "Scene": that name already resolves to the Scene component's entity.
+	_scene_prefab = _world.prefab("ScenePrefab");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
@@ -52,8 +53,6 @@ void WorldSim::init() {
 }
 
 void WorldSim::update(double delta) {
-	// Ecs::query<Transform, MeshInstance, MaterialInstance> q
-
 	bool result = _world.progress(/*delta*/);
 }
 

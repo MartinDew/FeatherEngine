@@ -35,11 +35,6 @@ class FEATHER_WORLD_API WorldSim final : public Simulation {
 	// In world_sim.h, private section:
 	bool _is_in_scene(flecs::entity e, Entity scene) const;
 
-	template <class... TComps, class TFunc>
-	void _iterate_tree(flecs::entity e, TFunc func) {
-		// Todo
-	}
-
 protected:
 	template <std::derived_from<class EcsModule> T>
 	void _import_feature() {
@@ -83,11 +78,6 @@ public:
 	auto scene_query() {
 		return _world.query_builder<TComps...>().template with<ActiveScene>().up(flecs::ChildOf).build();
 	}
-
-	template <class... TComps>
-	auto scene_system() {
-
-	};
 };
 
 } //namespace feather
