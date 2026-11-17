@@ -20,7 +20,7 @@ class FEATHER_WORLD_API MathWorldModule final : public EcsModule {
 
 public:
 	MathWorldModule();
-	MathWorldModule(World& world);
+	MathWorldModule(World world);
 };
 
 } //namespace feather
