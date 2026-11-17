@@ -94,14 +94,67 @@ constexpr LifecycleHooks make_lifecycle_hooks() {
 	return hooks;
 }
 
+namespace reflection_detail {
+
+// T's name as the compiler spells it in a function signature, which needs no RTTI. The branches and trimming follow
+// flecs_cpp.h's ECS_FUNC_NAME, so the name matches the identity flecs derives for T on each compiler.
+template <class T>
+struct CompilerTypeName {
+	static constexpr std::string_view slice() {
+#if defined(__clang__)
+		constexpr std::string_view signature = __PRETTY_FUNCTION__; // "... [T = feather::Light]"
+		constexpr std::size_t start = signature.find("T = ") + 4;
+		return signature.substr(start, signature.rfind(']') - start);
+#elif defined(__GNUC__)
+		constexpr std::string_view signature = __PRETTY_FUNCTION__; // "... [with T = feather::Light@module; ...]"
+		constexpr std::size_t start = signature.find("T = ") + 4;
+		return signature.substr(start, signature.find_first_of(";]", start) - start);
+#elif defined(_MSC_VER)
+		constexpr std::string_view signature = __FUNCSIG__; // "... CompilerTypeName<struct feather::Light>::slice(void)"
+		constexpr std::string_view open = "CompilerTypeName<";
+		constexpr std::size_t start = signature.find(open) + open.size();
+		std::string_view name = signature.substr(start, signature.rfind(">::slice(void)") - start);
+		constexpr std::array<std::string_view, 3> prefixes { "struct ", "class ", "enum " };
+		for (std::string_view prefix : prefixes) {
+			if (name.starts_with(prefix)) {
+				name.remove_prefix(prefix.size());
+			}
+		}
+		return name;
+#else
+#error "No compiler type name for this compiler"
+#endif
+	}
+
+	// Owned and NUL-terminated, so the name outlives the signature it was cut from.
+	static constexpr auto storage = [] {
+		std::array<char, slice().size() + 1> chars {};
+		std::ranges::copy(slice(), chars.begin());
+		return chars;
+	}();
+};
+
+} // namespace reflection_detail
+
+// T's fully qualified name as the compiler spells it, e.g. "feather::Light".
+template <class T>
+constexpr std::string_view compiler_type_name() {
+	using Name = reflection_detail::CompilerTypeName<T>;
+	return { Name::storage.data(), Name::storage.size() - 1 };
+}
+
 struct FEATHER_REFLECTION_API ClassInfo {
 	StaticString name = ""_ss;
+	// The C++ type's fully qualified name as the compiler spells it; see compiler_type_name().
+	StaticString cpp_name = ""_ss;
 	StaticString parent = ""_ss;
 	std::vector<const ClassInfo*> children;
 
 	// Abstract/singleton classes are never created through reflection.
 	bool is_abstract = false;
 	bool is_singleton = false;
+	// Not derived from Reflected: stored by value, with no vtable.
+	bool is_value_type = false;
 
 	// An empty type still reports sizeof 1, so is_empty tells storage it needs none.
 	size_t size = 0;
