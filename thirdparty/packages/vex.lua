@@ -2,6 +2,9 @@ package("vex")
     set_kind("library")
     set_homepage("https://github.com/Narvin-Chana/Vex")
     set_urls("https://github.com/Narvin-Chana/Vex.git", {branch = "main"})
+    -- Selects Vex's build type and its VEX_DEBUG/VEX_DEVELOPMENT/VEX_SHIPPING macros, which importers must share.
+    add_configs("vex_mode", {description = "Vex build mode.", default = "shipping",
+                             values = {"debug", "development", "shipping"}})
     -- Must match VexDX12.cmake's DX_AGILITY_VERSION
     local AGILITY_VERSION = "618"
     if is_plat("windows") then
@@ -11,6 +14,110 @@ package("vex")
         add_deps("vulkan-headers 1.4.335+0", "vulkan-loader 1.4.335+0")
     end
     add_deps("cmake ~4.2.2")
+
+    -- Shared by on_fetch and the module build in on_install, so both see the same includes/defines.
+    local function vex_platform_info(package)
+        local libdir = package:installdir("lib")
+        local inc    = package:installdir("include")
+
+        if package:is_plat("windows") then
+            if not os.isfile(path.join(libdir, "Vex.lib")) then
+                return nil
+            end
+            return {
+                -- magic_enum headers are double-nested (include/magic_enum/magic_enum/*.hpp)
+                includedirs = {
+                    inc,
+                    path.join(inc, "magic_enum"),
+                    path.join(inc, "directx"),
+                    path.join(inc, "dxc"),
+                    path.join(inc, "slang"),
+                },
+                linkdirs = {libdir},
+                links    = {"Vex", "slang", "dxcompiler", "WinPixEventRuntime"},
+                syslinks = {"d3d12", "dxgi", "dxguid"},
+                defines  = {
+                    "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
+                    "VEX_DX12=1",
+                    "VEX_VULKAN=0",
+                    "VEX_SLANG=1",
+                    "VEX_SHADER_COMPILER=1",
+                    "VEX_DXC=1",
+                },
+            }
+        elseif package:is_plat("mingw") then
+            if not os.isfile(path.join(libdir, "libVex.a")) then
+                return nil
+            end
+            local vk_headers = package:dep("vulkan-headers"):fetch()
+            local vk_loader  = package:dep("vulkan-loader"):fetch()
+            return {
+                includedirs = table.join(
+                    {inc, path.join(inc, "magic_enum"), path.join(inc, "dxc"), path.join(inc, "slang")},
+                    (vk_headers and vk_headers.includedirs) or {}
+                ),
+                linkdirs = table.join({libdir}, (vk_loader and vk_loader.linkdirs) or {}),
+                links    = table.join(
+                    {"Vex", "slang", "dxcompiler"},
+                    (vk_loader and vk_loader.links) or {}
+                ),
+                defines  = {
+                    "VEX_DX12=0",
+                    "VEX_VULKAN=1",
+                    "VEX_SLANG=1",
+                    "VEX_SHADER_COMPILER=1",
+                    "VEX_DXC=1",
+                },
+            }
+        else
+            if not os.isfile(path.join(libdir, "libVex.a")) then
+                return nil
+            end
+            -- Only add an out-of-tree VULKAN_SDK include/lib dir; adding /usr/include
+            -- explicitly would reorder it ahead of libstdc++'s own headers.
+            local vulkan_includedirs = {}
+            local vulkan_linkdirs = {}
+            local vulkan_sdk = os.getenv("VULKAN_SDK")
+            if vulkan_sdk and os.isdir(path.join(vulkan_sdk, "include")) then
+                table.insert(vulkan_includedirs, path.join(vulkan_sdk, "include"))
+            end
+            if vulkan_sdk and os.isdir(path.join(vulkan_sdk, "lib")) then
+                table.insert(vulkan_linkdirs, path.join(vulkan_sdk, "lib"))
+            end
+            return {
+                includedirs = table.join(
+                    {inc, path.join(inc, "magic_enum"), path.join(inc, "dxc"), path.join(inc, "slang")},
+                    vulkan_includedirs
+                ),
+                linkdirs = table.join({libdir}, vulkan_linkdirs),
+                links    = {"Vex", "slang", "dxcompiler"},
+                syslinks = {"vulkan"},
+                defines  = {
+                    "VEX_DX12=0",
+                    "VEX_VULKAN=1",
+                    "VEX_SLANG=1",
+                    "VEX_SHADER_COMPILER=1",
+                    "VEX_DXC=1",
+                },
+            }
+    end
+    end
+
+    local VEX_MODE_DEFINES = {
+        debug       = {"VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0"},
+        development = {"VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0"},
+        shipping    = {"VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1"},
+    }
+    local VEX_BUILD_TYPES = {debug = "Debug", development = "RelWithDebInfo", shipping = "Release"}
+
+    local function vex_fetch_info(package)
+        local info = vex_platform_info(package)
+        if info then
+            info.defines = table.join(info.defines, VEX_MODE_DEFINES[package:config("vex_mode")])
+        end
+        return info
+    end
+
     on_install(function(package)
         local installdir = package:installdir()
         local builddir = path.join(installdir, ".cmake_build")
@@ -84,6 +191,7 @@ package("vex")
             "-DVEX_BUILD_TOOLS=OFF",
             "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON",
             "-DCMAKE_CXX_STANDARD=23",
+            "-DCMAKE_BUILD_TYPE=" .. VEX_BUILD_TYPES[package:config("vex_mode")],
         }
         if package:is_plat("windows") then
             -- table.insert(configs, "-DCMAKE_POLICY_DEFAULT_CMP0091=NEW") -- so MSVC_RUNTIME_LIBRARY below takes effect
@@ -246,12 +354,30 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
             os.cp(path.join("shaders", "*"), package:installdir("shaders"))
         end
 
-        -- Vex's C++ module interface (`import Vex;`); it re-exports the installed headers, so consumers compile it themselves
+        -- Vex's module interface is built here so xmake writes its meta-info next to it
+        -- (modules/<name>/Vex.cppm.meta-info); any target using this package can then `import Vex;`.
         local module_src = path.join("src", "Vex.cppm")
         if os.isfile(module_src) then
-            local dst = package:installdir("modules")
-            os.mkdir(dst)
-            os.cp(module_src, dst)
+            local info = vex_fetch_info(package)
+            local function quoted(list)
+                local out = {}
+                for _, v in ipairs(list) do table.insert(out, string.format("%q", v)) end
+                return table.concat(out, ", ")
+            end
+            -- Not named Vex: its static lib would overwrite cmake's libVex.a in the same lib dir.
+            io.writefile("xmake.lua", string.format([[
+                target("vex_module")
+                    set_kind("static")
+                    set_languages("c++23")
+                    set_policy("build.c++.modules", true)
+                    add_includedirs(%s)
+                    add_defines(%s)
+                    if is_plat("windows", "mingw") then
+                        add_defines("NOMINMAX", "WIN32_LEAN_AND_MEAN")
+                    end
+                    add_files(%q, {public = true})
+            ]], quoted(info.includedirs), quoted(info.defines), module_src:gsub("\\", "/")))
+            import("package.tools.xmake").install(package)
         end
 
         -- Must be compiled into the host executable, not just linked
@@ -264,89 +390,14 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
     end)
 
     on_fetch(function(package)
-        local libdir = package:installdir("lib")
-        local inc    = package:installdir("include")
-
-        if package:is_plat("windows") then
-            if not os.isfile(path.join(libdir, "Vex.lib")) then
-                return nil
-            end
-            return {
-                -- magic_enum headers are double-nested (include/magic_enum/magic_enum/*.hpp)
-                includedirs = {
-                    inc,
-                    path.join(inc, "magic_enum"),
-                    path.join(inc, "directx"),
-                    path.join(inc, "dxc"),
-                    path.join(inc, "slang"),
-                },
-                linkdirs = {libdir},
-                links    = {"Vex", "slang", "dxcompiler", "WinPixEventRuntime"},
-                syslinks = {"d3d12", "dxgi", "dxguid"},
-                defines  = {
-                    "VEX_AGILITY_SDK_VERSION=" .. AGILITY_VERSION,
-                    "VEX_DX12=1",
-                    "VEX_VULKAN=0",
-                    "VEX_SLANG=1",
-                    "VEX_SHADER_COMPILER=1",
-                    "VEX_DXC=1",
-                },
-            }
-        elseif package:is_plat("mingw") then
-            if not os.isfile(path.join(libdir, "libVex.a")) then
-                return nil
-            end
-            local vk_headers = package:dep("vulkan-headers"):fetch()
-            local vk_loader  = package:dep("vulkan-loader"):fetch()
-            return {
-                includedirs = table.join(
-                    {inc, path.join(inc, "magic_enum"), path.join(inc, "dxc"), path.join(inc, "slang")},
-                    (vk_headers and vk_headers.includedirs) or {}
-                ),
-                linkdirs = table.join({libdir}, (vk_loader and vk_loader.linkdirs) or {}),
-                links    = table.join(
-                    {"Vex", "slang", "dxcompiler"},
-                    (vk_loader and vk_loader.links) or {}
-                ),
-                defines  = {
-                    "VEX_DX12=0",
-                    "VEX_VULKAN=1",
-                    "VEX_SLANG=1",
-                    "VEX_SHADER_COMPILER=1",
-                    "VEX_DXC=1",
-                },
-            }
-        else
-            if not os.isfile(path.join(libdir, "libVex.a")) then
-                return nil
-            end
-            -- Only add an out-of-tree VULKAN_SDK include/lib dir; adding /usr/include
-            -- explicitly would reorder it ahead of libstdc++'s own headers.
-            local vulkan_includedirs = {}
-            local vulkan_linkdirs = {}
-            local vulkan_sdk = os.getenv("VULKAN_SDK")
-            if vulkan_sdk and os.isdir(path.join(vulkan_sdk, "include")) then
-                table.insert(vulkan_includedirs, path.join(vulkan_sdk, "include"))
-            end
-            if vulkan_sdk and os.isdir(path.join(vulkan_sdk, "lib")) then
-                table.insert(vulkan_linkdirs, path.join(vulkan_sdk, "lib"))
-            end
-            return {
-                includedirs = table.join(
-                    {inc, path.join(inc, "magic_enum"), path.join(inc, "dxc"), path.join(inc, "slang")},
-                    vulkan_includedirs
-                ),
-                linkdirs = table.join({libdir}, vulkan_linkdirs),
-                links    = {"Vex", "slang", "dxcompiler"},
-                syslinks = {"vulkan"},
-                defines  = {
-                    "VEX_DX12=0",
-                    "VEX_VULKAN=1",
-                    "VEX_SLANG=1",
-                    "VEX_SHADER_COMPILER=1",
-                    "VEX_DXC=1",
-                },
-            }
+        local info = vex_fetch_info(package)
+        if info then
+            -- With libfiles set, xmake builds the `Vex` module as a BMI only in importers and links this lib.
+            local lib = package:is_plat("windows") and "Vex.lib" or "libVex.a"
+            info.libfiles = {path.join(package:installdir("lib"), lib)}
+            -- Holds the module's initializer symbol that importers reference.
+            table.insert(info.links, 1, "vex_module")
         end
+        return info
     end)
 package_end()

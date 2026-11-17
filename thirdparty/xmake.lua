@@ -38,7 +38,8 @@ add_requires("sdl3_feather", {system = false, alias = "sdl3", configs = {shared 
 
 -- Only requested with the vex_renderer module (enable_vex_renderer, off on Apple).
 if has_config("enable_vex_renderer") and not is_plat("macosx") then
-    add_requires("vex", {system = false, alias = "vex"})
+    local vex_mode = is_mode("debug") and "debug" or (is_mode("releasedbg") and "development" or "shipping")
+    add_requires("vex", {system = false, alias = "vex", configs = {vex_mode = vex_mode}})
 
     -- Version must track Vex's vendored DIRECTX_AGILITY_SDK_VERSION (618); xrepo
     -- doesn't carry the exact patch Vex vendors, so use the closest 1.618.x.

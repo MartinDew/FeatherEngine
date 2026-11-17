@@ -13,11 +13,12 @@ end
 -- Rules stack across a target; on_load/after_build closures don't (see
 -- xmake/rules.lua), so Vex's runtime deploy step lives in a rule instead.
 rule("vex_renderer.deploy_runtime")
-    on_load(function(target)
+    -- target:pkg() only sees a target's own packages; vex_renderer adds them publicly, so ask it.
+    after_load(function(target)
         -- D3D12 reads D3D12SDKVersion/D3D12SDKPath from the main exe at
         -- startup, so DX12AgilitySDK.cpp must compile into the exe itself.
         if not is_plat("windows") then return end
-        local vex = target:pkg("vex")
+        local vex = target:pkg("vex") or target:dep("vex_renderer"):pkg("vex")
         if not vex then return end
         local agility_src = path.join(vex:installdir(), "src", "DX12", "DX12AgilitySDK.cpp")
         if os.isfile(agility_src) then
@@ -31,7 +32,7 @@ rule("vex_renderer.deploy_runtime")
     end)
 
     after_build(function(target)
-        local vex = target:pkg("vex")
+        local vex = target:pkg("vex") or target:dep("vex_renderer"):pkg("vex")
         if not vex then return end
         local tdir = target:targetdir()
         if (not is_plat("windows")) then
@@ -53,7 +54,7 @@ rule("vex_renderer.deploy_runtime")
         if (is_plat("windows")) then
             -- D3D12 Agility SDK DLLs come from xrepo's directx12-agility package,
             -- not Vex's internal _deps/ (see thirdparty/xmake.lua).
-            local agility = target:pkg("directx12-agility")
+            local agility = target:pkg("directx12-agility") or target:dep("vex_renderer"):pkg("directx12-agility")
             if agility then
                 local agility_bin = path.join(agility:installdir(), "bin")
                 if os.isdir(agility_bin) then
@@ -79,48 +80,21 @@ target("vex_renderer")
     add_rules("feather.module")
     add_deps("rendering")
     add_packages("vex", {public = true})
+    if is_plat("windows") then
+        add_packages("directx12-agility", {public = true})
+    end
 
-    -- The package ships Vex's module interface (`import Vex;`); it is compiled as part of this target.
-    -- Not asserted at load: that would also block `xmake require --force vex`, the fix for a stale install.
-    on_load(function(target)
-        local vex = target:pkg("vex")
-        if not vex then return end
-        local vex_module = path.join(vex:installdir(), "modules", "Vex.cppm")
-        if os.isfile(vex_module) then
-            target:add("files", vex_module, {public = true})
-        end
-    end)
-
-    -- Runs before module dependency scanning, which would otherwise fail with a less helpful error.
-    -- Skipped under `xmake require` (it runs config with require=false), which must stay usable to repair a stale install.
     on_config(function(target)
-        import("core.base.option")
         import("feather_codegen")
         -- The renderer embeds raw_resources/shaders (raw_resources/shaders/*.slang.gen.h).
         feather_codegen.run_embedded_resources(target)
-        if option.get("require") == false then return end
-        local vex = target:pkg("vex")
-        assert(not vex or os.isfile(path.join(vex:installdir(), "modules", "Vex.cppm")),
-               "vex package has no modules/Vex.cppm; reinstall it (xmake require --force vex)")
     end)
-
-    if is_mode("debug") then
-        add_defines("VEX_DEBUG=1", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=0", {public = true})
-    elseif is_mode("releasedbg") then
-        add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=1", "VEX_SHIPPING=0", {public = true})
-    elseif is_mode("release") then
-        add_defines("VEX_DEBUG=0", "VEX_DEVELOPMENT=0", "VEX_SHIPPING=1", {public = true})
-    end
 target_end()
 
 if has_config("enable_vex_renderer") then
     -- The deploy rule runs on the executable: it compiles DX12AgilitySDK.cpp into it and copies DLLs to its targetdir.
-    -- target:pkg() only sees a target's own packages, so the rule's packages are added here too.
+    -- The packages reach it through vex_renderer's public add_packages.
     target("feather")
-        add_packages("vex")
-        if is_plat("windows") then
-            add_packages("directx12-agility")
-        end
         add_rules("vex_renderer.deploy_runtime")
     target_end()
 end
