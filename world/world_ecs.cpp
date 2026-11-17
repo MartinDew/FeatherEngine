@@ -38,10 +38,16 @@ void hook_move_ctor(void* dst, void* src, std::int32_t count, const ecs_type_inf
 	lifecycle_of(type_info).move_construct(dst, src, static_cast<std::size_t>(count));
 }
 
-// A null hook that is not illegal is trivial, which is also what flecs assumes for a hook it is not given.
+void free_lifecycle(void* lifecycle) {
+	delete static_cast<LifecycleHooks*>(lifecycle);
+}
+
+// A null hook that is not illegal is trivial, which is also what flecs assumes for a hook it is not given. flecs owns
+// a copy of the hooks, so the component never reads back into ClassDB.
 ecs_type_hooks_t to_flecs_hooks(const LifecycleHooks& lifecycle) {
 	ecs_type_hooks_t hooks {};
-	hooks.binding_ctx = const_cast<LifecycleHooks*>(&lifecycle);
+	hooks.binding_ctx = new LifecycleHooks(lifecycle);
+	hooks.binding_ctx_free = free_lifecycle;
 	hooks.ctor = lifecycle.default_construct ? hook_ctor : nullptr;
 	hooks.dtor = lifecycle.destruct ? hook_dtor : nullptr;
 	hooks.copy = lifecycle.copy ? hook_copy : nullptr;
@@ -76,6 +82,20 @@ bool is_trivial(const LifecycleHooks& lifecycle) {
 			!lifecycle.copy_construct && !lifecycle.move_construct && lifecycle.illegal == LifecycleIllegal::None;
 }
 
+// The symbol flecs gives the C++ type: its compiler name with "::" turned into ".".
+std::string get_symbol(const ClassInfo& info) {
+	const std::string type_name(info.cpp_name.str());
+	std::string symbol(type_name.size(), '\0');
+	ecs_cpp_get_symbol_name(symbol.data(), type_name.c_str(), type_name.size());
+	symbol.resize(std::strlen(symbol.c_str()));
+	return symbol;
+}
+
+bool can_be_component(const ClassInfo& info) {
+	return info.is_value_type && !info.is_abstract && !info.is_singleton && info.can_create() &&
+			!info.cpp_name.str().empty();
+}
+
 const ClassInfo::Property* find_property(const ClassInfo& info, StaticString name) {
 	for (const ClassInfo::Property& property : info.properties) {
 		if (property.name == name) {
@@ -92,35 +112,42 @@ void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
 }
 
 flecs::entity World::register_component(const ClassInfo& info) {
-	if (const flecs::entity existing = get_component(info.name)) {
-		return existing;
-	}
-	// Reflected objects have a parent and live on the heap; only parentless value types are stored in columns.
-	if (!info.parent.str().empty() || info.is_abstract || info.is_singleton || !info.can_create()) {
+	if (!can_be_component(info)) {
 		return {};
 	}
-
 	ecs_world_t* world = c_ptr();
+	const std::string symbol = get_symbol(info);
+
+	// Typed use in some binary may have registered the type already; it then only lacks its ClassInfo.
+	if (const ecs_entity_t existing = ecs_lookup_symbol(world, symbol.c_str(), false, false)) {
+		_link_class_info(existing, info);
+		return flecs::entity(world, existing);
+	}
+
 	const std::string name(info.name.str());
+	fassert(
+			!ecs_lookup_child(world, 0, name.c_str()),
+			std::format("An entity named '{}' already exists and would become its component", name)
+	);
+
 	ecs_entity_desc_t entity_desc {};
 	entity_desc.name = name.c_str();
+	entity_desc.symbol = symbol.c_str();
 	entity_desc.use_low_id = true;
+	// At the root whichever module is being imported, so the name stays the class name.
 	const ecs_entity_t scope = ecs_set_scope(world, 0);
 	const ecs_entity_t entity = ecs_entity_init(world, &entity_desc);
 	ecs_set_scope(world, scope);
 
-	if (info.is_empty) {
-		// flecs' C++ API registers an empty type as an entity with no EcsComponent, which is a tag.
-		_link_class_info(entity, info);
-		return flecs::entity(world, entity);
-	}
-
+	// An empty type is a tag: a component of size 0, as flecs' C++ API registers it.
 	ecs_component_desc_t component_desc {};
 	component_desc.entity = entity;
-	component_desc.type.size = static_cast<ecs_size_t>(info.size);
-	component_desc.type.alignment = static_cast<ecs_size_t>(info.alignment);
-	if (!is_trivial(info.lifecycle)) {
-		component_desc.type.hooks = to_flecs_hooks(info.lifecycle);
+	if (!info.is_empty) {
+		component_desc.type.size = static_cast<ecs_size_t>(info.size);
+		component_desc.type.alignment = static_cast<ecs_size_t>(info.alignment);
+		if (!is_trivial(info.lifecycle)) {
+			component_desc.type.hooks = to_flecs_hooks(info.lifecycle);
+		}
 	}
 	const ecs_entity_t component = ecs_component_init(world, &component_desc);
 	fassert(component != 0, "flecs refused a component registered from reflection");
@@ -130,23 +157,26 @@ flecs::entity World::register_component(const ClassInfo& info) {
 }
 
 flecs::entity World::register_component(StaticString class_name) {
-	if (const flecs::entity existing = get_component(class_name)) {
-		return existing;
-	}
 	const ClassInfo* info = ClassDB::get_class_info(class_name);
 	return info ? register_component(*info) : flecs::entity {};
 }
 
-flecs::entity World::get_component(StaticString name) const {
-	const std::string terminated(name.str());
-	const ecs_entity_t found = ecs_lookup_child(c_ptr(), 0, terminated.c_str());
-	if (!found) {
+void World::register_reflected_components() {
+	for (const StaticString& name : ClassDB::get_class_names()) {
+		const ClassInfo* info = ClassDB::get_class_info(name);
+		if (info && can_be_component(*info)) {
+			register_component(*info);
+		}
+	}
+}
+
+flecs::entity World::get_component(StaticString class_name) const {
+	const ClassInfo* info = ClassDB::get_class_info(class_name);
+	if (!info || info->cpp_name.str().empty()) {
 		return {};
 	}
-	// A tag registered from reflection has no EcsComponent, but carries its ClassInfo.
-	const bool is_component =
-			ecs_has_id(c_ptr(), found, ecs_id(EcsComponent)) || flecs::entity(c_ptr(), found).has<ReflectedComponent>();
-	return is_component ? flecs::entity(c_ptr(), found) : flecs::entity {};
+	const ecs_entity_t found = ecs_lookup_symbol(c_ptr(), get_symbol(*info).c_str(), false, false);
+	return found ? flecs::entity(c_ptr(), found) : flecs::entity {};
 }
 
 const ClassInfo* World::get_component_class_info(flecs::entity component) const {

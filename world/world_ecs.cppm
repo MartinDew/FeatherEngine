@@ -26,28 +26,17 @@ public:
 	inline World() : flecs::world() {}
 	inline World(const flecs::world& other) : flecs::world(other) {}
 
-	// Typed registration: flecs installs T's own hooks, and the component entity carries T's ClassInfo. Components
-	// live at the root whichever module registers them, so they are found by class name alone.
-	template <is_reflected T>
-	flecs::entity register_component() {
-		const flecs::entity_t scope = ecs_set_scope(c_ptr(), 0);
-		const flecs::entity component = this->component<T>(T::get_class_static().data());
-		ecs_set_scope(c_ptr(), scope);
-		if (const ClassInfo* info = ClassDB::get_class_info<T>()) {
-			_link_class_info(component.id(), *info);
-		}
-		return component;
-	}
-
-	// Registration from reflection alone, idempotent by name. Its hooks forward to the ClassInfo's lifecycle, and a
-	// later register_component<T>() adopts the entity; a bare component<T>() does not, as it looks up its C++ name.
-	// Null for classes that cannot live in a column.
+	// Registers a value type from its ClassInfo, idempotent. The entity carries the flecs symbol of the C++ type, so
+	// typed use (set<T>, queries) resolves to it in any binary, before or after this call. Null for a class that
+	// cannot live in a column.
 	flecs::entity register_component(const ClassInfo& info);
 	// Looks the class up in ClassDB; null when unknown.
 	flecs::entity register_component(StaticString class_name);
+	// Every value type ClassDB knows.
+	void register_reflected_components();
 
-	// A component registered at the root under `name`, or null.
-	[[nodiscard]] flecs::entity get_component(StaticString name) const;
+	// The component for a ClassDB class, found by its C++ type's symbol, or null.
+	[[nodiscard]] flecs::entity get_component(StaticString class_name) const;
 	// Null for components registered without reflection.
 	[[nodiscard]] const ClassInfo* get_component_class_info(flecs::entity component) const;
 };

@@ -20,12 +20,27 @@ WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_t
 
 WorldSim::~WorldSim() {
 	ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _subclass_delegate_id);
+	ClassDB::unregister_class_delegate(_class_delegate_id);
 }
 
 void WorldSim::init() {
-	// Every reflected Component registers before any EcsModule imports
+	// Components are matched to typed flecs use by the compiler's name for the type, which ClassInfo derives the way
+	// flecs does. A compiler or flecs update that changes either spelling fails here rather than duplicating components.
+	fassert(
+			ClassDB::get_class_info<Scene>()->cpp_name.str() == std::string_view(flecs::_::type_name<Scene>()),
+			std::format(
+					"ClassInfo names Scene '{}' but flecs names it '{}'",
+					ClassDB::get_class_info<Scene>()->cpp_name.str(),
+					flecs::_::type_name<Scene>()
+			)
+	);
+
+	// Every value type is a component, registered before any EcsModule imports and uses them by type.
 	_world.component<ReflectedComponent>("ReflectedComponent");
-	register_core_components(_world);
+	_world.register_reflected_components();
+	_class_delegate_id = ClassDB::on_class_registered([this](std::string_view class_name) {
+		_world.register_component(StaticString(class_name));
+	});
 
 	// Not "Scene": that name already resolves to the Scene component's entity.
 	_scene_prefab = _world.prefab("ScenePrefab");
