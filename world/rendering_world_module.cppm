@@ -23,13 +23,13 @@ import feather.rendering;
 export namespace feather {
 
 struct FEATHER_WORLD_API MeshInstance {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	std::shared_ptr<Mesh> mesh;
 };
 
 struct FEATHER_WORLD_API MaterialInstance {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	std::shared_ptr<Material> material; // todo: multiple materials
 };

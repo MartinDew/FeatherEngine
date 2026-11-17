@@ -8,7 +8,6 @@ export import :ecs_defs;
 export import :world_ecs;
 export import :ecs_module;
 export import :math_module;
-export import :register_core_features;
 export import :rendering_world_module;
 export import :simulation;
 export import :world_sim;

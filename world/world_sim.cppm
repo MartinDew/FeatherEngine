@@ -31,6 +31,7 @@ class FEATHER_WORLD_API WorldSim final : public Simulation {
 	std::vector<Entity> _scenes;
 
 	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
+	ClassDB::subclass_delegate_t::id_t _class_delegate_id = -1;
 
 	// In world_sim.h, private section:
 	bool _is_in_scene(flecs::entity e, Entity scene) const;
