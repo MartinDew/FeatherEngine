@@ -12,7 +12,7 @@ end
 -- Forced shared regardless of static_deps on windows/mingw (no -rdynamic there) and with shared
 -- modules: a static flecs would duplicate ecs_os_api per binary.
 local FEATHER_FORCE_SHARED_DEPS = is_plat("windows", "mingw") or is_config("module_kind", "shared")
-add_requires("flecs 4.1.5", {
+add_requires("flecs 4.2.0", {
     system = false,
     alias  = "flecs",
     configs = {shared = FEATHER_FORCE_SHARED_DEPS or not has_config("static_deps")},
