@@ -40,11 +40,13 @@ class EcsModuleModifier(Modifier):
 class ComponentModifier(Modifier):
     """FSTRUCT(Component) (or FCLASS(novtable, Component)) marks a value type
     as a Flecs component. Doesn't touch the class body or its FType at
-    all -- world.component<T>("T") needs a live flecs::world&, which neither
-    the per-class .gen.h macro nor ClassDB registration ever has access to.
-    Instead, registration is aggregated per source directory into one
-    register_<dir>_components(world) via emit_dir(), which the engine calls
-    once it actually has a world (see register_core_ecs_features)."""
+    all: registering a component needs a live world, which neither the
+    per-class .gen.h macro nor ClassDB registration ever has. Instead,
+    registration is aggregated per source directory into one
+    register_<dir>_components(reg) via emit_dir(). It hands each component
+    type to reg as reg.template operator()<T>(), so directories below world
+    declare components without naming flecs; the engine passes a callback
+    that registers them once it has a world (see register_core_components)."""
     name = "Component"
     targets = frozenset({"class"})
     value_type = True
@@ -52,9 +54,8 @@ class ComponentModifier(Modifier):
     def emit_dir(self, classes, ctx):
         members = [c for c in classes if any(m.name == self.name for m, _ in c.resolved_modifiers)]
         func = f"register_{ctx.dir_name}_components"
-        # A template over the world type, so modules below world declare components without flecs.
-        decls = ["template <class TWorld>", f"void {func}([[maybe_unused]] TWorld& world) {{"]
-        decls += [f'\tworld.template component<{c.name}>("{c.name}");' for c in members]
+        decls = ["template <class TRegister>", f"void {func}([[maybe_unused]] TRegister&& reg) {{"]
+        decls += [f"\treg.template operator()<{c.name}>();" for c in members]
         decls += ["}", ""]
         return DirEmission(header_decls=decls)
 
