@@ -2,12 +2,6 @@ module;
 
 #include <rtm/impl/compiler_utils.h>
 
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "vector2.gen.h"
-#endif
-
 export module feather.math:vector2;
 
 import rtm;
@@ -20,10 +14,8 @@ export namespace feather {
 // A 2-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector2f {
-	FSTRUCT();
-
-	[[get, set]] float x = 0.0f;
-	[[get, set]] float y = 0.0f;
+	float x = 0.0f;
+	float y = 0.0f;
 
 	constexpr Vector2f() = default;
 	constexpr Vector2f(float x, float y) : x(x), y(y) {}
@@ -111,10 +103,8 @@ RTM_FORCE_INLINE Vector2f operator*(float s, const Vector2f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector2d {
-	FSTRUCT();
-
-	[[get, set]] double x = 0.0;
-	[[get, set]] double y = 0.0;
+	double x = 0.0;
+	double y = 0.0;
 
 	constexpr Vector2d() = default;
 	constexpr Vector2d(double x, double y) : x(x), y(y) {}

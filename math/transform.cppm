@@ -11,9 +11,9 @@ struct FEATHER_MATH_API Transform {
 	// up = Y
 	// right = X
 	// forward = -Z
-	[[get, set]] Vector3 position = Vector3::zero; // X, Y, Z
-	[[get, set]] Quaternion rotation = Quaternion::identity; // Quaternion
-	[[get, set]] Vector3 scale = Vector3::one; // X, Y, Z
+	Vector3 position = Vector3::zero; // X, Y, Z
+	Quaternion rotation = Quaternion::identity; // Quaternion
+	Vector3 scale = Vector3::one; // X, Y, Z
 
 	Transform() = default;
 	explicit Transform(const Matrix& transformationMat);

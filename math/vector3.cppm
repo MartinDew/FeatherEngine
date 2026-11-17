@@ -2,12 +2,6 @@ module;
 
 #include <rtm/impl/compiler_utils.h>
 
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "vector3.gen.h"
-#endif
-
 export module feather.math:vector3;
 
 import rtm;
@@ -20,11 +14,9 @@ export namespace feather {
 // A 3-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector3f {
-	FSTRUCT();
-
-	[[get, set]] float x = 0.0f;
-	[[get, set]] float y = 0.0f;
-	[[get, set]] float z = 0.0f;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
 
 	constexpr Vector3f() = default;
 	constexpr Vector3f(float x, float y, float z) : x(x), y(y), z(z) {}
@@ -129,11 +121,9 @@ RTM_FORCE_INLINE Vector3f operator*(float s, const Vector3f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector3d {
-	FSTRUCT();
-
-	[[get, set]] double x = 0.0;
-	[[get, set]] double y = 0.0;
-	[[get, set]] double z = 0.0;
+	double x = 0.0;
+	double y = 0.0;
+	double z = 0.0;
 
 	constexpr Vector3d() = default;
 	constexpr Vector3d(double x, double y, double z) : x(x), y(y), z(z) {}

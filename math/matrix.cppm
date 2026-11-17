@@ -2,12 +2,6 @@ module;
 
 #include <rtm/impl/compiler_utils.h>
 
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "matrix.gen.h"
-#endif
-
 export module feather.math:matrix;
 
 import rtm;
@@ -22,8 +16,6 @@ export namespace feather {
 // A 4x4 transformation matrix stored as four rows, for row vectors (`v * M`): rows 0-2 are the
 // basis axes and row 3 the translation, the layout RTM and the GPU uploads both use.
 struct Matrix4x4f {
-	FSTRUCT();
-
 	Vector4f x_axis { 1.0f, 0.0f, 0.0f, 0.0f };
 	Vector4f y_axis { 0.0f, 1.0f, 0.0f, 0.0f };
 	Vector4f z_axis { 0.0f, 0.0f, 1.0f, 0.0f };

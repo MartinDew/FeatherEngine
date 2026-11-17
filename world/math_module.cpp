@@ -5,12 +5,12 @@ namespace feather {
 MathWorldModule::MathWorldModule() = default;
 
 MathWorldModule::MathWorldModule(World world) {
-	// Math sits below world, so its types can't be marked FSTRUCT(Component) and are registered here instead.
-	// Modules whose systems use them import this module first. Transform is not reflected, so flecs alone describes it.
+	// Math types are Variant built-ins, not reflected classes, so flecs alone describes them. Modules whose systems
+	// use them import this module first.
 	world.component<Transform>("Transform");
-	world.register_component<Vector3>();
-	world.register_component<Matrix>();
-	world.register_component<Color>();
+	world.component<Vector3>("Vector3");
+	world.component<Matrix>("Matrix");
+	world.component<Color>("Color");
 }
 
 } //namespace feather

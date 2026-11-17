@@ -2,12 +2,6 @@ module;
 
 #include <rtm/impl/compiler_utils.h>
 
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "vector4.gen.h"
-#endif
-
 export module feather.math:vector4;
 
 import rtm;
@@ -20,12 +14,10 @@ export namespace feather {
 // A 4-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector4f {
-	FSTRUCT();
-
-	[[get, set]] float x = 0.0f;
-	[[get, set]] float y = 0.0f;
-	[[get, set]] float z = 0.0f;
-	[[get, set]] float w = 0.0f;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float w = 0.0f;
 
 	constexpr Vector4f() = default;
 	constexpr Vector4f(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
@@ -105,12 +97,10 @@ RTM_FORCE_INLINE Vector4f operator*(float s, const Vector4f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector4d {
-	FSTRUCT();
-
-	[[get, set]] double x = 0.0;
-	[[get, set]] double y = 0.0;
-	[[get, set]] double z = 0.0;
-	[[get, set]] double w = 0.0;
+	double x = 0.0;
+	double y = 0.0;
+	double z = 0.0;
+	double w = 0.0;
 
 	constexpr Vector4d() = default;
 	constexpr Vector4d(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
