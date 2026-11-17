@@ -38,6 +38,7 @@ private:
 	std::unordered_map<StaticString, ClassInfo> _class_infos;
 	std::unordered_map<StaticString, EnumInfo> _enum_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
+	subclass_delegate_t _class_registered_delegate;
 
 	static void _fire_subclass_delegates(const ClassInfo& info);
 
@@ -131,6 +132,14 @@ public:
 
 	static void unregister_subclass_delegate(std::string_view base_class_name, Delegate<std::string_view>::id_t id);
 
+	// Fires with the class name after every registration, including classes from extensions loaded later.
+	static Delegate<std::string_view>::id_t on_class_registered(
+			const Delegate<std::string_view>::DelegateFuncType& callback
+	);
+	static void unregister_class_delegate(Delegate<std::string_view>::id_t id);
+
+	static std::vector<StaticString> get_class_names();
+
 	static std::vector<StaticString> get_children_names(StaticString object_name, bool exclusive = false);
 
 	static std::string get_children_names_string(StaticString object_name, bool exclusive = false);
@@ -161,9 +170,11 @@ void ClassDB::_register(ClassKind kind) {
 	ClassDB& instance = *get();
 	ClassInfo& info = instance._class_infos[Desc::name];
 	info.name = Desc::name;
+	info.cpp_name = compiler_type_name<T>();
 	info.parent = Desc::parent_name;
 	info.is_abstract = kind == ClassKind::Abstract;
 	info.is_singleton = kind == ClassKind::Singleton;
+	info.is_value_type = is_value_type;
 	info.size = sizeof(T);
 	info.alignment = alignof(T);
 	info.is_empty = std::is_empty_v<T>;
@@ -200,6 +211,7 @@ void ClassDB::_register(ClassKind kind) {
 	std::apply([&info](const auto&... desc) { (_add_method<T>(info, desc), ...); }, Desc::methods);
 
 	_fire_subclass_delegates(info);
+	instance._class_registered_delegate.execute(info.name.str());
 }
 
 template <class T, auto Getter, auto Setter>

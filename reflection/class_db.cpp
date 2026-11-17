@@ -23,6 +23,7 @@ void ClassDB::clear() {
 	_instance->_class_infos.clear();
 	_instance->_enum_infos.clear();
 	_instance->_subclass_delegates.clear();
+	_instance->_class_registered_delegate.clear();
 }
 
 // Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
@@ -132,6 +133,25 @@ void ClassDB::unregister_subclass_delegate(std::string_view base_class_name, Del
 	if (it != get()->_subclass_delegates.end()) {
 		it->second.remove(id);
 	}
+}
+
+Delegate<std::string_view>::id_t ClassDB::on_class_registered(
+		const Delegate<std::string_view>::DelegateFuncType& callback
+) {
+	return get()->_class_registered_delegate.subscribe(callback);
+}
+
+void ClassDB::unregister_class_delegate(Delegate<std::string_view>::id_t id) {
+	get()->_class_registered_delegate.remove(id);
+}
+
+std::vector<StaticString> ClassDB::get_class_names() {
+	std::vector<StaticString> names;
+	names.reserve(get()->_class_infos.size());
+	for (const auto& [name, info] : get()->_class_infos) {
+		names.push_back(name);
+	}
+	return names;
 }
 
 void ClassDB::_fire_subclass_delegates(const ClassInfo& info) {
