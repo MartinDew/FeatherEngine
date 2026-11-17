@@ -1,11 +1,3 @@
-module;
-
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "transform.gen.h"
-#endif
-
 export module feather.math:transform;
 
 import std;
@@ -15,8 +7,6 @@ import :math_defs;
 export namespace feather {
 
 struct FEATHER_MATH_API Transform {
-	FSTRUCT(Component);
-
 	// Feather uses right-handed coordinates
 	// up = Y
 	// right = X

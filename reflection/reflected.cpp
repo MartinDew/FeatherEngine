@@ -1,12 +1,15 @@
-module;
-
-#include <framework/reflection_macros.h>
-
 module feather.reflection;
+
+import std;
 
 namespace feather {
 
-void Reflected::_bind_members() {
+ObjectRef Reflected::_make_object_ref(void* ptr, Reflected* self, StaticString class_name) {
+	return ObjectRef(ptr, ClassDB::get_class_info(class_name), self);
 }
 
-} //namespace feather
+const ClassInfo* Reflected::get_class_info() {
+	return ClassDB::get_class_info(get_class_name());
+}
+
+} // namespace feather

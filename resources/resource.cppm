@@ -30,6 +30,9 @@ protected:
 	Resource() = default;
 
 public:
+	inline const Path& get_path() const { return _cached_path; }
+	inline void set_path(const Path& path) { _cached_path = path; }
+
 	// Resources may give specific ids
 	[[method]]
 	inline virtual RID get_rid() {

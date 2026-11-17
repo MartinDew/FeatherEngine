@@ -1,4 +1,4 @@
-module feather.reflection;
+module feather.math;
 
 import std;
 

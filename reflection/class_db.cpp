@@ -12,7 +12,7 @@ FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	_class_infos.insert(std::make_pair("Reflected", ClassInfo { .name = "Reflected"_ss, .parent = ""_ss }));
+	_register<Reflected>(ClassKind::Abstract);
 }
 
 ClassDB::~ClassDB() {
@@ -21,17 +21,59 @@ ClassDB::~ClassDB() {
 
 void ClassDB::clear() {
 	_instance->_class_infos.clear();
+	_instance->_enum_infos.clear();
 	_instance->_subclass_delegates.clear();
-	_instance->_current_info = nullptr;
 }
 
-Reflected* ClassDB::create_object_unsafe(std::string_view name) {
-	auto object_info_it = _instance->_class_infos.find(name);
-	if (object_info_it != _instance->_class_infos.end()) {
-		return object_info_it->second.object_create_func().as<Reflected*>().value();
+// Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
+static void* allocate_instance(const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		return ::operator new(info.size, std::align_val_t { info.alignment });
 	}
+	return ::operator new(info.size);
+}
 
-	return {};
+static void free_instance(void* ptr, const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
+	}
+	else {
+		::operator delete(ptr, info.size);
+	}
+}
+
+ObjectRef ClassDB::instantiate(StaticString class_name) {
+	const ClassInfo* info = get_class_info(class_name);
+	if (!info || !info->can_create()) {
+		return {};
+	}
+	void* ptr = allocate_instance(*info);
+	if (info->lifecycle.default_construct) {
+		try {
+			info->lifecycle.default_construct(ptr, 1);
+		} catch (...) {
+			free_instance(ptr, *info);
+			throw;
+		}
+	}
+	else {
+		// Trivially default-constructible: value-initialization zeroes it.
+		std::memset(ptr, 0, info->size);
+	}
+	ObjectRef object(ptr, info);
+	object._reflected = static_cast<Reflected*>(object.cast_to(get_class_info(Reflected::get_class_static())));
+	return object;
+}
+
+void ClassDB::destroy(ObjectRef object) {
+	if (!object) {
+		return;
+	}
+	const ClassInfo& info = *object.get_class_info();
+	if (info.lifecycle.destruct) {
+		info.lifecycle.destruct(object.get(), 1);
+	}
+	free_instance(object.get(), info);
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {
@@ -48,18 +90,23 @@ std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo&
 	return children;
 }
 
-ClassInfo* ClassDB::_get_class_info_internal(std::string_view name) {
+ClassInfo* ClassDB::_get_class_info_internal(StaticString name) {
 	if (auto it = get()->_class_infos.find(name); it != get()->_class_infos.end()) {
 		return &it->second;
 	};
 	return nullptr;
 }
 
-std::vector<StaticString> ClassDB::get_children_names(std::string_view object_name, bool exclusive) {
-	if (auto it = ClassDB::get()->_class_infos.find(object_name); it != ClassDB::get()->_class_infos.end()) {
-		return _get_children_names_internal(it->second, exclusive);
-	}
+const EnumInfo* ClassDB::get_enum(StaticString name) {
+	auto& infos = get()->_enum_infos;
+	auto it = infos.find(name);
+	return it == infos.end() ? nullptr : &it->second;
+}
 
+std::vector<StaticString> ClassDB::get_children_names(StaticString object_name, bool exclusive) {
+	if (const ClassInfo* info = _get_class_info_internal(object_name)) {
+		return _get_children_names_internal(*info, exclusive);
+	}
 	return {};
 }
 
@@ -87,39 +134,101 @@ void ClassDB::unregister_subclass_delegate(std::string_view base_class_name, Del
 	}
 }
 
-void ClassDB::_fire_subclass_delegates(std::string_view class_name) {
-	ClassInfo* ci = _get_class_info_internal(class_name);
-	while (ci && ci->parent != ""_ss) {
-		auto it = get()->_subclass_delegates.find(ci->parent);
+void ClassDB::_fire_subclass_delegates(const ClassInfo& info) {
+	for (const ClassInfo* parent = info.parent_info; parent; parent = parent->parent_info) {
+		auto it = get()->_subclass_delegates.find(parent->name);
 		if (it != get()->_subclass_delegates.end()) {
-			it->second.execute(class_name);
+			it->second.execute(info.name);
 		}
-		ci = _get_class_info_internal(ci->parent);
 	}
 }
 
 bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
-	ClassInfo* ci = _get_class_info_internal(object_name);
-	while (ci && ci->parent != ""_ss) {
-		if (ci->parent == parent_name) {
+	const ClassInfo* info = _get_class_info_internal(object_name);
+	for (const ClassInfo* parent = info ? info->parent_info : nullptr; parent; parent = parent->parent_info) {
+		if (parent->name == parent_name) {
 			return true;
 		}
-		ci = _get_class_info_internal(ci->parent);
 	}
 	return false;
 }
 
+#ifdef BETA
+// TODO consider adding code directly in variant
+static std::string_view variant_type_name(VariantType type) {
+	static constexpr std::array<std::string_view, 18> names { "NIL",	 "BOOL",	  "INT",	"FLOAT",   "VECTOR3",
+															  "VECTOR2", "VERTEX",	  "COLOR",	"VECTOR4", "QUATERNION",
+															  "MATRIX",	 "TRANSFORM", "RID",	"STRING",  "ARRAY",
+															  "PATH",	 "OBJECT",	  "INVALID" };
+	size_t index = std::to_underlying(type);
+	return index < names.size() ? names[index] : "UNKNOWN";
+}
+
+static std::string_view access_name(AccessLevel access) {
+	switch (access) {
+	case AccessLevel::Public:
+		return "public";
+	case AccessLevel::Protected:
+		return "protected";
+	case AccessLevel::Private:
+		return "private";
+	}
+	return "unknown";
+}
+#endif
+
 void ClassDB::print_db() {
 #ifdef BETA
-	std::println("Printing database");
+	std::println("Class database: {} classes, {} enums", _class_infos.size(), _enum_infos.size());
 
+	std::vector<const ClassInfo*> classes;
 	for (auto& [name, info] : _class_infos) {
-		std::println("Class: {} : ", info.name.str());
-		for (auto& prop : info.properties) {
-			std::println("\tProperty: {} Type: {}\n", prop.name.str(), std::to_underlying<VariantType>(prop.type));
+		classes.push_back(&info);
+	}
+	std::ranges::sort(classes, {}, [](const ClassInfo* info) { return info->name.str(); });
+
+	for (const ClassInfo* class_info : classes) {
+		const ClassInfo& info = *class_info;
+		const char* kind = info.is_singleton ? "singleton" : info.is_abstract ? "abstract" : "concrete";
+		std::println("\nClass: {} [{}]", info.name.str(), kind);
+		std::println("\tParent: {}", info.parent_info ? info.parent_info->name.str() : "(none)");
+		std::println("\tSize: {} Alignment: {} Creatable: {}", info.size, info.alignment, info.can_create());
+		std::println("\tChildren: {}", get_children_names_string(info.name, false));
+
+		std::println("\tProperties ({}):", info.properties.size());
+		for (const auto& prop : info.properties) {
+			std::print(
+					"\t\t{}: {} (get: {}, set: {})",
+					prop.name.str(),
+					variant_type_name(prop.type),
+					prop.getter ? access_name(prop.getter_access) : "none",
+					prop.setter ? access_name(prop.setter_access) : "none"
+			);
+			if (prop.enum_info) {
+				std::print(" enum {}", prop.enum_info->name.str());
+			}
+			std::println("");
 		}
 
-		std::println("Children : {}", get_children_names_string(name, false));
+		std::println("\tMethods ({}):", info.methods.size());
+		for (const auto& method : info.methods) {
+			std::println(
+					"\t\t{}{} ({})", method.is_static ? "static " : "", method.name.str(), access_name(method.access)
+			);
+		}
+	}
+
+	std::vector<const EnumInfo*> enums;
+	for (auto& [name, info] : _enum_infos) {
+		enums.push_back(&info);
+	}
+	std::ranges::sort(enums, {}, [](const EnumInfo* info) { return info->name.str(); });
+
+	for (const EnumInfo* enum_info : enums) {
+		std::println("\nEnum: {} ({} bytes)", enum_info->name.str(), enum_info->underlying_size);
+		for (const Enumerator& value : enum_info->values) {
+			std::println("\t{} = {}", value.name.str(), value.value);
+		}
 	}
 #endif
 }
@@ -129,7 +238,8 @@ Callable ClassDB::get_static_method(const StaticString& class_name, std::string_
 	if (!ci)
 		return {};
 	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
-		return m.name == func_name;
+		// An instance method's callable expects the object first, which a static call can't supply.
+		return m.is_static && m.name == func_name;
 	});
 
 	if (it != ci->methods.end()) {

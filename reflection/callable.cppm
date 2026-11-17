@@ -40,9 +40,9 @@ public:
 	Callable& operator=(const Callable&) = default;
 	Callable& operator=(Callable&&) = default;
 
-	Variant call(std::span<Variant> params);
+	Variant call(std::span<Variant> params) const;
 
-	Variant call(auto&&... args) {
+	Variant call(auto&&... args) const {
 		if constexpr (sizeof...(args) == 0) {
 			return call(std::span<Variant>());
 		}

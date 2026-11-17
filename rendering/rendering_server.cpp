@@ -61,7 +61,7 @@ void RenderingServer::init() {
 	if (renderer_name.empty())
 		renderer_name = _get_default_renderer_name();
 
-	_renderer = ClassDB::create_object<Renderer>(renderer_name);
+	_renderer = ClassDB::create_object<Renderer>(StaticString(renderer_name));
 	fassert(_renderer.get(), std::format("Failed to create renderer of type {}", renderer_name));
 
 	DisplayServer::get().get_main_window().register_notification(Notification::WINDOW_RESIZED, [&flag = _needs_resize] {

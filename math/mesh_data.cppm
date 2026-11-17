@@ -1,14 +1,14 @@
-export module feather.reflection:mesh_data;
+export module feather.math:mesh_data;
 
 import std.compat;
 import feather.framework;
-import feather.math;
+import :math_defs;
 
 export namespace feather {
 
 using Index = uint32_t;
 
-class FEATHER_REFLECTION_API MeshData {
+class FEATHER_MATH_API MeshData {
 public:
 	MeshData() = default;
 	MeshData(std::vector<Vertex> vertices, std::vector<Index> indices);

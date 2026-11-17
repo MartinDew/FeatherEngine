@@ -5,8 +5,9 @@ namespace feather {
 MathWorldModule::MathWorldModule() = default;
 
 MathWorldModule::MathWorldModule(World& world) {
-	// Transform is registered up front as a Component (register_core_features.cpp); these are
-	// reflected value types rather than components, so they are declared here by C++ type.
+	// Math sits below world, so its types can't be marked FSTRUCT(Component); they are declared here by C++ type.
+	// Modules whose systems use them import this module first.
+	world.component<Transform>("Transform");
 	world.component<Vector3>("Vector3");
 	world.component<Matrix>("Matrix");
 	world.component<Color>("Color");

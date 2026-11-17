@@ -4,22 +4,20 @@ import std;
 
 export namespace feather {
 
-// Forward-declared, not included: reflected.h includes this header before
-// Reflected is defined, so including it back here would be circular.
-// is_base_of_v below is a dependent expression, only resolved once a concrete
-// T is checked -- by then reflected.h is fully included wherever it matters.
 class Reflected;
 
+// T carries its own reflection (FCLASS/FSTRUCT), not just a reflected base's: _feather_self is redeclared by every
+// reflected class, so a plain subclass of one doesn't match.
 template <class T>
-concept is_reflected_class_type = requires { T::get_class_static(); };
+concept is_reflected =
+		requires { typename T::_feather_self; } && std::is_same_v<typename T::_feather_self, std::remove_cv_t<T>>;
 
-// Value type (FSTRUCT / FCLASS(novtable)): reflected but not derived from
-// Reflected, so no vtable pointer -- see ClassDB::register_class.
+// Value type (FSTRUCT / FCLASS(novtable)): reflected but not derived from Reflected, so no vtable pointer.
 template <class T>
-concept is_reflected_value_type = is_reflected_class_type<T> && !std::is_base_of_v<Reflected, T>;
+concept is_reflected_value_type = is_reflected<T> && !std::is_base_of_v<Reflected, T>;
 
-template <class T, is_reflected_class_type T2>
-	requires is_reflected_class_type<std::remove_const_t<T>>
+template <class T, is_reflected T2>
+	requires is_reflected<std::remove_const_t<T>>
 T* object_cast(T2* object) {
 	if constexpr (std::is_const_v<T2>)
 		static_assert(std::is_const_v<T>, "Return type must be const for const object casts");
@@ -33,7 +31,7 @@ T* object_cast(T2* object) {
 	return nullptr;
 }
 
-template <class T, is_reflected_class_type T2>
+template <class T, is_reflected T2>
 T* object_cast(T2& object) {
 	return object_cast<T>(&object);
 }

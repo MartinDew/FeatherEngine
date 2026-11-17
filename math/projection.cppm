@@ -1,3 +1,7 @@
+module;
+
+#include <framework/reflection_macros.h>
+
 export module feather.math:projection;
 
 import std.compat;
@@ -5,6 +9,7 @@ import :math_defs;
 
 export namespace feather {
 
+FENUM()
 enum class ProjectionType : uint8_t {
 	Perspective,
 	Orthographic

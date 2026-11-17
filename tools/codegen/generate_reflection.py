@@ -5,9 +5,11 @@ generate_reflection.py — FeatherEngine reflection code generator.
 For every reflected class (uses FCLASS(...)/FSTRUCT(...)) this tool recovers
 the name/parent from the C++ declaration, extracts [[attribute]]-annotated
 members and methods, emits a per-header "<name>.gen.h" (Unreal-style GEN_BODY
-macro: reflection boilerplate + generated accessors + _bind_members() decl),
-and emits per-subfolder "register_<sub>_types.gen.{h,cpp}" defining every
-_bind_members() body plus the register_<sub>_types() entry point.
+macro: reflection boilerplate), and emits per-subfolder
+"register_<sub>_types.gen.{cppm,cpp}": the partition holds each class's
+FType<T> specialization (its compile-time property/method description, which
+ClassDB::register_class<T> turns into a ClassInfo), the .cpp the
+register_<sub>_types() entry point.
 
 Parsing is purely syntactic (stdlib `re`, no compiler) and opt-in: a
 member/method is only ever inspected once annotated, so the tool never
@@ -16,15 +18,15 @@ degrade an unresolved type to `int` the way the old clang-AST backend could
 (see REFLECTION_CODEGEN_HANDOFF.md). Not a general C++ parser: assumes
 well-formed, not-too-exotic C++ (no raw string literals, no digraphs).
 
-[[get(...)]]/[[set(...)]] accept an access keyword and/or `ref` (e.g.
-[[get(protected, ref)]]) for a const-reference accessor instead of by-value;
-see _plan_accessor() for why only const-ref (not mutable T&) is supported.
+[[get(...)]]/[[set(...)]] accept an access keyword (e.g. [[get(protected)]])
+or a manual accessor name; otherwise the property reads/writes the field
+directly -- see _plan_accessor().
 
 A reflected member may sit inside arbitrarily nested #if/#ifdef/.../#endif;
 condition text is only ever copied, never evaluated. See
 iter_conditioned_chunks() for the #if-stack tracking and
-generate_gen_header()/_bind_members_body() for how that same condition is
-reproduced around generated code, so one .gen.h covers every build config.
+generate_gen_header()/_tuple_lines() for how that same condition is
+reproduced around generated code, so one output covers every build config.
 
 Writes go through write_if_changed(), so unchanged files keep their mtime.
 """
@@ -52,6 +54,11 @@ ACCESS_ENUM = {"public": "AccessLevel::Public", "protected": "AccessLevel::Prote
 # ends avoids matching a longer identifier like FCLASS_ANYTHING(.
 _FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(([^)]*)\)")
 _ATTR_RE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
+
+# `FENUM()` then `enum [class|struct] Name [: underlying] {`; the marker must directly precede `enum`.
+_FENUM_RE = re.compile(
+    r"\bFENUM\b\s*\(\s*\)\s*enum\s+(?:(?:class|struct)\s+)?(?:FEATHER_\w+_API\s+)?(\w+)\s*(?::[^{;]*)?\{"
+)
 
 # `class Name ... {` / `struct Name ... {`, optionally a module export macro
 # (FEATHER_<MODULE>_API, defined by the build), optionally `final`,
@@ -82,14 +89,15 @@ class PropertyPlan:
     prop_name: str          # reflected name (leading underscore stripped)
     member_name: str        # C++ member, e.g. "_foo"
     type_spelling: str      # C++ type, e.g. "float"
-    # Getter: (kind, value). kind in {"none","generate","manual"}.
+    # Getter: (kind, value). kind in {"none","field","manual"}.
     getter_kind: str = "none"
-    getter_access: str = "public"      # accessibility of the getter
-    getter_method: str = ""            # method name (generated or manual)
+    getter_access: str = "public"      # reflected accessibility of the getter
+    getter_method: str = ""            # the member itself ("field") or the manual accessor's name
     setter_kind: str = "none"
     setter_access: str = "public"
     setter_method: str = ""
     condition: str = None   # verbatim (flattened) #if expression guarding this member, if any
+    member_access: str = "public"      # C++ access of the member itself
 
 
 @dataclass
@@ -124,8 +132,10 @@ class ClassDesc:
     # so explicitly. See generate_gen_header() for what is left out.
     is_value_type: bool = False
     properties: list = dc_field(default_factory=list)     # list[PropertyPlan]
-    gen_getters: list = dc_field(default_factory=list)    # (access, code, condition) inline accessor defs
     methods: list = dc_field(default_factory=list)        # list[MethodPlan]
+    # C++ access of every member function declared in the body, reflected or not (all overloads of a name);
+    # lets external binds check a manual accessor's access.
+    method_access: dict = dc_field(default_factory=dict)  # name -> set[str]
 
 
 # --------------------------------------------------------------------------- #
@@ -684,7 +694,8 @@ def _handle_field(cls: ClassDesc, info: dict, access: str, condition: str,
     # [[name(foo)]] overrides the reflected property name (default: member without
     # its leading underscore).
     prop = attrs.get("name") or _prop_name(member)
-    plan = PropertyPlan(prop_name=prop, member_name=member, type_spelling=type_spelling, condition=condition)
+    plan = PropertyPlan(prop_name=prop, member_name=member, type_spelling=type_spelling, condition=condition,
+                        member_access=access)
 
     if not present_get and not present_set:
         present_get = present_set = True
@@ -707,20 +718,9 @@ _REF_KEYWORD = "ref"
 
 def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, condition: str, cls: ClassDesc,
                     header: Path, body: str, offset: int, fclass_line: int):
-    """Resolve one accessor per the property rules and, when generating, record
-    the inline accessor code. arg is the raw text inside [[get(...)]]/
-    [[set(...)]] -- e.g. "public", "ref", "public, ref", or a manual accessor
-    name -- or None for a bare [[get]]/[[set]].
-
-    `ref` makes a generated accessor pass/return by const-reference instead of
-    by-value (getter returns `const T&`, setter takes `const T&` and
-    copy-assigns rather than std::move()s). Only const-ref is supported, not
-    mutable T&: the getter must be `const` (bind_property_get(_if_bindable)
-    requires it, so it could never actually return a mutable reference), and
-    the setter call site in class_db.inl passes `std::move(result.value())`,
-    which won't bind to a non-const T& parameter. Both are real compile
-    errors, so `ref` unconditionally means const-ref."""
-    prop, member, ty = plan.prop_name, plan.member_name, plan.type_spelling
+    """Resolve one side of a property from the text inside [[get(...)]]/[[set(...)]] (None when bare).
+    Without a manual accessor name the property binds the field itself."""
+    member = plan.member_name
 
     def err(msg: str):
         return ParseError(f"{header}: class {cls.name} field '{member}' near line "
@@ -740,28 +740,14 @@ def _plan_accessor(plan: PropertyPlan, which: str, arg, member_access: str, cond
             raise err(f"[[{which}(...)]] takes at most one manual accessor name, got {manual_toks!r}")
         if access_tok or is_ref:
             raise err(f"[[{which}({arg})]]: can't combine a manual accessor name ({manual_toks[0]!r}) "
-                      f"with an access keyword or 'ref' -- those only apply to a generated accessor")
-        # Manual: bind an existing method, generate nothing.
+                      f"with an access keyword or 'ref'")
         method = manual_toks[0]
         access = member_access  # reflection access follows the member by default
         kind = "manual"
     else:
         access = access_tok or member_access
-        method = f"{which}_{prop}"
-        kind = "generate"
-        # Explicitly inline: in a module interface an in-class definition isn't, and a
-        # dllimport class may only define inline functions.
-        if which == "get":
-            if is_ref:
-                code = f"\tinline const {ty}& {method}() const {{ return {member}; }}"
-            else:
-                code = f"\tinline {ty} {method}() const {{ return {member}; }}"
-        else:
-            if is_ref:
-                code = f"\tinline void {method}(const {ty}& value) {{ {member} = value; }}"
-            else:
-                code = f"\tinline void {method}({ty} value) {{ {member} = std::move(value); }}"
-        cls.gen_getters.append((access, code, condition))
+        method = member
+        kind = "field"
 
     if which == "get":
         plan.getter_kind, plan.getter_access, plan.getter_method = kind, access, method
@@ -773,22 +759,13 @@ def _handle_method(cls: ClassDesc, info: dict, access: str, condition: str, offs
                     method_paths: dict, header: Path, body: str, fclass_line: int):
     name = info["name"]
     attrs = info["attrs"]
+    cls.method_access.setdefault(name, set()).add(access)
     if "ignore" in attrs:
         return
     # Opt-in: only [[method]] (or [[method(name)]] to rebind) binds a method.
     forced = "method" in attrs
     if not forced:
         return
-    # bind_method dispatches through object_cast<T>(Reflected*), which a
-    # vtable-free value type has no way to support; a static method is fine.
-    if cls.is_value_type and not info["is_static"]:
-        raise ParseError(
-            f"{header}: class {cls.name} method '{name}' near line "
-            f"{_line_of(body, offset) + fclass_line - 1}: [[method]] on a non-static method of a "
-            f"value type (FSTRUCT / FCLASS(novtable)) can't be bound -- ClassDB::bind_method "
-            f"dispatches through object_cast<T>(Reflected*), which a vtable-free type has no way "
-            f"to support. Make the method static, or drop 'novtable'/use FCLASS instead."
-        )
     # Skip overloaded names (&T::name is ambiguous) unless every other
     # same-named occurrence is provably in a mutually exclusive #if branch of
     # the same chain (the "#if X ... #else ... #endif" duplicate-impl idiom).
@@ -875,11 +852,18 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         body = []
         if not external_bind:
             body.append("friend class ClassDB;")
+            # FType<T> is specialized outside the class and may name its private members.
+            body.append("template <class> friend struct ::feather::FType;")
         body.append("struct _class_type {};")
         body.extend(pre_lines)
         body.append("public:")
         body.append(f'\tconstexpr static StaticString get_class_static() {{ return "{c.name}"_ss; }}')
         body.append(f'\tconstexpr static StaticString get_parent_name() {{ return "{c.parent}"_ss; }}')
+        # Redeclared by every reflected class, so a plain subclass never passes for its parent (is_reflected).
+        body.append(f"\tusing _feather_self = {c.name};")
+        # The MSVC ABI fixes a class's member-pointer model when one is first formed; clang crashes when that
+        # first happens in an importing partition (the FType descriptors), so form one in the defining unit.
+        body.append("\tstatic consteval bool _feather_member_pointer_model() { return sizeof(int _feather_self::*) > 0; }")
         # A value type gets no virtual member at all -- that's the point: no
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
@@ -887,6 +871,8 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
+            body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
+                        "{ return _make_object_ref(this, this, get_class_static()); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -894,26 +880,7 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         # to alias -- `using Super = ;` would be a syntax error.
         if c.parent:
             body.append(f"\tusing Super = {c.parent};")
-        if not external_bind:
-            body.append("\tstatic void _bind_members();")
         body.extend(protected_lines)
-
-        # Generated accessors, grouped by access level; within a group,
-        # unconditional lines are emitted directly (unchanged from before),
-        # and conditional lines are grouped by their (already-flattened)
-        # condition text into one hoisted helper macro per unique condition.
-        for acc in ("public", "protected", "private"):
-            group = [(code, cond) for (a, code, cond) in c.gen_getters if a == acc]
-            if not group:
-                continue
-            body.append(f"{acc}:")
-            body.extend(code for code, cond in group if cond is None)
-            by_condition: dict = {}
-            for code, cond in group:
-                if cond is not None:
-                    by_condition.setdefault(cond, []).append(code)
-            for cond, code_lines in by_condition.items():
-                body.append(hoist(macro, acc, code_lines, cond))
         if private_lines:
             body.append("private:")
             body.extend(private_lines)
@@ -932,47 +899,82 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
     return "\n".join(lines) + "\n"
 
 
-def _bind_members_body(c: ClassDesc, dir_name: str, external: bool = False) -> list:
-    # Unlike the .gen.h macro, this is a real function body -- #if/#endif can
-    # wrap a conditional binding call directly, no hoisted-helper-macro
-    # indirection needed.
-    def emit(out: list, condition: str, stmt: str):
-        if condition:
-            out.append(f"#if {condition}")
-            out.append(stmt)
-            out.append("#endif")
-        else:
-            out.append(stmt)
+def _property_entry(c: ClassDesc, p: PropertyPlan) -> str:
+    """A PropertyDesc for one property: each side is the field itself, a manual accessor, or nullptr."""
+    def side(kind: str, method: str) -> str:
+        return "nullptr" if kind == "none" else f"&{c.name}::{method}"
 
-    # An external type is bound through a ClassDB::bind_members<T> specialization instead.
-    out = [f"template <> void ClassDB::bind_members<{c.name}>() {{" if external else f"void {c.name}::_bind_members() {{"]
-    for p in c.properties:
-        ga = ACCESS_ENUM[p.getter_access]
-        sa = ACCESS_ENUM[p.setter_access]
-        has_get = p.getter_kind != "none"
-        has_set = p.setter_kind != "none"
-        if has_get and has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_accessors_if_bindable("
-                 f"&{c.name}::{p.getter_method}, &{c.name}::{p.setter_method}, "
-                 f'"{p.prop_name}", {ga}, {sa});')
-        elif has_get:
-            emit(out, p.condition, f"\tClassDB::bind_property_get_if_bindable("
-                 f'&{c.name}::{p.getter_method}, "{p.prop_name}", {ga});')
-        elif has_set:
-            emit(out, p.condition, f"\tClassDB::bind_property_set_if_bindable("
-                 f'&{c.name}::{p.setter_method}, "{p.prop_name}", {sa});')
-    for m in c.methods:
-        acc = ACCESS_ENUM[m.access]
-        if m.is_static:
-            emit(out, m.condition, f'\tClassDB::bind_static_method(&{c.name}::{m.name}, "{m.bind_name}", {acc});')
-        else:
-            bind = "bind_method" if m.strict else "bind_method_if_bindable"
-            emit(out, m.condition, f'\tClassDB::{bind}(&{c.name}::{m.name}, "{m.bind_name}", {acc});')
+    return (f"PropertyDesc<{side(p.getter_kind, p.getter_method)}, {side(p.setter_kind, p.setter_method)}> "
+            f'{{ "{p.prop_name}"_ss, {ACCESS_ENUM[p.getter_access]}, {ACCESS_ENUM[p.setter_access]} }}')
+
+
+def _method_entry(c: ClassDesc, m: MethodPlan) -> str:
+    strict = "" if m.strict else ", false"
+    return f'MethodDesc<&{c.name}::{m.name}{strict}> {{ "{m.bind_name}"_ss, {ACCESS_ENUM[m.access]} }}'
+
+
+def _tuple_lines(member: str, entries: list) -> list:
+    """`static constexpr auto <member> = ...;` over (entry, condition) pairs. Each #if-guarded group is
+    its own tuple in a tuple_cat, so a disabled group drops out."""
+    plain = [e for e, cond in entries if cond is None]
+    by_condition: dict = {}
+    for e, cond in entries:
+        if cond is not None:
+            by_condition.setdefault(cond, []).append(e)
+
+    def tuple_of(items: list) -> str:
+        if not items:
+            return "std::tuple {}"
+        return "std::tuple {\n" + ",\n".join(f"\t\t{e}" for e in items) + "\n\t}"
+
+    if not by_condition:
+        return [f"\tstatic constexpr auto {member} = {tuple_of(plain)};"]
+    out = [f"\tstatic constexpr auto {member} = std::tuple_cat(", f"\t{tuple_of(plain)}"]
+    for cond, group in by_condition.items():
+        out += [f"#if {cond}", f"\t, {tuple_of(group)}", "#endif"]
+    out.append("\t);")
+    return out
+
+
+def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -> list:
+    """The FType<T> specialization ClassDB::register_class<T> builds T's ClassInfo from."""
+    if external:
+        # A type below reflection can't befriend FType, so its description may only name public members.
+        for p in c.properties:
+            sides = [(k, m) for k, m in ((p.getter_kind, p.getter_method), (p.setter_kind, p.setter_method))]
+            # A field side names the member itself; a manual side only names its accessor.
+            if any(k == "field" for k, _ in sides) and p.member_access != "public":
+                raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' binds "
+                                 f"{p.member_access} member '{p.member_name}', but {c.name} is described from "
+                                 f"the reflection module, which can only reach public members")
+            for kind, method in sides:
+                if kind != "manual":
+                    continue
+                # An accessor not declared in the body (e.g. inherited) is left to the compiler.
+                accesses = c.method_access.get(method, {"public"})
+                if accesses != {"public"}:
+                    raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' "
+                                     f"uses non-public accessor '{method}', but {c.name} is described from "
+                                     f"the reflection module, which can only reach public members")
+        for m in c.methods:
+            if m.access != "public":
+                raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: [[method]] '{m.name}' is "
+                                 f"{m.access}, but {c.name} is described from the reflection module, which can "
+                                 f"only reach public members")
+
+    method_entries = [(_method_entry(c, m), m.condition) for m in c.methods]
     ctx = EmitContext(dir_name=dir_name)
     for modifier, _arg in c.resolved_modifiers:
-        for stmt in modifier.bind_members_lines(c, ctx):
-            out.append(f"\t{stmt}")
-    out.append("}")
+        method_entries.extend((e, None) for e in modifier.method_entries(c, ctx))
+
+    out = ["template <>", f"struct FType<{c.name}> {{",
+           f"\tusing type = {c.name};",
+           f"\tusing parent = {c.parent or 'void'};",
+           f'\tstatic constexpr StaticString name = "{c.name}"_ss;',
+           f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;']
+    out += _tuple_lines("properties", [(_property_entry(c, p), p.condition) for p in c.properties])
+    out += _tuple_lines("methods", method_entries)
+    out += ["};", ""]
     return out
 
 
@@ -1017,7 +1019,8 @@ def _partition_of(header: Path):
 
 
 def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir_emissions: list,
-                          owner: str, external_bind: bool, bound_classes: list) -> str:
+                          owner: str, external_bind: bool, bound_classes: list,
+                          enums: list, bound_enums: list) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
     bound = topological_sort(bound_classes)
@@ -1033,6 +1036,12 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
         if rel not in seen:
             seen.add(rel)
             includes.append(rel)
+    for e in enums:
+        if e.header.suffix != ".cppm":
+            rel = _relative_include(e.header, include_base)
+            if rel not in seen:
+                seen.add(rel)
+                includes.append(rel)
     for c in ordered:
         for modifier, _arg in c.resolved_modifiers:
             for inc in modifier.register_cpp_includes(c, ctx):
@@ -1052,13 +1061,8 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
         lines.append(f'#include "{inc}"')
     lines += ["", f"module {owner};", "", "namespace feather {", ""]
 
-    for c in bound:
-        lines.extend(_bind_members_body(c, subfolder, external=True))
-        lines.append("")
     if not external_bind:
         for c in ordered:
-            lines.extend(_bind_members_body(c, subfolder))
-            lines.append("")
             for modifier, _arg in c.resolved_modifiers:
                 defs = modifier.register_cpp_definitions(c, ctx)
                 if defs:
@@ -1067,6 +1071,9 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
 
     registered = bound + ([] if external_bind else ordered)
     lines.append(f"void {func}() {{")
+    # Enums first, so a property of an enum type links to its EnumInfo.
+    for e in bound_enums + ([] if external_bind else enums):
+        lines.append(f"\tClassDB::register_enum<{e.name}>();")
     if registered:
         for c in registered:
             # A modifier may replace the default register_class
@@ -1082,7 +1089,7 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
                 stmts = [f"ClassDB::register_class<{c.name}>();"]
             for stmt in stmts:
                 lines.append(f"\t{stmt}")
-    else:
+    elif not (enums or bound_enums):
         lines.append("\t// No reflected classes registered by this module.")
     lines += ["}", ""]
 
@@ -1093,16 +1100,31 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
     return "\n".join(lines) + "\n"
 
 
-def generate_register_header(subfolder: str, classes: list, dir_emissions: list, owner: str) -> str:
+def generate_register_header(subfolder: str, classes: list, dir_emissions: list, owner: str,
+                             external_bind: bool, bound_classes: list, enums: list, bound_enums: list) -> str:
     func = f"register_{subfolder}_types"
+    # A module below reflection is described by the module that binds it (see --bind-dir).
+    described = ([] if external_bind else topological_sort(classes))
+    bound = topological_sort(bound_classes)
 
-    # Emitted declarations (e.g. component templates) name the module's own types.
+    # Emitted declarations (e.g. component templates, FType<T>) name the module's own types.
     imports, seen = [], set()
-    for c in classes:
+    for c in list(classes) + list(enums):
         part = _partition_of(c.header) if c.header.suffix == ".cppm" else None
         if part and part not in seen:
             seen.add(part)
             imports.append(f"import :{part};")
+    described_enums = [] if external_bind else enums
+    if described or bound or described_enums or bound_enums:
+        imports.append("import std;")
+        imports.append("import feather.framework;")
+        if owner == "feather.reflection":
+            imports.append("import :ftype;")
+            imports.append("import :enum_info;")
+        else:
+            imports.append("import feather.reflection;")
+        for module in sorted({_module_of(c.header) for c in list(bound) + list(bound_enums)}):
+            imports.append(f"import {module};")
 
     lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
     if imports:
@@ -1112,6 +1134,17 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
     for de in dir_emissions:
         lines.extend(de.header_decls)
     lines += ["} // namespace feather", ""]
+
+    # Explicit specializations can't be exported; they are reachable through this partition anyway.
+    if described or bound or described_enums or bound_enums:
+        lines += ["namespace feather {", ""]
+        for e in bound_enums + described_enums:
+            lines.extend(_fenum_specialization(e))
+        for c in bound:
+            lines.extend(_ftype_specialization(c, subfolder, external=True))
+        for c in described:
+            lines.extend(_ftype_specialization(c, subfolder))
+        lines += ["} // namespace feather", ""]
     return "\n".join(lines) + "\n"
 
 
@@ -1125,6 +1158,13 @@ def validate_hierarchy(classes: list):
     known = {c.name: c for c in classes}
     for c in classes:
         base = known.get(c.parent)
+        if base is not None and base.is_value_type:
+            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives
+            # from it.
+            raise ParseError(
+                f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
+                f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."
+            )
         if base is None or base.is_value_type == c.is_value_type:
             continue
         kind, base_kind = ("a value type", "not") if c.is_value_type else ("not a value type", "is")
@@ -1201,6 +1241,68 @@ def process_header(header: Path, project_root: Path, registry: Registry, dir_nam
     return classes
 
 
+class EnumDecl:
+    def __init__(self, name: str, header: Path, enumerators: list):
+        self.name = name
+        self.header = header
+        self.enumerators = enumerators
+
+
+def scan_enums(header: Path) -> list:
+    """Every FENUM() enum in a header. Only namespace-scope enums are supported, since the
+    generated FEnum<T> names the enum unqualified."""
+    raw = header.open(encoding="utf-8", errors="replace", newline="").read()
+    text = blank_comments_and_literals(raw)
+    if "FENUM" not in text:
+        return []
+    class_ranges = [(start, end) for _n, _p, _t, start, end, _l in find_class_bodies(text)]
+    enums = []
+    for m in _FENUM_RE.finditer(text):
+        if "#define" in text[text.rfind("\n", 0, m.start()) + 1:m.start()]:
+            continue
+        if any(start <= m.start() < end for start, end in class_ranges):
+            raise ParseError(f"{header}: FENUM enum '{m.group(1)}' is nested in a class; declare it at namespace scope")
+        depth, i = 1, m.end()
+        while i < len(text) and depth:
+            depth += {"{": 1, "}": -1}.get(text[i], 0)
+            i += 1
+        if depth:
+            raise ParseError(f"{header}: unterminated enum '{m.group(1)}'")
+        names = []
+        for item in _split_top_level(text[m.end():i - 1]):
+            item = _ATTR_RE.sub("", item).strip()
+            if item:
+                names.append(re.match(r"\w+", item).group(0))
+        enums.append(EnumDecl(m.group(1), header, names))
+    return enums
+
+
+def _scan_dir_enums(dir_path: Path) -> list:
+    enums = []
+    for header in find_headers(dir_path):
+        if ".gen." in header.name:
+            continue
+        try:
+            enums.extend(scan_enums(header))
+        except ParseError as exc:
+            print(f"[ERROR] {exc}", file=sys.stderr)
+            sys.exit(1)
+    return enums
+
+
+def _fenum_specialization(e: EnumDecl) -> list:
+    lines = [
+        "template <>",
+        f"struct FEnum<{e.name}> {{",
+        f'\tstatic constexpr StaticString name = "{e.name}"_ss;',
+        f"\tstatic constexpr std::array<Enumerator, {len(e.enumerators)}> values {{ {{",
+    ]
+    for n in e.enumerators:
+        lines.append(f'\t\t{{ "{n}"_ss, static_cast<int64_t>({e.name}::{n}) }},')
+    lines += ["\t} };", "};", ""]
+    return lines
+
+
 def find_headers(folder: Path):
     return sorted(folder.rglob("*.h")) + sorted(folder.rglob("*.hpp")) + sorted(folder.rglob("*.cppm"))
 
@@ -1259,6 +1361,8 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
     for bound_dir in bound_dirs:
         _, classes = _scan_dir(bound_dir, bound_dir.name, project_root, build_registry(bound_dir, extra_extensions))
         bound_classes.extend(classes)
+    enums = _scan_dir_enums(dir_path)
+    bound_enums = [e for bound_dir in bound_dirs for e in _scan_dir_enums(bound_dir)]
 
     try:
         validate_hierarchy(all_classes)
@@ -1292,11 +1396,17 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
         sys.exit(1)
     out_h = dir_path / f"register_{name}_types.gen.cppm"
     out_cpp = dir_path / f"register_{name}_types.gen.cpp"
-    if write_if_changed(out_h, generate_register_header(name, all_classes, dir_emissions, owner)):
+    try:
+        register_header = generate_register_header(name, all_classes, dir_emissions, owner, external_bind,
+                                                   bound_classes, enums, bound_enums)
+    except ParseError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
+    if write_if_changed(out_h, register_header):
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
     if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, project_root, dir_emissions, owner,
-                                                     external_bind, bound_classes)):
+                                                     external_bind, bound_classes, enums, bound_enums)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed
