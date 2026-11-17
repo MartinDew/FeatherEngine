@@ -14,7 +14,7 @@ FSINGLETON_INSTANCE(WorldSim);
 WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_time) } {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 #if BETA
-	_world.set<Ecs::Rest>({});
+	_world.set<flecs::Rest>({});
 #endif
 }
 
