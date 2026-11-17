@@ -5,8 +5,9 @@ module feather.world;
 namespace feather {
 
 void register_core_components(World& world) {
-	register_rendering_components(world);
-	register_world_components(world);
+	const auto reg = [&world]<class T>() { world.register_component<T>(); };
+	register_rendering_components(reg);
+	register_world_components(reg);
 }
 
 } //namespace feather

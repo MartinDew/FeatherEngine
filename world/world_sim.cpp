@@ -24,6 +24,7 @@ WorldSim::~WorldSim() {
 
 void WorldSim::init() {
 	// Every reflected Component registers before any EcsModule imports
+	_world.component<ReflectedComponent>("ReflectedComponent");
 	register_core_components(_world);
 
 	_scene_prefab = _world.prefab("Scene");

@@ -69,9 +69,9 @@ class DirEmission:
     register_<dir>_types.gen.{h,cpp} after the per-class content
     generate_gen_header()/generate_register_cpp() already produce -- see
     e.g. ecs.py's ComponentModifier, which has no per-class hook to attach
-    to (world.component<T>() needs a live flecs::world&, which ClassDB
-    registration never has) and instead emits one
-    aggregate register_<dir>_components(World&) function."""
+    to (registering a component needs a live world, which ClassDB
+    registration never has) and instead emits one aggregate
+    register_<dir>_components(reg) function template."""
     header_includes: list = dc_field(default_factory=list)   # quoted, core-relative
     header_decls: list = dc_field(default_factory=list)      # raw lines, inside `namespace feather { ... }`
     cpp_includes: list = dc_field(default_factory=list)       # quoted, core-relative
