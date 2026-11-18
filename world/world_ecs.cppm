@@ -13,6 +13,7 @@ import std;
 import feather.framework;
 import feather.reflection;
 import :ecs_defs;
+import :entity_handle;
 
 export namespace feather {
 
@@ -43,8 +44,10 @@ public:
 	// Every value type ClassDB knows.
 	void register_reflected_components();
 
-	// The component for a ClassDB class, found by its C++ type's symbol, or null.
-	[[nodiscard]] Entity get_component(StaticString class_name) const;
+	[[method]] [[nodiscard]] EntityHandle create_entity(const std::string& name);
+	[[method]] [[nodiscard]] EntityHandle get_entity(const std::string& path) const;
+	// The component for a ClassDB class, found by its C++ type's symbol; invalid when it has none.
+	[[method]] [[nodiscard]] EntityHandle get_component(const std::string& class_name) const;
 	// Null for components registered without reflection.
 	[[nodiscard]] const ClassInfo* get_component_class_info(Entity component) const;
 };

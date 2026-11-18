@@ -141,9 +141,11 @@ consteval VariantType get_variant_type() {
 	}
 }
 
-// Type trait to check if a type can be converted to Variant
+class Variant;
+
+// A type Variant can hold, or Variant itself, which a bound method takes or returns as is.
 template <typename T>
-concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
+concept VariantCompatible = std::is_same_v<T, Variant> || get_variant_type<T>() != VariantType::INVALID;
 
 struct ClassInfo;
 
@@ -227,7 +229,7 @@ public:
 
 	// Generic constructor with concept constraint
 	template <VariantCompatible T>
-		requires(!std::is_base_of_v<Reflected, T>)
+		requires(!std::is_base_of_v<Reflected, T> && !std::is_same_v<T, Variant>)
 	Variant(T value) {
 		constexpr VariantType type = get_variant_type<T>();
 		_type = type;
@@ -297,48 +299,53 @@ public:
 	// Type conversion with std::expected
 	template <VariantCompatible T>
 	std::expected<T, std::string> as() const {
-		if (get_variant_type<T>() != _type)
-			return std::unexpected("Variant type does not match requested type");
+		if constexpr (std::is_same_v<T, Variant>) {
+			return *this;
+		}
+		else {
+			if (get_variant_type<T>() != _type)
+				return std::unexpected("Variant type does not match requested type");
 
-		if constexpr (std::is_same_v<T, bool>) {
-			return std::get<bool>(_data);
-		}
-		else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
-			return static_cast<T>(std::get<int64_t>(_data));
-		}
-		else if constexpr (std::is_floating_point_v<T>) {
-			return static_cast<T>(std::get<real_t>(_data));
-		}
-		else if constexpr (std::is_enum_v<T>) {
-			return static_cast<T>(std::get<int64_t>(_data));
-		}
-		else if constexpr (is_reflected_value_type<T>) {
-			const ValueBox& box = std::get<ValueBox>(_data);
-			if (!box.is_class(FType<T>::name)) {
-				return std::unexpected("Variant value is not of the requested class");
+			if constexpr (std::is_same_v<T, bool>) {
+				return std::get<bool>(_data);
 			}
-			return *static_cast<const T*>(box.get());
-		}
-		else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
-			Reflected* reflected = _object();
-			if (!reflected) {
-				return static_cast<T>(nullptr);
+			else if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+				return static_cast<T>(std::get<int64_t>(_data));
 			}
-			T object = object_cast<std::remove_pointer_t<T>>(reflected);
-			if (!object) {
-				return std::unexpected("Variant object is not of the requested type");
+			else if constexpr (std::is_floating_point_v<T>) {
+				return static_cast<T>(std::get<real_t>(_data));
 			}
-			return object;
-		}
-		else if constexpr (!std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_reference_t<T>>) {
-			T* object = object_cast<T>(_object());
-			if (!object) {
-				return std::unexpected("Variant object is not of the requested type");
+			else if constexpr (std::is_enum_v<T>) {
+				return static_cast<T>(std::get<int64_t>(_data));
 			}
-			return *object;
+			else if constexpr (is_reflected_value_type<T>) {
+				const ValueBox& box = std::get<ValueBox>(_data);
+				if (!box.is_class(FType<T>::name)) {
+					return std::unexpected("Variant value is not of the requested class");
+				}
+				return *static_cast<const T*>(box.get());
+			}
+			else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
+				Reflected* reflected = _object();
+				if (!reflected) {
+					return static_cast<T>(nullptr);
+				}
+				T object = object_cast<std::remove_pointer_t<T>>(reflected);
+				if (!object) {
+					return std::unexpected("Variant object is not of the requested type");
+				}
+				return object;
+			}
+			else if constexpr (!std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_reference_t<T>>) {
+				T* object = object_cast<T>(_object());
+				if (!object) {
+					return std::unexpected("Variant object is not of the requested type");
+				}
+				return *object;
+			}
+			else
+				return std::get<T>(_data);
 		}
-		else
-			return std::get<T>(_data);
 	}
 
 	// Equality operators

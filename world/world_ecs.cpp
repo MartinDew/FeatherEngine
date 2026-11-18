@@ -161,8 +161,16 @@ void World::register_reflected_components() {
 	}
 }
 
-Entity World::get_component(StaticString class_name) const {
-	const ClassInfo* info = ClassDB::get_class_info(class_name);
+EntityHandle World::create_entity(const std::string& name) {
+	return name.empty() ? entity() : entity(name.c_str());
+}
+
+EntityHandle World::get_entity(const std::string& path) const {
+	return lookup(path.c_str());
+}
+
+EntityHandle World::get_component(const std::string& class_name) const {
+	const ClassInfo* info = ClassDB::get_class_info(StaticString(class_name));
 	if (!info || info->cpp_name.str().empty()) {
 		return {};
 	}
