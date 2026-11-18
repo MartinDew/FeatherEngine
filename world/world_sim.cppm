@@ -63,8 +63,8 @@ public:
 	[[nodiscard]]
 	Entity create_entity(const Entity& parent_entity, const std::string& name = "") const;
 
-	// get low level world impl
-	[[nodiscard]] inline World* get_world() { return &_world; }
+	// The world this simulation owns; the one scripts reach.
+	[[method]] [[nodiscard]] inline World* get_world() { return &_world; }
 
 	void add_to_scene(Entity entity) const;
 
