@@ -4,6 +4,10 @@ import std;
 
 namespace feather {
 
+ObjectRef ObjectRef::from_value_storage(void* ptr, const ClassInfo& info) {
+	return ptr && info.is_value_type ? ObjectRef(ptr, &info) : ObjectRef {};
+}
+
 StaticString ObjectRef::get_class_name() const {
 	return _info ? _info->name : ""_ss;
 }

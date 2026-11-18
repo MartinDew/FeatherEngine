@@ -96,15 +96,6 @@ bool can_be_component(const ClassInfo& info) {
 			!info.cpp_name.str().empty();
 }
 
-const ClassInfo::Property* find_property(const ClassInfo& info, StaticString name) {
-	for (const ClassInfo::Property& property : info.properties) {
-		if (property.name == name) {
-			return &property;
-		}
-	}
-	return nullptr;
-}
-
 } //namespace
 
 void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
@@ -184,44 +175,17 @@ const ClassInfo* World::get_component_class_info(flecs::entity component) const 
 	return reflected ? reflected->info : nullptr;
 }
 
-Variant get_component_property(flecs::entity entity, flecs::entity component, StaticString property) {
-	const World world(entity.world());
-	const ClassInfo* info = world.get_component_class_info(component);
-	const ClassInfo::Property* found = info ? find_property(*info, property) : nullptr;
-	if (!found || !found->getter || found->getter_access != AccessLevel::Public) {
+ObjectRef get_component_ref(flecs::entity entity, flecs::entity component) {
+	const ClassInfo* info = World(entity.world()).get_component_class_info(component);
+	// A tag has no storage, and flecs rejects asking for it.
+	if (!info || info->is_empty) {
 		return {};
 	}
-	const void* data = ecs_get_id(entity.world().c_ptr(), entity.id(), component.id());
-	return data ? found->getter(const_cast<void*>(data)) : Variant {};
+	return ObjectRef::from_value_storage(ecs_get_mut_id(entity.world().c_ptr(), entity.id(), component.id()), *info);
 }
 
-bool set_component_property(
-		flecs::entity entity,
-		flecs::entity component,
-		StaticString property,
-		const Variant& value
-) {
-	const World world(entity.world());
-	const ClassInfo* info = world.get_component_class_info(component);
-	const ClassInfo::Property* found = info ? find_property(*info, property) : nullptr;
-	if (!found || !found->setter || found->setter_access != AccessLevel::Public) {
-		return false;
-	}
-	void* data = ecs_get_mut_id(entity.world().c_ptr(), entity.id(), component.id());
-	if (!data) {
-		return false;
-	}
-	found->setter(data, value);
-	entity.modified(component);
-	return true;
-}
-
-Variant get_component_property(flecs::entity entity, StaticString component, StaticString property) {
-	return get_component_property(entity, World(entity.world()).get_component(component), property);
-}
-
-bool set_component_property(flecs::entity entity, StaticString component, StaticString property, const Variant& value) {
-	return set_component_property(entity, World(entity.world()).get_component(component), property, value);
+ObjectRef get_component_ref(flecs::entity entity, StaticString component) {
+	return get_component_ref(entity, World(entity.world()).get_component(component));
 }
 
 } //namespace feather

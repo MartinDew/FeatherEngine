@@ -41,22 +41,9 @@ public:
 	[[nodiscard]] const ClassInfo* get_component_class_info(flecs::entity component) const;
 };
 
-// Reads and writes one property of a reflected component on `entity`, by name. Only public properties are reachable;
-// a get on a missing component or property returns NIL.
-FEATHER_WORLD_API Variant get_component_property(flecs::entity entity, flecs::entity component, StaticString property);
-FEATHER_WORLD_API bool set_component_property(
-		flecs::entity entity,
-		flecs::entity component,
-		StaticString property,
-		const Variant& value
-);
-
-FEATHER_WORLD_API Variant get_component_property(flecs::entity entity, StaticString component, StaticString property);
-FEATHER_WORLD_API bool set_component_property(
-		flecs::entity entity,
-		StaticString component,
-		StaticString property,
-		const Variant& value
-);
+// The reflected component's data on `entity`, for property access through Variant; null when the entity lacks it or
+// the component has no ClassInfo. Call entity.modified(component) after writing through it.
+FEATHER_WORLD_API ObjectRef get_component_ref(flecs::entity entity, flecs::entity component);
+FEATHER_WORLD_API ObjectRef get_component_ref(flecs::entity entity, StaticString component);
 
 } //namespace feather
