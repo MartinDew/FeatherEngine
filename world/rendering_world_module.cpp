@@ -21,8 +21,6 @@ inline void _update_meshes(Entity e, Transform transform, MeshInstance& mesh, Ma
 RenderingWorldModule::RenderingWorldModule(World world) {
 	std::println("importing module {} ", get_class_static());
 	world.module<Type>();
-	// Registers Transform under its name before the systems below use it.
-	world.import<MathWorldModule>();
 
 	world.system("Begin Render Scene").kind(flecs::PreStore).run(&_begin_render_scene);
 

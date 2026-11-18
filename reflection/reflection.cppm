@@ -2,6 +2,7 @@ export module feather.reflection;
 
 export import feather.math;
 
+export import :builtin_types;
 export import :callable;
 export import :class_db;
 export import :class_info;

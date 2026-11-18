@@ -6,6 +6,7 @@ export module feather.reflection:class_db;
 
 import std.compat;
 import feather.framework;
+import :builtin_types;
 import :callable;
 import :class_info;
 import :enum_info;
@@ -38,6 +39,8 @@ private:
 	std::unordered_map<StaticString, EnumInfo> _enum_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
 	subclass_delegate_t _class_registered_delegate;
+	// The ClassInfo of each Variant type stored natively (Vector3, Transform...), indexed by VariantType.
+	std::array<const ClassInfo*, std::to_underlying(VariantType::INVALID)> _builtin_infos {};
 
 	static void _fire_subclass_delegates(const ClassInfo& info);
 
@@ -45,8 +48,10 @@ private:
 
 	static ClassInfo* _get_class_info_internal(StaticString name);
 
-	template <is_reflected T>
+	template <class T>
 	static void _register(ClassKind kind);
+
+	static void _register_builtin_types();
 
 	template <class T, auto Getter, auto Setter>
 	static void _add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc);
@@ -67,6 +72,9 @@ public:
 	static const ClassInfo* get_class_info() {
 		return get_class_info(T::get_class_static());
 	}
+
+	// The description of a type Variant stores natively; null for any other type.
+	static const ClassInfo* get_builtin_info(VariantType type);
 
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
 
@@ -108,6 +116,9 @@ public:
 		_register<T>(ClassKind::Singleton);
 	}
 
+	// A default-constructed value type (or Variant built-in) as a Variant; NIL when the class isn't one.
+	static Variant create_value(StaticString class_name);
+
 	// New default-constructed object owned by the caller. Null when the class is unknown, is a value type or can't be
 	// created.
 	static Reflected* instantiate(StaticString class_name);
@@ -146,11 +157,12 @@ public:
 	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
 
-template <is_reflected T>
+template <class T>
 void ClassDB::_register(ClassKind kind) {
 	using Desc = FType<T>;
 	static_assert(std::is_same_v<typename Desc::type, T>, "FType<T>::type must be T");
-	constexpr bool is_value_type = is_reflected_value_type<T>;
+	// Anything not derived from Reflected: an FSTRUCT, or a Variant built-in described by hand.
+	constexpr bool is_value_type = !std::is_base_of_v<Reflected, T>;
 
 	if (kind == ClassKind::Auto && !is_value_type) {
 		if constexpr (std::is_abstract_v<T> || !std::is_default_constructible_v<T>) {

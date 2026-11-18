@@ -87,14 +87,14 @@ Variant EntityHandle::get_component(const EntityHandle& component) const {
 	if (!info || info->is_empty) {
 		return {};
 	}
-	const void* data = ecs_get_id(world, id, component.id);
-	return data ? Variant::from_value(*info, data) : Variant {};
+	const void* stored = ecs_get_id(world, id, component.id);
+	return stored ? Variant::from_value(*info, stored) : Variant {};
 }
 
 bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) {
 	const ClassInfo* info = is_valid() ? class_info_of(component) : nullptr;
-	const ValueBox* box = value.get_value();
-	if (!info || !box || box->get_class_info() != info) {
+	const void* data = info ? value.get_value_data(*info) : nullptr;
+	if (!data) {
 		return false;
 	}
 	if (info->is_empty) {
@@ -102,7 +102,7 @@ bool EntityHandle::set_component(const EntityHandle& component, const Variant& v
 		return true;
 	}
 	// flecs copies through the component's hooks and notifies observers.
-	ecs_set_id(world, id, component.id, info->size, box->get());
+	ecs_set_id(world, id, component.id, info->size, data);
 	return true;
 }
 

@@ -45,9 +45,9 @@ struct FEATHER_WORLD_API EntityHandle {
 	[[method]] void remove(const EntityHandle& component);
 	[[method]] [[nodiscard]] bool has(const EntityHandle& component) const;
 
-	// A copy of the component's data as a VALUE; NIL when the entity lacks the component or it carries no data.
+	// A copy of the component's data (a VALUE, or the built-in itself); NIL when the entity lacks the component or it carries no data.
 	[[method]] [[nodiscard]] Variant get_component(const EntityHandle& component) const;
-	// Copies `value` in, which must be a VALUE of the component's class. Returns whether it was applied.
+	// Copies `value` in, which must hold the component's class (a VALUE, or the built-in itself). Returns whether it was applied.
 	[[method]] bool set_component(const EntityHandle& component, const Variant& value);
 };
 

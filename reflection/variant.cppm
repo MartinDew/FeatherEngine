@@ -203,6 +203,9 @@ class FEATHER_REFLECTION_API Variant {
 
 	static const ClassInfo* _find_class_info(StaticString name);
 
+	// True for an object, a boxed value, and a type stored natively that has a ClassInfo (Vector3, Transform...).
+	bool _is_reflectable() const;
+
 	// Visits the (class, storage) levels get/set/call reach: an object's hierarchy, or a value's single class.
 	template <class TVisit>
 	bool _walk(TVisit&& visit) const;
@@ -282,6 +285,8 @@ public:
 	static Variant default_value(const ClassInfo& info);
 	// The box of a VALUE variant; null otherwise.
 	const ValueBox* get_value() const;
+	// The instance of `info` this Variant holds, as a VALUE or as a built-in; null when it holds another class.
+	const void* get_value_data(const ClassInfo& info) const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;
@@ -454,14 +459,14 @@ static_assert(sizeof(std::span<Variant>) > 0);
 
 template <class... TArgs>
 Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	Variant params[] = { args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), true);
 }
 
 template <class... TArgs>
 Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) const {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	Variant params[] = { args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), false);
 }
