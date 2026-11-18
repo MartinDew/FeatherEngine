@@ -175,17 +175,17 @@ const ClassInfo* World::get_component_class_info(flecs::entity component) const 
 	return reflected ? reflected->info : nullptr;
 }
 
-ObjectRef get_component_ref(flecs::entity entity, flecs::entity component) {
-	const ClassInfo* info = World(entity.world()).get_component_class_info(component);
+ObjectRef World::get_component_ref(flecs::entity entity, flecs::entity component) const {
+	const ClassInfo* info = get_component_class_info(component);
 	// A tag has no storage, and flecs rejects asking for it.
 	if (!info || info->is_empty) {
 		return {};
 	}
-	return ObjectRef::from_value_storage(ecs_get_mut_id(entity.world().c_ptr(), entity.id(), component.id()), *info);
+	return ObjectRef::from_value_storage(ecs_get_mut_id(c_ptr(), entity.id(), component.id()), *info);
 }
 
-ObjectRef get_component_ref(flecs::entity entity, StaticString component) {
-	return get_component_ref(entity, World(entity.world()).get_component(component));
+ObjectRef World::get_component_ref(flecs::entity entity, StaticString component) const {
+	return get_component_ref(entity, get_component(component));
 }
 
 } //namespace feather
