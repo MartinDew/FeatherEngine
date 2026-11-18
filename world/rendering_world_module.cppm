@@ -15,6 +15,7 @@ export module feather.world:rendering_world_module;
 import std;
 import feather.framework;
 import :ecs_defs;
+import :world_ecs;
 import :ecs_module;
 import :world_sim;
 import feather.reflection;

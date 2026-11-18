@@ -99,10 +99,10 @@ bool can_be_component(const ClassInfo& info) {
 } //namespace
 
 void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
-	flecs::entity(c_ptr(), component).set<ReflectedComponent>({ &info });
+	Entity(c_ptr(), component).set<ReflectedComponent>({ &info });
 }
 
-flecs::entity World::register_component(const ClassInfo& info) {
+Entity World::register_component(const ClassInfo& info) {
 	if (!can_be_component(info)) {
 		return {};
 	}
@@ -112,7 +112,7 @@ flecs::entity World::register_component(const ClassInfo& info) {
 	// Typed use in some binary may have registered the type already; it then only lacks its ClassInfo.
 	if (const ecs_entity_t existing = ecs_lookup_symbol(world, symbol.c_str(), false, false)) {
 		_link_class_info(existing, info);
-		return flecs::entity(world, existing);
+		return Entity(world, existing);
 	}
 
 	const std::string name(info.name.str());
@@ -144,12 +144,12 @@ flecs::entity World::register_component(const ClassInfo& info) {
 	fassert(component != 0, "flecs refused a component registered from reflection");
 
 	_link_class_info(component, info);
-	return flecs::entity(world, component);
+	return Entity(world, component);
 }
 
-flecs::entity World::register_component(StaticString class_name) {
+Entity World::register_component(StaticString class_name) {
 	const ClassInfo* info = ClassDB::get_class_info(class_name);
-	return info ? register_component(*info) : flecs::entity {};
+	return info ? register_component(*info) : Entity {};
 }
 
 void World::register_reflected_components() {
@@ -161,21 +161,21 @@ void World::register_reflected_components() {
 	}
 }
 
-flecs::entity World::get_component(StaticString class_name) const {
+Entity World::get_component(StaticString class_name) const {
 	const ClassInfo* info = ClassDB::get_class_info(class_name);
 	if (!info || info->cpp_name.str().empty()) {
 		return {};
 	}
 	const ecs_entity_t found = ecs_lookup_symbol(c_ptr(), get_symbol(*info).c_str(), false, false);
-	return found ? flecs::entity(c_ptr(), found) : flecs::entity {};
+	return found ? Entity(c_ptr(), found) : Entity {};
 }
 
-const ClassInfo* World::get_component_class_info(flecs::entity component) const {
+const ClassInfo* World::get_component_class_info(Entity component) const {
 	const ReflectedComponent* reflected = component ? component.try_get<ReflectedComponent>() : nullptr;
 	return reflected ? reflected->info : nullptr;
 }
 
-ObjectRef World::get_component_ref(flecs::entity entity, flecs::entity component) const {
+ObjectRef World::get_component_ref(Entity entity, Entity component) const {
 	const ClassInfo* info = get_component_class_info(component);
 	// A tag has no storage, and flecs rejects asking for it.
 	if (!info || info->is_empty) {
@@ -184,7 +184,7 @@ ObjectRef World::get_component_ref(flecs::entity entity, flecs::entity component
 	return ObjectRef::from_value_storage(ecs_get_mut_id(c_ptr(), entity.id(), component.id()), *info);
 }
 
-ObjectRef World::get_component_ref(flecs::entity entity, StaticString component) const {
+ObjectRef World::get_component_ref(Entity entity, StaticString component) const {
 	return get_component_ref(entity, get_component(component));
 }
 
