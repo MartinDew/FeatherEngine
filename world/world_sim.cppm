@@ -58,11 +58,6 @@ public:
 	[[nodiscard]]
 	Entity create_scene(const std::string& name) const;
 
-	[[nodiscard]]
-	Entity create_entity(const std::string& name = "") const;
-	[[nodiscard]]
-	Entity create_entity(const Entity& parent_entity, const std::string& name = "") const;
-
 	// The world this simulation owns; the one scripts reach.
 	[[method]] [[nodiscard]] inline World* get_world() { return &_world; }
 

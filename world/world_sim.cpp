@@ -76,14 +76,6 @@ Entity WorldSim::create_scene(const std::string& name) const {
 	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
 }
 
-Entity WorldSim::create_entity(const std::string& name) const {
-	return _world.entity(name.c_str());
-}
-
-Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) const {
-	return _world.entity(name.c_str()).child_of(parent_entity);
-}
-
 void WorldSim::add_to_scene(Entity entity) const {
 	entity.child_of(_current_scene);
 }
