@@ -33,6 +33,7 @@ FEATHER_VARIANT_STORAGE(STRING, std::string)
 FEATHER_VARIANT_STORAGE(ARRAY, VariantArray)
 FEATHER_VARIANT_STORAGE(PATH, Path)
 FEATHER_VARIANT_STORAGE(OBJECT, Reflected*)
+FEATHER_VARIANT_STORAGE(VALUE, ValueBox)
 
 #undef FEATHER_VARIANT_STORAGE
 
@@ -50,7 +51,7 @@ concept math_value = std::is_same_v<T, Vector2> || std::is_same_v<T, Vector3> ||
 		std::is_same_v<T, Color> || std::is_same_v<T, Quaternion> || std::is_same_v<T, Matrix> ||
 		std::is_same_v<T, Transform>;
 
-// BOOL, NIL, OBJECT, RID and PATH never take part in arithmetic, even where C++ would allow it (bool + int).
+// BOOL, NIL, OBJECT, VALUE, RID and PATH never take part in arithmetic, even where C++ would allow it (bool + int).
 template <class T>
 concept arithmetic = number<T> || math_value<T>;
 
