@@ -6,6 +6,25 @@ import :variant;
 
 export namespace feather {
 
+namespace callable_detail {
+
+// Converts params to TArgs and calls func with them; a void result becomes NIL.
+template <class TRet, class... TArgs, class TFunc>
+Variant invoke_marshaled(TFunc&& func, std::span<Variant> params) {
+	[[maybe_unused]] size_t i = 0;
+	std::tuple<std::decay_t<TArgs>...> converted_args = { params[i++].as<std::decay_t<TArgs>>().value()... };
+	if constexpr (std::is_void_v<TRet>) {
+		std::apply(func, converted_args);
+		return Variant();
+	}
+	else {
+		TRet result = std::apply(func, converted_args);
+		return Variant(std::move(result));
+	}
+}
+
+} // namespace callable_detail
+
 class FEATHER_REFLECTION_API Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
 	uint8_t _param_amount;
@@ -16,18 +35,7 @@ public:
 		requires(VariantCompatible<std::decay_t<TRet>>) && (VariantCompatible<std::decay_t<TArgs>> && ...)
 	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
-				size_t i = 0;
-				std::tuple<std::decay_t<TArgs>...> converted_args = {
-					params[i++].as<std::decay_t<TArgs>>().value()...
-				};
-				if constexpr (std::is_void_v<TRet>) {
-					std::apply(func, converted_args);
-					return Variant();
-				}
-				else {
-					TRet result = std::apply(func, converted_args);
-					return Variant(std::move(result));
-				}
+				return callable_detail::invoke_marshaled<TRet, TArgs...>(func, params);
 			} }
 			, _param_amount { sizeof...(TArgs) } {}
 

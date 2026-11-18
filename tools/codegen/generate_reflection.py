@@ -871,8 +871,6 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
-            body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
-                        "{ return _make_object_ref(this, this, get_class_static()); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -1159,8 +1157,7 @@ def validate_hierarchy(classes: list):
     for c in classes:
         base = known.get(c.parent)
         if base is not None and base.is_value_type:
-            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives
-            # from it.
+            # A value type's ClassInfo comes from its static type, which is only right if nothing derives from it.
             raise ParseError(
                 f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
                 f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."

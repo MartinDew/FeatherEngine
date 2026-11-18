@@ -26,55 +26,9 @@ void ClassDB::clear() {
 	_instance->_class_registered_delegate.clear();
 }
 
-// Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
-static void* allocate_instance(const ClassInfo& info) {
-	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-		return ::operator new(info.size, std::align_val_t { info.alignment });
-	}
-	return ::operator new(info.size);
-}
-
-static void free_instance(void* ptr, const ClassInfo& info) {
-	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
-	}
-	else {
-		::operator delete(ptr, info.size);
-	}
-}
-
-ObjectRef ClassDB::instantiate(StaticString class_name) {
+Reflected* ClassDB::instantiate(StaticString class_name) {
 	const ClassInfo* info = get_class_info(class_name);
-	if (!info || !info->can_create()) {
-		return {};
-	}
-	void* ptr = allocate_instance(*info);
-	if (info->lifecycle.default_construct) {
-		try {
-			info->lifecycle.default_construct(ptr, 1);
-		} catch (...) {
-			free_instance(ptr, *info);
-			throw;
-		}
-	}
-	else {
-		// Trivially default-constructible: value-initialization zeroes it.
-		std::memset(ptr, 0, info->size);
-	}
-	ObjectRef object(ptr, info);
-	object._reflected = static_cast<Reflected*>(object.cast_to(get_class_info(Reflected::get_class_static())));
-	return object;
-}
-
-void ClassDB::destroy(ObjectRef object) {
-	if (!object) {
-		return;
-	}
-	const ClassInfo& info = *object.get_class_info();
-	if (info.lifecycle.destruct) {
-		info.lifecycle.destruct(object.get(), 1);
-	}
-	free_instance(object.get(), info);
+	return info && info->create_reflected ? info->create_reflected() : nullptr;
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {

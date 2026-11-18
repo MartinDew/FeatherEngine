@@ -47,11 +47,6 @@ public:
 	[[nodiscard]] Entity get_component(StaticString class_name) const;
 	// Null for components registered without reflection.
 	[[nodiscard]] const ClassInfo* get_component_class_info(Entity component) const;
-
-	// The reflected component's data on `entity`, for property access through Variant; null when the entity lacks it,
-	// it is a tag, or it has no ClassInfo. Call entity.modified(component) after writing through it.
-	[[nodiscard]] ObjectRef get_component_ref(Entity entity, Entity component) const;
-	[[nodiscard]] ObjectRef get_component_ref(Entity entity, StaticString component) const;
 };
 
 } //namespace feather
