@@ -3,7 +3,9 @@ export module feather.reflection:variant;
 import std.compat;
 import feather.framework;
 import :variant_array;
+import :ftype;
 import :reflected;
+import :reflection_utils;
 import feather.math;
 
 export namespace feather {
@@ -29,6 +31,8 @@ enum class VariantType : uint8_t {
 	PATH,
 	// Objects
 	OBJECT,
+	// A reflected value type owned by the Variant
+	VALUE,
 	// Invalid
 	INVALID
 };
@@ -124,6 +128,9 @@ consteval VariantType get_variant_type() {
 	) {
 		return VariantType::OBJECT;
 	}
+	else if constexpr (is_reflected_value_type<T>) {
+		return VariantType::VALUE;
+	}
 	// Void case
 	else if constexpr (std::is_same_v<T, std::nullptr_t> || std::is_void_v<T>) {
 		return VariantType::NIL;
@@ -139,6 +146,31 @@ template <typename T>
 concept VariantCompatible = get_variant_type<T>() != VariantType::INVALID;
 
 struct ClassInfo;
+
+// An instance of a reflected value type, owned by its box and managed through the ClassInfo's lifecycle hooks.
+class FEATHER_REFLECTION_API ValueBox {
+	const ClassInfo* _info = nullptr;
+	void* _data = nullptr;
+
+	void _destroy() noexcept;
+
+public:
+	ValueBox() = default;
+	// Copies `src`; a null `src` is a default-constructed instance. `info` must be a creatable value type.
+	ValueBox(const ClassInfo& info, const void* src);
+	ValueBox(const ValueBox& other);
+	ValueBox(ValueBox&& other) noexcept;
+	ValueBox& operator=(const ValueBox& other);
+	ValueBox& operator=(ValueBox&& other) noexcept;
+	~ValueBox();
+
+	const ClassInfo* get_class_info() const noexcept { return _info; }
+	void* get() noexcept { return _data; }
+	const void* get() const noexcept { return _data; }
+	bool is_class(StaticString name) const noexcept;
+	// Same class and every readable property equal.
+	bool operator==(const ValueBox& other) const;
+};
 
 class FEATHER_REFLECTION_API Variant {
 	using InternalVariant = std::variant<
@@ -158,13 +190,23 @@ class FEATHER_REFLECTION_API Variant {
 			Path,
 			VariantArray,
 			RID,
-			Reflected*>;
+			Reflected*,
+			ValueBox>;
 
 	InternalVariant _data;
 	VariantType _type;
 
 	// The object of an OBJECT variant; null otherwise.
 	Reflected* _object() const;
+
+	static const ClassInfo* _find_class_info(StaticString name);
+
+	// Visits the (class, storage) levels get/set/call reach: an object's hierarchy, or a value's single class.
+	template <class TVisit>
+	bool _walk(TVisit&& visit) const;
+
+	[[nodiscard]] Variant _get_property(std::string_view key, bool enforce_public) const;
+	void _set_property(std::string_view key, const Variant& value, bool enforce_public);
 
 	// enforce_public denies non-Public methods; *_internal entry points pass false.
 	[[nodiscard]] Variant
@@ -215,6 +257,11 @@ public:
 		else if constexpr (type == VariantType::OBJECT) {
 			_data = static_cast<Reflected*>(value);
 		}
+		else if constexpr (type == VariantType::VALUE) {
+			const ClassInfo* info = _find_class_info(FType<T>::name);
+			fassert(info, "Value type isn't registered in ClassDB");
+			_data = ValueBox(*info, &value);
+		}
 		else if constexpr (type == VariantType::NIL) {
 			_data = std::monostate {};
 		}
@@ -226,6 +273,13 @@ public:
 			_data = std::move(value);
 		}
 	}
+
+	// An owned copy of a value type's instance; `src` null makes a default-constructed one. NIL when the class isn't a
+	// creatable value type.
+	static Variant from_value(const ClassInfo& info, const void* src);
+	static Variant default_value(const ClassInfo& info);
+	// The box of a VALUE variant; null otherwise.
+	const ValueBox* get_value() const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;
@@ -257,6 +311,13 @@ public:
 		}
 		else if constexpr (std::is_enum_v<T>) {
 			return static_cast<T>(std::get<int64_t>(_data));
+		}
+		else if constexpr (is_reflected_value_type<T>) {
+			const ValueBox& box = std::get<ValueBox>(_data);
+			if (!box.is_class(FType<T>::name)) {
+				return std::unexpected("Variant value is not of the requested class");
+			}
+			return *static_cast<const T*>(box.get());
 		}
 		else if constexpr (std::is_pointer_v<T> && std::is_base_of_v<Reflected, std::remove_pointer_t<T>>) {
 			Reflected* reflected = _object();
@@ -386,14 +447,14 @@ static_assert(sizeof(std::span<Variant>) > 0);
 
 template <class... TArgs>
 Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
 	Variant params[] = { args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), true);
 }
 
 template <class... TArgs>
 Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
 	Variant params[] = { args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), false);
 }

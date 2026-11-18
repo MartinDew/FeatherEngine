@@ -4,6 +4,134 @@ import std;
 
 namespace feather {
 
+namespace {
+
+void* allocate_value(const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		return ::operator new(info.size, std::align_val_t { info.alignment });
+	}
+	return ::operator new(info.size);
+}
+
+void free_value(void* ptr, const ClassInfo& info) noexcept {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
+	}
+	else {
+		::operator delete(ptr, info.size);
+	}
+}
+
+} // namespace
+
+ValueBox::ValueBox(const ClassInfo& info, const void* src) {
+	fassert(info.is_value_type && info.can_create(), "A ValueBox needs a creatable value type");
+	void* data = allocate_value(info);
+	try {
+		if (!src) {
+			if (info.lifecycle.default_construct) {
+				info.lifecycle.default_construct(data, 1);
+			}
+			else {
+				std::memset(data, 0, info.size);
+			}
+		}
+		else if (info.lifecycle.copy_construct) {
+			info.lifecycle.copy_construct(data, src, 1);
+		}
+		else {
+			fassert(
+					!has_flag(info.lifecycle.illegal, LifecycleIllegal::CopyConstruct),
+					"Boxing a value type that can't be copied"
+			);
+			std::memcpy(data, src, info.size);
+		}
+	} catch (...) {
+		free_value(data, info);
+		throw;
+	}
+	_info = &info;
+	_data = data;
+}
+
+ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {}
+
+ValueBox::ValueBox(ValueBox&& other) noexcept
+		: _info { std::exchange(other._info, nullptr) }
+		, _data { std::exchange(other._data, nullptr) } {}
+
+ValueBox& ValueBox::operator=(const ValueBox& other) {
+	if (this != &other) {
+		*this = ValueBox(other);
+	}
+	return *this;
+}
+
+ValueBox& ValueBox::operator=(ValueBox&& other) noexcept {
+	if (this != &other) {
+		_destroy();
+		_info = std::exchange(other._info, nullptr);
+		_data = std::exchange(other._data, nullptr);
+	}
+	return *this;
+}
+
+ValueBox::~ValueBox() {
+	_destroy();
+}
+
+void ValueBox::_destroy() noexcept {
+	if (_data) {
+		if (_info->lifecycle.destruct) {
+			_info->lifecycle.destruct(_data, 1);
+		}
+		free_value(_data, *_info);
+	}
+	_info = nullptr;
+	_data = nullptr;
+}
+
+bool ValueBox::is_class(StaticString name) const noexcept {
+	return _info && _info->name == name;
+}
+
+bool ValueBox::operator==(const ValueBox& other) const {
+	if (_info != other._info) {
+		return false;
+	}
+	if (!_info) {
+		return true;
+	}
+	for (const ClassInfo::Property& property : _info->properties) {
+		if (property.getter && property.getter(_data) != property.getter(other._data)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+const ClassInfo* Variant::_find_class_info(StaticString name) {
+	return ClassDB::get_class_info(name);
+}
+
+Variant Variant::from_value(const ClassInfo& info, const void* src) {
+	if (!info.is_value_type || !info.can_create()) {
+		return {};
+	}
+	Variant result;
+	result._data = ValueBox(info, src);
+	result._type = VariantType::VALUE;
+	return result;
+}
+
+Variant Variant::default_value(const ClassInfo& info) {
+	return from_value(info, nullptr);
+}
+
+const ValueBox* Variant::get_value() const {
+	return std::get_if<ValueBox>(&_data);
+}
+
 Reflected* Variant::_object() const {
 	auto* object = std::get_if<Reflected*>(&_data);
 	return object ? *object : nullptr;
@@ -75,6 +203,8 @@ std::string_view Variant::get_type_name(VariantType type) {
 		return "Path";
 	case VariantType::OBJECT:
 		return "Object";
+	case VariantType::VALUE:
+		return "Value";
 	case VariantType::INVALID:
 		break;
 	}
@@ -102,6 +232,9 @@ bool Variant::booleanize() const {
 				}
 				else if constexpr (std::is_same_v<T, Reflected*>) {
 					return value != nullptr;
+				}
+				else if constexpr (std::is_same_v<T, ValueBox>) {
+					return true;
 				}
 				else if constexpr (std::is_same_v<T, RID>) {
 					return value != RID {};
@@ -161,6 +294,10 @@ std::string Variant::to_string() const {
 		return "[Array]";
 	case VariantType::OBJECT:
 		return "[Object] : " + get_name();
+	case VariantType::VALUE: {
+		const ValueBox& box = std::get<ValueBox>(_data);
+		return box.get_class_info() ? std::format("[{}]", box.get_class_info()->name.str()) : "[Value]";
+	}
 	case VariantType::INVALID:
 		return "[Invalid]";
 	}
@@ -175,18 +312,23 @@ std::string Variant::get_name() const {
 	return object ? std::string(object->get_class_name()) : "[Object: null]";
 }
 
-namespace {
-
-// Walks the object's class hierarchy; see ClassInfo::walk.
 template <class TVisit>
-bool walk_hierarchy(Reflected* object, TVisit&& visit) {
-	const ClassInfo* info = object ? object->get_class_info() : nullptr;
-	return info && info->walk(object, std::forward<TVisit>(visit));
+bool Variant::_walk(TVisit&& visit) const {
+	if (_type == VariantType::OBJECT) {
+		Reflected* object = _object();
+		const ClassInfo* info = object ? object->get_class_info() : nullptr;
+		return info && info->walk(object, std::forward<TVisit>(visit));
+	}
+	if (const ValueBox* box = get_value(); box && box->get()) {
+		// A value is its own storage, so a set through this reaches the box's instance.
+		return visit(*box->get_class_info(), const_cast<void*>(box->get()));
+	}
+	return false;
 }
 
-Variant get_property(Reflected* ref, std::string_view key, bool enforce_public) {
+Variant Variant::_get_property(std::string_view key, bool enforce_public) const {
 	Variant result;
-	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				// Script-facing access: only public getters are reachable.
@@ -201,8 +343,8 @@ Variant get_property(Reflected* ref, std::string_view key, bool enforce_public) 
 	return result;
 }
 
-void set_property(Reflected* ref, std::string_view key, const Variant& value, bool enforce_public) {
-	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+void Variant::_set_property(std::string_view key, const Variant& value, bool enforce_public) {
+	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				// Script-facing access: only public setters are writable.
@@ -216,41 +358,39 @@ void set_property(Reflected* ref, std::string_view key, const Variant& value, bo
 	});
 }
 
-} // namespace
-
 Variant Variant::get(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object(), key, true);
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	return _get_property(key, true);
 }
 
 Variant Variant::get_internal(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object(), key, false);
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	return _get_property(key, false);
 }
 
 void Variant::set(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object(), key, value, true);
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	_set_property(key, value, true);
 }
 
 void Variant::set_internal(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object(), key, value, false);
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	_set_property(key, value, false);
 }
 
 Variant Variant::call(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
 	return _internal_call(method_name, {}, /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
+	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
 	return _internal_call(method_name, {}, /*enforce_public=*/false);
 }
 
 Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
 	Variant result;
-	walk_hierarchy(_object(), [&](const ClassInfo& info, void* object) {
+	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& method : info.methods) {
 			if (method.name == method_name) {
 				// Script-facing calls (enforce_public) only reach public methods.
