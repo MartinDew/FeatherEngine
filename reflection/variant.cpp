@@ -115,9 +115,6 @@ const ClassInfo* Variant::_find_class_info(StaticString name) {
 }
 
 Variant Variant::from_value(const ClassInfo& info, const void* src) {
-	if (info.to_variant) {
-		return info.to_variant(src);
-	}
 	if (!info.is_value_type || !info.can_create()) {
 		return {};
 	}
@@ -133,16 +130,6 @@ Variant Variant::default_value(const ClassInfo& info) {
 
 const ValueBox* Variant::get_value() const {
 	return std::get_if<ValueBox>(&_data);
-}
-
-const void* Variant::get_value_data(const ClassInfo& info) const {
-	if (const ValueBox* box = get_value()) {
-		return box->get_class_info() == &info ? box->get() : nullptr;
-	}
-	if (ClassDB::get_builtin_info(_type) == &info) {
-		return std::visit([](const auto& value) -> const void* { return &value; }, _data);
-	}
-	return nullptr;
 }
 
 Reflected* Variant::_object() const {
@@ -325,8 +312,65 @@ std::string Variant::get_name() const {
 	return object ? std::string(object->get_class_name()) : "[Object: null]";
 }
 
+namespace {
+
+template <class T>
+concept has_builtin_ftype = requires { FType<T>::properties; };
+
+} // namespace
+
 bool Variant::_is_reflectable() const {
-	return _type == VariantType::OBJECT || _type == VariantType::VALUE || ClassDB::get_builtin_info(_type);
+	return _type == VariantType::OBJECT || _type == VariantType::VALUE || _has_builtin_properties();
+}
+
+bool Variant::_has_builtin_properties() const {
+	return std::visit([](const auto& value) { return has_builtin_ftype<std::decay_t<decltype(value)>>; }, _data);
+}
+
+Variant Variant::_get_builtin(std::string_view key) const {
+	return std::visit(
+			[&](const auto& value) -> Variant {
+				using T = std::decay_t<decltype(value)>;
+				Variant result;
+				if constexpr (has_builtin_ftype<T>) {
+					std::apply(
+							[&](const auto&... desc) {
+								((desc.name == key ? (result = Variant(value.*desc.getter), true) : false) || ...);
+							},
+							FType<T>::properties
+					);
+				}
+				return result;
+			},
+			_data
+	);
+}
+
+void Variant::_set_builtin(std::string_view key, const Variant& new_value) {
+	std::visit(
+			[&](auto& value) {
+				using T = std::decay_t<decltype(value)>;
+				if constexpr (has_builtin_ftype<T>) {
+					std::apply(
+							[&](const auto&... desc) {
+								auto assign = [&](const auto& property) {
+									using Field = std::decay_t<decltype(value.*property.setter)>;
+									if (property.name != key) {
+										return false;
+									}
+									if (auto converted = new_value.as<Field>()) {
+										value.*property.setter = std::move(*converted);
+									}
+									return true;
+								};
+								(assign(desc) || ...);
+							},
+							FType<T>::properties
+					);
+				}
+			},
+			_data
+	);
 }
 
 template <class TVisit>
@@ -340,15 +384,13 @@ bool Variant::_walk(TVisit&& visit) const {
 		// A value is its own storage, so a set through this reaches the box's instance.
 		return visit(*box->get_class_info(), const_cast<void*>(box->get()));
 	}
-	if (const ClassInfo* info = ClassDB::get_builtin_info(_type)) {
-		// The alternative itself, so a set through this changes this Variant.
-		void* storage = std::visit([](const auto& value) -> void* { return const_cast<void*>(static_cast<const void*>(&value)); }, _data);
-		return visit(*info, storage);
-	}
 	return false;
 }
 
 Variant Variant::_get_property(std::string_view key, bool enforce_public) const {
+	if (_has_builtin_properties()) {
+		return _get_builtin(key);
+	}
 	Variant result;
 	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
@@ -366,6 +408,10 @@ Variant Variant::_get_property(std::string_view key, bool enforce_public) const 
 }
 
 void Variant::_set_property(std::string_view key, const Variant& value, bool enforce_public) {
+	if (_has_builtin_properties()) {
+		_set_builtin(key, value);
+		return;
+	}
 	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {

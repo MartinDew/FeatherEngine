@@ -203,8 +203,12 @@ class FEATHER_REFLECTION_API Variant {
 
 	static const ClassInfo* _find_class_info(StaticString name);
 
-	// True for an object, a boxed value, and a type stored natively that has a ClassInfo (Vector3, Transform...).
+	// True for an object, a boxed value, and a type stored natively that has an FType (Vector3, Transform...).
 	bool _is_reflectable() const;
+	// A natively stored type is read through its FType directly, with no ClassInfo.
+	bool _has_builtin_properties() const;
+	[[nodiscard]] Variant _get_builtin(std::string_view key) const;
+	void _set_builtin(std::string_view key, const Variant& value);
 
 	// Visits the (class, storage) levels get/set/call reach: an object's hierarchy, or a value's single class.
 	template <class TVisit>
@@ -285,8 +289,6 @@ public:
 	static Variant default_value(const ClassInfo& info);
 	// The box of a VALUE variant; null otherwise.
 	const ValueBox* get_value() const;
-	// The instance of `info` this Variant holds, as a VALUE or as a built-in; null when it holds another class.
-	const void* get_value_data(const ClassInfo& info) const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;
