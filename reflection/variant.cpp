@@ -4,11 +4,9 @@ import std;
 
 namespace feather {
 
-ObjectRef Variant::_object_ref() const {
-	if (auto* ref = std::get_if<ObjectRef>(&_data)) {
-		return *ref;
-	}
-	return {};
+Reflected* Variant::_object() const {
+	auto* object = std::get_if<Reflected*>(&_data);
+	return object ? *object : nullptr;
 }
 
 bool Variant::operator==(const Variant& other) const {
@@ -102,8 +100,8 @@ bool Variant::booleanize() const {
 				{
 					return !value.empty();
 				}
-				else if constexpr (std::is_same_v<T, ObjectRef>) {
-					return static_cast<bool>(value);
+				else if constexpr (std::is_same_v<T, Reflected*>) {
+					return value != nullptr;
 				}
 				else if constexpr (std::is_same_v<T, RID>) {
 					return value != RID {};
@@ -173,23 +171,20 @@ std::string Variant::get_name() const {
 	if (_type != VariantType::OBJECT) {
 		return to_string();
 	}
-	ObjectRef ref = _object_ref();
-	if (!ref.get_class_info()) {
-		return "[Object: no class info]";
-	}
-	return std::string(ref.get_class_name());
+	Reflected* object = _object();
+	return object ? std::string(object->get_class_name()) : "[Object: null]";
 }
 
 namespace {
 
 // Walks the object's class hierarchy; see ClassInfo::walk.
 template <class TVisit>
-bool walk_hierarchy(ObjectRef ref, TVisit&& visit) {
-	const ClassInfo* info = ref.get_class_info();
-	return info && info->walk(ref.get(), std::forward<TVisit>(visit));
+bool walk_hierarchy(Reflected* object, TVisit&& visit) {
+	const ClassInfo* info = object ? object->get_class_info() : nullptr;
+	return info && info->walk(object, std::forward<TVisit>(visit));
 }
 
-Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {
+Variant get_property(Reflected* ref, std::string_view key, bool enforce_public) {
 	Variant result;
 	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
@@ -206,7 +201,7 @@ Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {
 	return result;
 }
 
-void set_property(ObjectRef ref, std::string_view key, const Variant& value, bool enforce_public) {
+void set_property(Reflected* ref, std::string_view key, const Variant& value, bool enforce_public) {
 	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
@@ -225,53 +220,52 @@ void set_property(ObjectRef ref, std::string_view key, const Variant& value, boo
 
 Variant Variant::get(std::string_view key) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object_ref(), key, true);
+	return get_property(_object(), key, true);
 }
 
 Variant Variant::get_internal(std::string_view key) const {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object_ref(), key, false);
+	return get_property(_object(), key, false);
 }
 
 void Variant::set(std::string_view key, const Variant& value) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object_ref(), key, value, true);
+	set_property(_object(), key, value, true);
 }
 
 void Variant::set_internal(std::string_view key, const Variant& value) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object_ref(), key, value, false);
+	set_property(_object(), key, value, false);
 }
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant self = _object_ref();
-	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/true);
+	return _internal_call(method_name, {}, /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
 	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant self = _object_ref();
-	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/false);
+	return _internal_call(method_name, {}, /*enforce_public=*/false);
 }
 
-// args[0] is the object itself; it is replaced by the object adjusted to the class that declares the method.
 Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
 	Variant result;
-	walk_hierarchy(_object_ref(), [&](const ClassInfo& info, void* object) {
+	walk_hierarchy(_object(), [&](const ClassInfo& info, void* object) {
 		for (auto& method : info.methods) {
 			if (method.name == method_name) {
 				// Script-facing calls (enforce_public) only reach public methods.
 				if (enforce_public && method.access != AccessLevel::Public) {
 					return true;
 				}
-				const Callable& callable = method.callable;
 				if (method.is_static) {
-					result = callable.call(args.subspan(1));
+					result = method.callable.call(args);
 				}
 				else {
-					args[0] = Variant(ObjectRef(object, &info));
-					result = callable.call(args);
+					fassert(
+							args.size() == method.param_count,
+							std::format("Method called with {} parameters, expected {}", args.size(), method.param_count)
+					);
+					result = method.invoke(object, args);
 				}
 				return true;
 			}

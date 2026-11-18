@@ -11,7 +11,6 @@ import :class_info;
 import :enum_info;
 import :reflection_utils;
 import :ftype;
-import :object;
 import :reflected;
 import :variant;
 
@@ -109,18 +108,18 @@ public:
 		_register<T>(ClassKind::Singleton);
 	}
 
-	// New default-constructed instance owned by the caller, who frees it with destroy(); a Reflected one may instead
-	// be deleted. Null when the class is unknown or can't be created.
-	static ObjectRef instantiate(StaticString class_name);
-	static void destroy(ObjectRef object);
+	// New default-constructed object owned by the caller. Null when the class is unknown, is a value type or can't be
+	// created.
+	static Reflected* instantiate(StaticString class_name);
 
 	// Null when the class can't be created or isn't a T.
-	template <is_reflected T>
+	template <std::derived_from<Reflected> T>
+		requires is_reflected<T>
 	static std::unique_ptr<T> create_object(StaticString class_name) {
-		ObjectRef object = instantiate(class_name);
-		T* typed = object.cast<T>();
-		if (!typed) {
-			destroy(object);
+		std::unique_ptr<Reflected> object { instantiate(class_name) };
+		T* typed = object_cast<T>(object.get());
+		if (typed) {
+			object.release();
 		}
 		return std::unique_ptr<T> { typed };
 	}
@@ -185,12 +184,18 @@ void ClassDB::_register(ClassKind kind) {
 		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
 	}
 
-	if constexpr (!std::is_void_v<typename Desc::parent>) {
-		using Parent = typename Desc::parent;
-		info.to_parent = [](void* object) -> void* { return static_cast<Parent*>(static_cast<T*>(object)); };
+	if constexpr (std::is_base_of_v<Reflected, T>) {
+		info.from_reflected = [](Reflected* object) -> void* { return static_cast<T*>(object); };
+		info.create_reflected = nullptr;
+		if constexpr (!std::is_abstract_v<T> && std::is_default_constructible_v<T>) {
+			if (kind == ClassKind::Auto) {
+				info.create_reflected = []() -> Reflected* { return new T(); };
+			}
+		}
 	}
 	else {
-		info.to_parent = nullptr;
+		info.from_reflected = nullptr;
+		info.create_reflected = nullptr;
 	}
 
 	info.parent_info = nullptr;
@@ -269,10 +274,17 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 			using R = typename Traits::ret;
 			if constexpr (signature_bindable<R, A...>) {
 				// self is already adjusted to T by the caller (see Variant::_internal_call).
-				std::function<R(ObjectRef, A...)> func = [](ObjectRef self, A... args) -> R {
-					return (static_cast<T*>(self.get())->*Function)(args...);
-				};
-				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				info.methods.push_back({ .name = desc.name,
+										 .access = desc.access,
+										 .invoke = [](void* self, std::span<Variant> args) -> Variant {
+											 return callable_detail::invoke_marshaled<R, A...>(
+													 [self](A... call_args) -> R {
+														 return (static_cast<T*>(self)->*Function)(call_args...);
+													 },
+													 args
+											 );
+										 },
+										 .param_count = sizeof...(A) });
 			}
 			else {
 				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
@@ -283,29 +295,6 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		info.methods.push_back(
 				{ .name = desc.name, .access = desc.access, .is_static = true, .callable = Callable { Function } }
 		);
-	}
-}
-
-template <class T>
-	requires(!std::is_const_v<T> && (std::is_base_of_v<Reflected, T> || is_reflected<T>))
-ObjectRef::ObjectRef(T& object) {
-	if constexpr (std::is_base_of_v<Reflected, T>) {
-		*this = static_cast<Reflected&>(object)._get_object_ref();
-	}
-	else {
-		_ptr = &object;
-		_info = ClassDB::get_class_info<T>();
-	}
-}
-
-template <is_reflected T>
-T* ObjectRef::cast() const {
-	using U = std::remove_const_t<T>;
-	if constexpr (std::is_base_of_v<Reflected, U>) {
-		return object_cast<T>(_reflected);
-	}
-	else {
-		return static_cast<T*>(cast_to(ClassDB::get_class_info<U>()));
 	}
 }
 

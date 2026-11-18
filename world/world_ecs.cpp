@@ -175,17 +175,4 @@ const ClassInfo* World::get_component_class_info(Entity component) const {
 	return reflected ? reflected->info : nullptr;
 }
 
-ObjectRef World::get_component_ref(Entity entity, Entity component) const {
-	const ClassInfo* info = get_component_class_info(component);
-	// A tag has no storage, and flecs rejects asking for it.
-	if (!info || info->is_empty) {
-		return {};
-	}
-	return ObjectRef::from_value_storage(ecs_get_mut_id(c_ptr(), entity.id(), component.id()), *info);
-}
-
-ObjectRef World::get_component_ref(Entity entity, StaticString component) const {
-	return get_component_ref(entity, get_component(component));
-}
-
 } //namespace feather

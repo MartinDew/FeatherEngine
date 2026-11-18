@@ -5,6 +5,7 @@ import feather.framework;
 import :callable;
 import :enum_info;
 import :ftype;
+import :reflected;
 import :variant;
 
 export namespace feather {
@@ -162,8 +163,10 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	bool is_empty = false;
 	LifecycleHooks lifecycle;
 
-	// Adjusts a pointer to this class into a pointer to its parent subobject; null at a root.
-	void* (*to_parent)(void* object) = nullptr;
+	// Adjusts a Reflected pointer to this class's subobject of the same object; null for a value type.
+	void* (*from_reflected)(Reflected* object) = nullptr;
+	// A new default-constructed instance, freed with delete; null unless the class can be created.
+	Reflected* (*create_reflected)() = nullptr;
 	// The registered parent, set by ClassDB at registration; null at a root.
 	const ClassInfo* parent_info = nullptr;
 
@@ -189,25 +192,24 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		StaticString name;
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
-		// A non-static method's callable takes the ObjectRef of the declaring class first.
 		bool is_static = false;
+		// Static methods only.
 		Callable callable;
+		// Non-static methods only: `self` points at the declaring class, `args` excludes it.
+		Variant (*invoke)(void* self, std::span<Variant> args) = nullptr;
+		uint8_t param_count = 0;
 	};
 
 	std::vector<Method> methods;
 
-	// Visits (class, object adjusted to that class) from this class up to the root; stops at the first level visit
-	// returns true for, and returns whether one did.
+	// Visits (class, object adjusted to that class) from this class, the object's own, up to the root; stops at the
+	// first level visit returns true for, and returns whether one did.
 	template <class TVisit>
-	bool walk(void* object, TVisit&& visit) const {
-		for (const ClassInfo* info = this; info && object; info = info->parent_info) {
-			if (visit(*info, object)) {
+	bool walk(Reflected* object, TVisit&& visit) const {
+		for (const ClassInfo* info = this; info && object && info->from_reflected; info = info->parent_info) {
+			if (visit(*info, info->from_reflected(object))) {
 				return true;
 			}
-			if (!info->to_parent) {
-				break;
-			}
-			object = info->to_parent(object);
 		}
 		return false;
 	}
