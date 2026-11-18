@@ -115,6 +115,9 @@ const ClassInfo* Variant::_find_class_info(StaticString name) {
 }
 
 Variant Variant::from_value(const ClassInfo& info, const void* src) {
+	if (info.to_variant) {
+		return info.to_variant(src);
+	}
 	if (!info.is_value_type || !info.can_create()) {
 		return {};
 	}
@@ -130,6 +133,16 @@ Variant Variant::default_value(const ClassInfo& info) {
 
 const ValueBox* Variant::get_value() const {
 	return std::get_if<ValueBox>(&_data);
+}
+
+const void* Variant::get_value_data(const ClassInfo& info) const {
+	if (const ValueBox* box = get_value()) {
+		return box->get_class_info() == &info ? box->get() : nullptr;
+	}
+	if (ClassDB::get_builtin_info(_type) == &info) {
+		return std::visit([](const auto& value) -> const void* { return &value; }, _data);
+	}
+	return nullptr;
 }
 
 Reflected* Variant::_object() const {
@@ -312,6 +325,10 @@ std::string Variant::get_name() const {
 	return object ? std::string(object->get_class_name()) : "[Object: null]";
 }
 
+bool Variant::_is_reflectable() const {
+	return _type == VariantType::OBJECT || _type == VariantType::VALUE || ClassDB::get_builtin_info(_type);
+}
+
 template <class TVisit>
 bool Variant::_walk(TVisit&& visit) const {
 	if (_type == VariantType::OBJECT) {
@@ -322,6 +339,11 @@ bool Variant::_walk(TVisit&& visit) const {
 	if (const ValueBox* box = get_value(); box && box->get()) {
 		// A value is its own storage, so a set through this reaches the box's instance.
 		return visit(*box->get_class_info(), const_cast<void*>(box->get()));
+	}
+	if (const ClassInfo* info = ClassDB::get_builtin_info(_type)) {
+		// The alternative itself, so a set through this changes this Variant.
+		void* storage = std::visit([](const auto& value) -> void* { return const_cast<void*>(static_cast<const void*>(&value)); }, _data);
+		return visit(*info, storage);
 	}
 	return false;
 }
@@ -359,32 +381,32 @@ void Variant::_set_property(std::string_view key, const Variant& value, bool enf
 }
 
 Variant Variant::get(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	return _get_property(key, true);
 }
 
 Variant Variant::get_internal(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	return _get_property(key, false);
 }
 
 void Variant::set(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	_set_property(key, value, true);
 }
 
 void Variant::set_internal(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	_set_property(key, value, false);
 }
 
 Variant Variant::call(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	return _internal_call(method_name, {}, /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT || _type == VariantType::VALUE, "Variant is not an object or a value");
+	fassert(_is_reflectable(), "Variant has no properties or methods");
 	return _internal_call(method_name, {}, /*enforce_public=*/false);
 }
 

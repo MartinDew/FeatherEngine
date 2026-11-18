@@ -13,6 +13,29 @@ FSINGLETON_INSTANCE(ClassDB);
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 	_register<Reflected>(ClassKind::Abstract);
+	_register_builtin_types();
+}
+
+void ClassDB::_register_builtin_types() {
+	auto register_builtin = [&]<class T>(std::type_identity<T>) {
+		_register<T>(ClassKind::Auto);
+		ClassInfo* info = _get_class_info_internal(FType<T>::name);
+		info->to_variant = [](const void* src) { return Variant(src ? *static_cast<const T*>(src) : T {}); };
+		get()->_builtin_infos[std::to_underlying(get_variant_type<T>())] = info;
+	};
+	(register_builtin(std::type_identity<Vector2> {}),
+	 register_builtin(std::type_identity<Vector3> {}),
+	 register_builtin(std::type_identity<Vector4> {}),
+	 register_builtin(std::type_identity<Quaternion> {}),
+	 register_builtin(std::type_identity<Color> {}),
+	 register_builtin(std::type_identity<Matrix> {}),
+	 register_builtin(std::type_identity<Transform> {}),
+	 register_builtin(std::type_identity<Vertex> {}));
+}
+
+const ClassInfo* ClassDB::get_builtin_info(VariantType type) {
+	const size_t index = std::to_underlying(type);
+	return index < get()->_builtin_infos.size() ? get()->_builtin_infos[index] : nullptr;
 }
 
 ClassDB::~ClassDB() {
@@ -24,6 +47,12 @@ void ClassDB::clear() {
 	_instance->_enum_infos.clear();
 	_instance->_subclass_delegates.clear();
 	_instance->_class_registered_delegate.clear();
+	_instance->_builtin_infos = {};
+}
+
+Variant ClassDB::create_value(StaticString class_name) {
+	const ClassInfo* info = get_class_info(class_name);
+	return info ? Variant::default_value(*info) : Variant {};
 }
 
 Reflected* ClassDB::instantiate(StaticString class_name) {
