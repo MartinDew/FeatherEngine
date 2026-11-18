@@ -35,6 +35,10 @@ public:
 		requires(!std::is_const_v<T> && (std::is_base_of_v<Reflected, T> || is_reflected<T>))
 	ObjectRef(T& object);
 
+	// A reference to a value type living in storage reflection doesn't own, such as an ECS column. Null unless `info`
+	// describes a value type.
+	static ObjectRef from_value_storage(void* ptr, const ClassInfo& info);
+
 	void* get() const noexcept { return _ptr; }
 	const ClassInfo* get_class_info() const noexcept { return _info; }
 	Reflected* get_reflected() const noexcept { return _reflected; }
