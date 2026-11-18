@@ -39,11 +39,11 @@ public:
 	[[nodiscard]] flecs::entity get_component(StaticString class_name) const;
 	// Null for components registered without reflection.
 	[[nodiscard]] const ClassInfo* get_component_class_info(flecs::entity component) const;
-};
 
-// The reflected component's data on `entity`, for property access through Variant; null when the entity lacks it or
-// the component has no ClassInfo. Call entity.modified(component) after writing through it.
-FEATHER_WORLD_API ObjectRef get_component_ref(flecs::entity entity, flecs::entity component);
-FEATHER_WORLD_API ObjectRef get_component_ref(flecs::entity entity, StaticString component);
+	// The reflected component's data on `entity`, for property access through Variant; null when the entity lacks it,
+	// it is a tag, or it has no ClassInfo. Call entity.modified(component) after writing through it.
+	[[nodiscard]] ObjectRef get_component_ref(flecs::entity entity, flecs::entity component) const;
+	[[nodiscard]] ObjectRef get_component_ref(flecs::entity entity, StaticString component) const;
+};
 
 } //namespace feather
