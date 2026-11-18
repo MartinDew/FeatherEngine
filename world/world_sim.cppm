@@ -17,6 +17,7 @@ import feather.framework;
 import :simulation;
 import :components.scene;
 import :ecs_defs;
+import :world_ecs;
 import feather.reflection;
 
 export namespace feather {

@@ -2,11 +2,17 @@ module;
 
 #include <flecs.h>
 
+#include <framework/reflection_macros.h>
+#ifndef FEATHER_REFLECTION_PARSER
+#include "world_ecs.gen.h"
+#endif
+
 export module feather.world:world_ecs;
 
 import std;
 import feather.framework;
 import feather.reflection;
+import :ecs_defs;
 
 export namespace feather {
 
@@ -15,9 +21,11 @@ struct ReflectedComponent {
 	const ClassInfo* info = nullptr;
 };
 
-// flecs' world plus registration from reflection. Copies share the underlying world (it is refcounted), so a World
-// built from any flecs::world handle, such as the one flecs passes to a module, is a view of the same world.
-class FEATHER_WORLD_API World : public flecs::world {
+// flecs' world plus reflection-driven registration. A copy, or a World built from any flecs::world handle, views the
+// same refcounted world. Reflected is the first base because codegen takes the first base as the reflected parent.
+class FEATHER_WORLD_API World : public Reflected, public flecs::world {
+	FCLASS();
+
 	void _link_class_info(flecs::entity_t component, const ClassInfo& info);
 
 public:
@@ -29,21 +37,21 @@ public:
 	// Registers a value type from its ClassInfo, idempotent. The entity carries the flecs symbol of the C++ type, so
 	// typed use (set<T>, queries) resolves to it in any binary, before or after this call. Null for a class that
 	// cannot live in a column.
-	flecs::entity register_component(const ClassInfo& info);
+	Entity register_component(const ClassInfo& info);
 	// Looks the class up in ClassDB; null when unknown.
-	flecs::entity register_component(StaticString class_name);
+	Entity register_component(StaticString class_name);
 	// Every value type ClassDB knows.
 	void register_reflected_components();
 
 	// The component for a ClassDB class, found by its C++ type's symbol, or null.
-	[[nodiscard]] flecs::entity get_component(StaticString class_name) const;
+	[[nodiscard]] Entity get_component(StaticString class_name) const;
 	// Null for components registered without reflection.
-	[[nodiscard]] const ClassInfo* get_component_class_info(flecs::entity component) const;
+	[[nodiscard]] const ClassInfo* get_component_class_info(Entity component) const;
 
 	// The reflected component's data on `entity`, for property access through Variant; null when the entity lacks it,
 	// it is a tag, or it has no ClassInfo. Call entity.modified(component) after writing through it.
-	[[nodiscard]] ObjectRef get_component_ref(flecs::entity entity, flecs::entity component) const;
-	[[nodiscard]] ObjectRef get_component_ref(flecs::entity entity, StaticString component) const;
+	[[nodiscard]] ObjectRef get_component_ref(Entity entity, Entity component) const;
+	[[nodiscard]] ObjectRef get_component_ref(Entity entity, StaticString component) const;
 };
 
 } //namespace feather

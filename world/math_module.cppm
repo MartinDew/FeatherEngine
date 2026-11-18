@@ -10,6 +10,7 @@ export module feather.world:math_module;
 import std;
 import feather.framework;
 import :ecs_defs;
+import :world_ecs;
 import :ecs_module;
 import feather.reflection;
 

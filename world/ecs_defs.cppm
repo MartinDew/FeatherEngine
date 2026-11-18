@@ -5,8 +5,6 @@ module;
 
 export module feather.world:ecs_defs;
 
-export import :world_ecs;
-
 export namespace feather {
 using Entity = flecs::entity;
 using EcsTimer = flecs::timer;
