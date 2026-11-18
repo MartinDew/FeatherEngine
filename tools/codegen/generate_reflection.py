@@ -970,6 +970,9 @@ def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -
            f"\tusing parent = {c.parent or 'void'};",
            f'\tstatic constexpr StaticString name = "{c.name}"_ss;',
            f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;']
+    if c.resolved_modifiers:
+        names = ", ".join(f'"{modifier.name}"_ss' for modifier, _arg in c.resolved_modifiers)
+        out.append(f"\tstatic constexpr std::array<StaticString, {len(c.resolved_modifiers)}> modifiers {{ {names} }};")
     out += _tuple_lines("properties", [(_property_entry(c, p), p.condition) for p in c.properties])
     out += _tuple_lines("methods", method_entries)
     out += ["};", ""]
