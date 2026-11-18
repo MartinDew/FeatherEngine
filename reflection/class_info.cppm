@@ -169,8 +169,6 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	void* (*from_reflected)(Reflected* object) = nullptr;
 	// A new default-constructed instance, freed with delete; null unless the class can be created.
 	Reflected* (*create_reflected)() = nullptr;
-	// Variant built-ins only: the Variant holding a copy of `src` (a default instance when null).
-	Variant (*to_variant)(const void* src) = nullptr;
 	// The registered parent, set by ClassDB at registration; null at a root.
 	const ClassInfo* parent_info = nullptr;
 

@@ -6,7 +6,7 @@ import feather.math;
 import :ftype;
 
 // Descriptions of the types Variant stores natively. They live below reflection, so they can't carry their own FType
-// the way an FSTRUCT does; ClassDB::register_builtin builds their ClassInfo from these. The names are the precision
+// the way an FSTRUCT does. Variant::get/set read these directly, with no ClassInfo. The names are the precision
 // aliases, whichever type the build selects.
 namespace feather {
 
