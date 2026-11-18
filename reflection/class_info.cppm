@@ -150,6 +150,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	StaticString cpp_name = ""_ss;
 	StaticString parent = ""_ss;
 	std::vector<const ClassInfo*> children;
+	// The FCLASS(...)/FSTRUCT(...) modifier names, opaque to reflection.
+	std::vector<StaticString> modifiers;
 
 	// Abstract/singleton classes are never created through reflection.
 	bool is_abstract = false;
@@ -213,6 +215,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		}
 		return false;
 	}
+
+	bool has_modifier(StaticString modifier) const { return std::ranges::contains(modifiers, modifier); }
 
 	bool can_create() const {
 		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&

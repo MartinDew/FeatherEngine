@@ -92,8 +92,8 @@ std::string get_symbol(const ClassInfo& info) {
 }
 
 bool can_be_component(const ClassInfo& info) {
-	return info.is_value_type && !info.is_abstract && !info.is_singleton && info.can_create() &&
-			!info.cpp_name.str().empty();
+	return info.is_value_type && !info.has_modifier("no_component") && !info.is_abstract && !info.is_singleton &&
+			info.can_create() && !info.cpp_name.str().empty();
 }
 
 } //namespace

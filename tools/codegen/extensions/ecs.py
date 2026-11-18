@@ -6,7 +6,8 @@ principle (a headless, non-ECS consumer of this generator wouldn't need it),
 but FeatherEngine's own world module uses it, so it's shipped and always
 loaded the same way core_modifiers.py is. Its hooks only run for a class that
 carries the modifier. Components need no modifier: every value type is
-registered as a component from ClassDB at runtime (see WorldSim::init).
+registered as a component from ClassDB at runtime (see WorldSim::init), except
+one marked no_component.
 """
 
 from modifier_api import Modifier
@@ -36,4 +37,12 @@ class EcsModuleModifier(Modifier):
         ]
 
 
-MODIFIERS = [EcsModuleModifier()]
+class NoComponentModifier(Modifier):
+    """FSTRUCT(no_component): a value type that is never registered as an ECS component (see
+    World::register_reflected_components). It only records the name in ClassInfo::modifiers."""
+    name = "no_component"
+    targets = frozenset({"class"})
+    value_type = True
+
+
+MODIFIERS = [EcsModuleModifier(), NoComponentModifier()]

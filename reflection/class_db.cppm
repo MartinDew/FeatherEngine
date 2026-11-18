@@ -210,6 +210,11 @@ void ClassDB::_register(ClassKind kind) {
 		}
 	}
 
+	info.modifiers.clear();
+	if constexpr (requires { Desc::modifiers; }) {
+		info.modifiers.assign(Desc::modifiers.begin(), Desc::modifiers.end());
+	}
+
 	info.properties.clear();
 	std::apply([&info](const auto&... desc) { (_add_property<T>(info, desc), ...); }, Desc::properties);
 	info.methods.clear();
