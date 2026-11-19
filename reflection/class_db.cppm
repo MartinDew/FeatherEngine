@@ -278,8 +278,23 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
 			using R = typename Traits::ret;
 			if constexpr (signature_bindable<R, A...>) {
-				// self is already adjusted to T by the caller (see Variant::_internal_call).
-				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { Function } });
+				if constexpr (std::is_base_of_v<Reflected, T>) {
+					std::function<R(Reflected*, A...)> func = [](Reflected* instance, A... args) -> R {
+						T* object = object_cast<T>(instance);
+						fassert(object, "Method called on an object of the wrong class");
+						return (object->*Function)(args...);
+					};
+					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				}
+				else if constexpr (Traits::is_const) {
+					std::function<R(const T&, A...)> func = [](const T& instance, A... args) -> R {
+						return (instance.*Function)(args...);
+					};
+					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				}
+				else {
+					static_assert(!Strict, "A value type's [[method]] must be const: it is called on a copy");
+				}
 			}
 			else {
 				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
