@@ -28,6 +28,7 @@ struct FEATHER_WORLD_API EntityHandle {
 	EntityHandle(Entity entity) : world { entity.world().c_ptr() }, id { entity.id() } {}
 
 	operator Entity() const { return Entity(world, id); }
+	bool operator==(const EntityHandle&) const = default;
 
 	[[method]] [[nodiscard]] bool is_valid() const;
 	[[method]] void destroy();
@@ -49,6 +50,10 @@ struct FEATHER_WORLD_API EntityHandle {
 	[[method]] [[nodiscard]] Variant get_component(const EntityHandle& component) const;
 	// Copies `value` in, which must be a VALUE of the component's class. Returns whether it was applied.
 	[[method]] bool set_component(const EntityHandle& component, const Variant& value);
+
+private:
+	// The ClassInfo a component entity was registered from, or null.
+	static const ClassInfo* _get_class_info(const EntityHandle& component);
 };
 
 } //namespace feather
