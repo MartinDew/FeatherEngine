@@ -451,31 +451,43 @@ void Variant::set_internal(std::string_view key, const Variant& value) {
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	return _internal_call(method_name, {}, /*enforce_public=*/true);
+	Variant self = _get_self();
+	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	return _internal_call(method_name, {}, /*enforce_public=*/false);
+	Variant self = _get_self();
+	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/false);
 }
 
-Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) {
+Variant Variant::_get_self() const {
+	return _type == VariantType::OBJECT ? Variant(_object()) : *this;
+}
+
+// args[0] is the instance, which a static method doesn't take.
+Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
 	fassert(!_has_builtin_properties(), "Built-in types have no methods");
-	Variant result;
-	_walk([&](const ClassInfo& info, void* object) {
-		for (auto& method : info.methods) {
-			if (method.name == method_name) {
-				// Script-facing calls (enforce_public) only reach public methods.
-				if (enforce_public && method.access != AccessLevel::Public) {
-					return true;
-				}
-				result = method.callable.call_on(method.is_static ? nullptr : object, args);
-				return true;
+	const ClassInfo* info = nullptr;
+	if (Reflected* object = _object()) {
+		info = object->get_class_info();
+	}
+	else if (const ValueBox* box = get_value()) {
+		info = box->get_class_info();
+	}
+	for (; info; info = info->parent_info) {
+		for (const ClassInfo::Method& method : info->methods) {
+			if (method.name != method_name) {
+				continue;
 			}
+			// Script-facing calls (enforce_public) only reach public methods.
+			if (enforce_public && method.access != AccessLevel::Public) {
+				return {};
+			}
+			return method.callable.call(method.is_static ? args.subspan(1) : args);
 		}
-		return false;
-	});
-	return result;
+	}
+	return {};
 }
 
 } //namespace feather

@@ -20,7 +20,7 @@ bool EntityHandle::is_valid() const {
 	return world && id != 0 && ecs_is_alive(world, id);
 }
 
-void EntityHandle::destroy() {
+void EntityHandle::destroy() const {
 	if (is_valid()) {
 		Entity(*this).destruct();
 	}
@@ -30,7 +30,7 @@ std::string EntityHandle::get_name() const {
 	return is_valid() ? std::string(Entity(*this).name().c_str()) : std::string {};
 }
 
-void EntityHandle::set_name(const std::string& name) {
+void EntityHandle::set_name(const std::string& name) const {
 	if (is_valid()) {
 		Entity(*this).set_name(name.c_str());
 	}
@@ -40,7 +40,7 @@ EntityHandle EntityHandle::get_parent() const {
 	return is_valid() ? EntityHandle(Entity(*this).parent()) : EntityHandle {};
 }
 
-void EntityHandle::set_parent(const EntityHandle& parent) {
+void EntityHandle::set_parent(const EntityHandle& parent) const {
 	if (!is_valid()) {
 		return;
 	}
@@ -60,13 +60,13 @@ std::vector<EntityHandle> EntityHandle::get_children() const {
 	return children;
 }
 
-void EntityHandle::add(const EntityHandle& component) {
+void EntityHandle::add(const EntityHandle& component) const {
 	if (is_valid() && component.is_valid()) {
 		Entity(*this).add(Entity(component));
 	}
 }
 
-void EntityHandle::remove(const EntityHandle& component) {
+void EntityHandle::remove(const EntityHandle& component) const {
 	if (is_valid() && component.is_valid()) {
 		Entity(*this).remove(Entity(component));
 	}
@@ -86,7 +86,7 @@ Variant EntityHandle::get_component(const EntityHandle& component) const {
 	return data ? Variant::from_value(*info, data) : Variant {};
 }
 
-bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) {
+bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) const {
 	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
 	const ValueBox* box = value.get_value();
 	if (!info || !box || box->get_class_info() != info) {

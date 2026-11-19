@@ -200,6 +200,8 @@ class FEATHER_REFLECTION_API Variant {
 
 	// The object of an OBJECT variant; null otherwise.
 	Reflected* _object() const;
+	// What a method takes as its instance: the object pointer, or a copy of the value.
+	Variant _get_self() const;
 
 	static const ClassInfo* _find_class_info(StaticString name);
 
@@ -210,7 +212,7 @@ class FEATHER_REFLECTION_API Variant {
 	[[nodiscard]] Variant _get_builtin(std::string_view key) const;
 	void _set_builtin(std::string_view key, const Variant& value);
 
-	// Visits the (class, storage) levels get/set/call reach: an object's hierarchy, or a value's single class.
+	// Visits the (class, storage) levels get/set reach: an object's hierarchy, or a value's single class.
 	template <class TVisit>
 	bool _walk(TVisit&& visit);
 
@@ -219,7 +221,7 @@ class FEATHER_REFLECTION_API Variant {
 
 	// enforce_public denies non-Public methods; *_internal entry points pass false.
 	[[nodiscard]] Variant
-	_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public);
+	_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const;
 
 public:
 	// Default constructor - NIL
@@ -420,7 +422,7 @@ public:
 	// Object method call
 	Variant call(std::string_view method_name);
 	template <class... TArgs>
-	Variant call(std::string_view method_name, TArgs&&... args);
+	Variant call(std::string_view method_name, TArgs&&... args) const;
 
 	// Privileged access for trusted engine systems (e.g. editor inspector);
 	// bypasses accessibility checks. Do not expose to scripts.
@@ -428,7 +430,7 @@ public:
 	void set_internal(std::string_view key, const Variant& value);
 	Variant call_internal(std::string_view method_name);
 	template <class... TArgs>
-	Variant call_internal(std::string_view method_name, TArgs&&... args);
+	Variant call_internal(std::string_view method_name, TArgs&&... args) const;
 
 	// implicit conversion
 	// In variant.h, inside the Variant class:
@@ -460,17 +462,17 @@ public:
 static_assert(sizeof(std::span<Variant>) > 0);
 
 template <class... TArgs>
-Variant Variant::call(std::string_view method_name, TArgs&&... args) {
+Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant params[] = { args... };
-	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), true);
+	Variant params[] = { _get_self(), args... };
+	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), true);
 }
 
 template <class... TArgs>
-Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) {
+Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) const {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant params[] = { args... };
-	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args)), false);
+	Variant params[] = { _get_self(), args... };
+	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), false);
 }
 
 } // namespace feather

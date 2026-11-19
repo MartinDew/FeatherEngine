@@ -202,7 +202,7 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
 		bool is_static = false;
-		// A non-static method's callable takes the declaring class's instance as self.
+		// A non-static method's callable takes its instance first: a Reflected* for an object, a copy for a value type.
 		Callable callable;
 	};
 
@@ -237,13 +237,16 @@ template <class C, class R, class... A>
 struct member_function_traits<R (C::*)(A...)> {
 	using ret = R;
 	using args = std::tuple<A...>;
+	static constexpr bool is_const = false;
 };
 template <class C, class R, class... A>
-struct member_function_traits<R (C::*)(A...) const> : member_function_traits<R (C::*)(A...)> {};
+struct member_function_traits<R (C::*)(A...) const> : member_function_traits<R (C::*)(A...)> {
+	static constexpr bool is_const = true;
+};
 template <class C, class R, class... A>
 struct member_function_traits<R (C::*)(A...) noexcept> : member_function_traits<R (C::*)(A...)> {};
 template <class C, class R, class... A>
-struct member_function_traits<R (C::*)(A...) const noexcept> : member_function_traits<R (C::*)(A...)> {};
+struct member_function_traits<R (C::*)(A...) const noexcept> : member_function_traits<R (C::*)(A...) const> {};
 
 template <class>
 struct data_member_traits;
