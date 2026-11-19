@@ -14,19 +14,36 @@ FSINGLETON_INSTANCE(WorldSim);
 WorldSim::WorldSim() : fixed_tick { _world.timer().interval(Engine::simulation_time) } {
 	FSINGLETON_CONSTRUCT_INSTANCE()
 #if BETA
-	_world.set<Ecs::Rest>({});
+	_world.set<flecs::Rest>({});
 #endif
 }
 
 WorldSim::~WorldSim() {
 	ClassDB::unregister_subclass_delegate(EcsModule::get_class_static(), _subclass_delegate_id);
+	ClassDB::unregister_class_delegate(_class_delegate_id);
 }
 
 void WorldSim::init() {
-	// Every reflected Component registers before any EcsModule imports
-	register_core_components(_world);
+	// Components are matched to typed flecs use by the compiler's name for the type, which ClassInfo derives the way
+	// flecs does. A compiler or flecs update that changes either spelling fails here rather than duplicating components.
+	fassert(
+			ClassDB::get_class_info<Scene>()->cpp_name.str() == std::string_view(flecs::_::type_name<Scene>()),
+			std::format(
+					"ClassInfo names Scene '{}' but flecs names it '{}'",
+					ClassDB::get_class_info<Scene>()->cpp_name.str(),
+					flecs::_::type_name<Scene>()
+			)
+	);
 
-	_scene_prefab = _world.prefab("Scene");
+	// Every value type is a component, registered before any EcsModule imports and uses them by type.
+	_world.component<ReflectedComponent>("ReflectedComponent");
+	_world.register_reflected_components();
+	_class_delegate_id = ClassDB::on_class_registered([this](std::string_view class_name) {
+		_world.register_component(StaticString(class_name));
+	});
+
+	// Not "Scene": that name already resolves to the Scene component's entity.
+	_scene_prefab = _world.prefab("ScenePrefab");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
@@ -51,22 +68,12 @@ void WorldSim::init() {
 }
 
 void WorldSim::update(double delta) {
-	// Ecs::query<Transform, MeshInstance, MaterialInstance> q
-
 	bool result = _world.progress(/*delta*/);
 }
 
 Entity WorldSim::create_scene(const std::string& name) const {
 	Scene s { { name } };
 	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
-}
-
-Entity WorldSim::create_entity(const std::string& name) const {
-	return _world.entity(name.c_str());
-}
-
-Entity WorldSim::create_entity(const Entity& parent_entity, const std::string& name) const {
-	return _world.entity(name.c_str()).child_of(parent_entity);
 }
 
 void WorldSim::add_to_scene(Entity entity) const {

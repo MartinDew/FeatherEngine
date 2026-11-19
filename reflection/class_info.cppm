@@ -5,6 +5,7 @@ import feather.framework;
 import :callable;
 import :enum_info;
 import :ftype;
+import :reflected;
 import :variant;
 
 export namespace feather {
@@ -37,6 +38,8 @@ struct LifecycleHooks {
 	void (*move)(void* dst, void* src, size_t count) = nullptr;
 	void (*copy_construct)(void* dst, const void* src, size_t count) = nullptr;
 	void (*move_construct)(void* dst, void* src, size_t count) = nullptr;
+	// The type's operator==; null when it has none.
+	bool (*equals)(const void* a, const void* b) = nullptr;
 	LifecycleIllegal illegal = LifecycleIllegal::None;
 };
 
@@ -91,17 +94,77 @@ constexpr LifecycleHooks make_lifecycle_hooks() {
 			std::uninitialized_move_n(static_cast<T*>(src), count, static_cast<T*>(dst));
 		};
 	}
+	if constexpr (std::equality_comparable<T>) {
+		hooks.equals = [](const void* a, const void* b) {
+			return *static_cast<const T*>(a) == *static_cast<const T*>(b);
+		};
+	}
 	return hooks;
+}
+
+namespace reflection_detail {
+
+// T's name as the compiler spells it in a function signature, which needs no RTTI. The branches and trimming follow
+// flecs_cpp.h's ECS_FUNC_NAME, so the name matches the identity flecs derives for T on each compiler.
+template <class T>
+struct CompilerTypeName {
+	static constexpr std::string_view slice() {
+#if defined(__clang__)
+		constexpr std::string_view signature = __PRETTY_FUNCTION__; // "... [T = feather::Light]"
+		constexpr std::size_t start = signature.find("T = ") + 4;
+		return signature.substr(start, signature.rfind(']') - start);
+#elif defined(__GNUC__)
+		constexpr std::string_view signature = __PRETTY_FUNCTION__; // "... [with T = feather::Light@module; ...]"
+		constexpr std::size_t start = signature.find("T = ") + 4;
+		return signature.substr(start, signature.find_first_of(";]", start) - start);
+#elif defined(_MSC_VER)
+		constexpr std::string_view signature = __FUNCSIG__; // "... CompilerTypeName<struct feather::Light>::slice(void)"
+		constexpr std::string_view open = "CompilerTypeName<";
+		constexpr std::size_t start = signature.find(open) + open.size();
+		std::string_view name = signature.substr(start, signature.rfind(">::slice(void)") - start);
+		constexpr std::array<std::string_view, 3> prefixes { "struct ", "class ", "enum " };
+		for (std::string_view prefix : prefixes) {
+			if (name.starts_with(prefix)) {
+				name.remove_prefix(prefix.size());
+			}
+		}
+		return name;
+#else
+#error "No compiler type name for this compiler"
+#endif
+	}
+
+	// Owned and NUL-terminated, so the name outlives the signature it was cut from.
+	static constexpr auto storage = [] {
+		std::array<char, slice().size() + 1> chars {};
+		std::ranges::copy(slice(), chars.begin());
+		return chars;
+	}();
+};
+
+} // namespace reflection_detail
+
+// T's fully qualified name as the compiler spells it, e.g. "feather::Light".
+template <class T>
+constexpr std::string_view compiler_type_name() {
+	using Name = reflection_detail::CompilerTypeName<T>;
+	return { Name::storage.data(), Name::storage.size() - 1 };
 }
 
 struct FEATHER_REFLECTION_API ClassInfo {
 	StaticString name = ""_ss;
+	// The C++ type's fully qualified name as the compiler spells it; see compiler_type_name().
+	StaticString cpp_name = ""_ss;
 	StaticString parent = ""_ss;
 	std::vector<const ClassInfo*> children;
+	// The FCLASS(...)/FSTRUCT(...) modifier names, opaque to reflection.
+	std::vector<StaticString> modifiers;
 
 	// Abstract/singleton classes are never created through reflection.
 	bool is_abstract = false;
 	bool is_singleton = false;
+	// Not derived from Reflected: stored by value, with no vtable.
+	bool is_value_type = false;
 
 	// An empty type still reports sizeof 1, so is_empty tells storage it needs none.
 	size_t size = 0;
@@ -109,8 +172,10 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	bool is_empty = false;
 	LifecycleHooks lifecycle;
 
-	// Adjusts a pointer to this class into a pointer to its parent subobject; null at a root.
-	void* (*to_parent)(void* object) = nullptr;
+	// Adjusts a Reflected pointer to this class's subobject of the same object; null for a value type.
+	void* (*from_reflected)(Reflected* object) = nullptr;
+	// A new default-constructed instance, freed with delete; null unless the class can be created.
+	Reflected* (*create_reflected)() = nullptr;
 	// The registered parent, set by ClassDB at registration; null at a root.
 	const ClassInfo* parent_info = nullptr;
 
@@ -136,28 +201,26 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		StaticString name;
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
-		// A non-static method's callable takes the ObjectRef of the declaring class first.
 		bool is_static = false;
+		// A non-static method's callable takes its instance first: a Reflected* for an object, a copy for a value type.
 		Callable callable;
 	};
 
 	std::vector<Method> methods;
 
-	// Visits (class, object adjusted to that class) from this class up to the root; stops at the first level visit
-	// returns true for, and returns whether one did.
+	// Visits (class, object adjusted to that class) from this class, the object's own, up to the root; stops at the
+	// first level visit returns true for, and returns whether one did.
 	template <class TVisit>
-	bool walk(void* object, TVisit&& visit) const {
-		for (const ClassInfo* info = this; info && object; info = info->parent_info) {
-			if (visit(*info, object)) {
+	bool walk(Reflected* object, TVisit&& visit) const {
+		for (const ClassInfo* info = this; info && object && info->from_reflected; info = info->parent_info) {
+			if (visit(*info, info->from_reflected(object))) {
 				return true;
 			}
-			if (!info->to_parent) {
-				break;
-			}
-			object = info->to_parent(object);
 		}
 		return false;
 	}
+
+	bool has_modifier(StaticString modifier) const { return std::ranges::contains(modifiers, modifier); }
 
 	bool can_create() const {
 		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&
@@ -174,13 +237,16 @@ template <class C, class R, class... A>
 struct member_function_traits<R (C::*)(A...)> {
 	using ret = R;
 	using args = std::tuple<A...>;
+	static constexpr bool is_const = false;
 };
 template <class C, class R, class... A>
-struct member_function_traits<R (C::*)(A...) const> : member_function_traits<R (C::*)(A...)> {};
+struct member_function_traits<R (C::*)(A...) const> : member_function_traits<R (C::*)(A...)> {
+	static constexpr bool is_const = true;
+};
 template <class C, class R, class... A>
 struct member_function_traits<R (C::*)(A...) noexcept> : member_function_traits<R (C::*)(A...)> {};
 template <class C, class R, class... A>
-struct member_function_traits<R (C::*)(A...) const noexcept> : member_function_traits<R (C::*)(A...)> {};
+struct member_function_traits<R (C::*)(A...) const noexcept> : member_function_traits<R (C::*)(A...) const> {};
 
 template <class>
 struct data_member_traits;

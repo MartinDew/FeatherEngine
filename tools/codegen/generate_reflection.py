@@ -871,8 +871,6 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
-            body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
-                        "{ return _make_object_ref(this, this, get_class_static()); }")
         body.extend(public_lines)
         body.append("protected:")
         body.append(f"\tusing Type = {c.name};")
@@ -972,6 +970,9 @@ def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -
            f"\tusing parent = {c.parent or 'void'};",
            f'\tstatic constexpr StaticString name = "{c.name}"_ss;',
            f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;']
+    if c.resolved_modifiers:
+        names = ", ".join(f'"{modifier.name}"_ss' for modifier, _arg in c.resolved_modifiers)
+        out.append(f"\tstatic constexpr std::array<StaticString, {len(c.resolved_modifiers)}> modifiers {{ {names} }};")
     out += _tuple_lines("properties", [(_property_entry(c, p), p.condition) for p in c.properties])
     out += _tuple_lines("methods", method_entries)
     out += ["};", ""]
@@ -1159,8 +1160,7 @@ def validate_hierarchy(classes: list):
     for c in classes:
         base = known.get(c.parent)
         if base is not None and base.is_value_type:
-            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives
-            # from it.
+            # A value type's ClassInfo comes from its static type, which is only right if nothing derives from it.
             raise ParseError(
                 f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
                 f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."

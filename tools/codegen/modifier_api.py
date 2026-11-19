@@ -1,8 +1,8 @@
 """
 modifier_api.py — extension API for FCLASS(...)/FSTRUCT(...) modifiers.
 
-Lets a game project add its own cross-cutting FCLASS concern (e.g. an ECS
-`Component`/`EcsModule` pair; see tools/codegen/extensions/ecs.py) without
+Lets a game project add its own cross-cutting FCLASS concern (e.g. the ECS
+`EcsModule` modifier; see tools/codegen/extensions/ecs.py) without
 forking generate_reflection.py, which used to hardcode modifiers directly.
 
 A Modifier is a plain object with one method per emission site the generator
@@ -67,11 +67,8 @@ class DirEmission:
     """Extra content a modifier wants aggregated over an entire source
     directory, returned from Modifier.emit_dir(). Appended to
     register_<dir>_types.gen.{h,cpp} after the per-class content
-    generate_gen_header()/generate_register_cpp() already produce -- see
-    e.g. ecs.py's ComponentModifier, which has no per-class hook to attach
-    to (world.component<T>() needs a live flecs::world&, which ClassDB
-    registration never has) and instead emits one
-    aggregate register_<dir>_components(World&) function."""
+    generate_gen_header()/generate_register_cpp() already produce, for a
+    concern that has no per-class hook to attach to."""
     header_includes: list = dc_field(default_factory=list)   # quoted, core-relative
     header_decls: list = dc_field(default_factory=list)      # raw lines, inside `namespace feather { ... }`
     cpp_includes: list = dc_field(default_factory=list)       # quoted, core-relative
@@ -80,7 +77,7 @@ class DirEmission:
 
 class Modifier:
     """Base class for a modifier plugged into an FCLASS(...)/FSTRUCT(...)
-    token list, e.g. `FCLASS(singleton)` or `FSTRUCT(Component)`. Subclass
+    token list, e.g. `FCLASS(singleton)` or `FCLASS(EcsModule)`. Subclass
     and override only the hooks that apply; everything else defaults to
     "contributes nothing" (see the no-op bodies below).
 
@@ -108,8 +105,8 @@ class Modifier:
 
     def validate(self, cls, ctx: EmitContext):
         """Raise ModifierError for anything not already covered by `targets`/
-        `value_type` (e.g. Component rejecting a class that also carries some
-        other incompatible modifier)."""
+        `value_type` (e.g. rejecting a class that also carries some other
+        incompatible modifier)."""
 
     def gen_header_includes(self, cls, ctx: EmitContext) -> list:
         """Extra #include lines (quoted, core-relative, e.g.

@@ -15,6 +15,7 @@ export module feather.world:rendering_world_module;
 import std;
 import feather.framework;
 import :ecs_defs;
+import :world_ecs;
 import :ecs_module;
 import :world_sim;
 import feather.reflection;
@@ -23,13 +24,13 @@ import feather.rendering;
 export namespace feather {
 
 struct FEATHER_WORLD_API MeshInstance {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	std::shared_ptr<Mesh> mesh;
 };
 
 struct FEATHER_WORLD_API MaterialInstance {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	std::shared_ptr<Material> material; // todo: multiple materials
 };

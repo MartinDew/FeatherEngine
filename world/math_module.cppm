@@ -10,6 +10,7 @@ export module feather.world:math_module;
 import std;
 import feather.framework;
 import :ecs_defs;
+import :world_ecs;
 import :ecs_module;
 import feather.reflection;
 
@@ -20,7 +21,7 @@ class FEATHER_WORLD_API MathWorldModule final : public EcsModule {
 
 public:
 	MathWorldModule();
-	MathWorldModule(World& world);
+	MathWorldModule(World world);
 };
 
 } //namespace feather

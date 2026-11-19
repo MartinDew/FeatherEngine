@@ -23,57 +23,12 @@ void ClassDB::clear() {
 	_instance->_class_infos.clear();
 	_instance->_enum_infos.clear();
 	_instance->_subclass_delegates.clear();
+	_instance->_class_registered_delegate.clear();
 }
 
-// Allocates the way a new-expression would, so a Reflected instance can also be freed with a plain delete.
-static void* allocate_instance(const ClassInfo& info) {
-	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-		return ::operator new(info.size, std::align_val_t { info.alignment });
-	}
-	return ::operator new(info.size);
-}
-
-static void free_instance(void* ptr, const ClassInfo& info) {
-	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
-	}
-	else {
-		::operator delete(ptr, info.size);
-	}
-}
-
-ObjectRef ClassDB::instantiate(StaticString class_name) {
+Reflected* ClassDB::instantiate(StaticString class_name) {
 	const ClassInfo* info = get_class_info(class_name);
-	if (!info || !info->can_create()) {
-		return {};
-	}
-	void* ptr = allocate_instance(*info);
-	if (info->lifecycle.default_construct) {
-		try {
-			info->lifecycle.default_construct(ptr, 1);
-		} catch (...) {
-			free_instance(ptr, *info);
-			throw;
-		}
-	}
-	else {
-		// Trivially default-constructible: value-initialization zeroes it.
-		std::memset(ptr, 0, info->size);
-	}
-	ObjectRef object(ptr, info);
-	object._reflected = static_cast<Reflected*>(object.cast_to(get_class_info(Reflected::get_class_static())));
-	return object;
-}
-
-void ClassDB::destroy(ObjectRef object) {
-	if (!object) {
-		return;
-	}
-	const ClassInfo& info = *object.get_class_info();
-	if (info.lifecycle.destruct) {
-		info.lifecycle.destruct(object.get(), 1);
-	}
-	free_instance(object.get(), info);
+	return info && info->create_reflected ? info->create_reflected() : nullptr;
 }
 
 std::vector<StaticString> ClassDB::_get_children_names_internal(const ClassInfo& object, bool exclusive) {
@@ -134,6 +89,25 @@ void ClassDB::unregister_subclass_delegate(std::string_view base_class_name, Del
 	}
 }
 
+Delegate<std::string_view>::id_t ClassDB::on_class_registered(
+		const Delegate<std::string_view>::DelegateFuncType& callback
+) {
+	return get()->_class_registered_delegate.subscribe(callback);
+}
+
+void ClassDB::unregister_class_delegate(Delegate<std::string_view>::id_t id) {
+	get()->_class_registered_delegate.remove(id);
+}
+
+std::vector<StaticString> ClassDB::get_class_names() {
+	std::vector<StaticString> names;
+	names.reserve(get()->_class_infos.size());
+	for (const auto& [name, info] : get()->_class_infos) {
+		names.push_back(name);
+	}
+	return names;
+}
+
 void ClassDB::_fire_subclass_delegates(const ClassInfo& info) {
 	for (const ClassInfo* parent = info.parent_info; parent; parent = parent->parent_info) {
 		auto it = get()->_subclass_delegates.find(parent->name);
@@ -156,10 +130,10 @@ bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
 #ifdef BETA
 // TODO consider adding code directly in variant
 static std::string_view variant_type_name(VariantType type) {
-	static constexpr std::array<std::string_view, 18> names { "NIL",	 "BOOL",	  "INT",	"FLOAT",   "VECTOR3",
+	static constexpr std::array<std::string_view, 19> names { "NIL",	 "BOOL",	  "INT",	"FLOAT",   "VECTOR3",
 															  "VECTOR2", "VERTEX",	  "COLOR",	"VECTOR4", "QUATERNION",
 															  "MATRIX",	 "TRANSFORM", "RID",	"STRING",  "ARRAY",
-															  "PATH",	 "OBJECT",	  "INVALID" };
+															  "PATH",	 "OBJECT",	  "VALUE",	"INVALID" };
 	size_t index = std::to_underlying(type);
 	return index < names.size() ? names[index] : "UNKNOWN";
 }

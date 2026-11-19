@@ -2,12 +2,6 @@ module;
 
 #include <rtm/impl/compiler_utils.h>
 
-#include <framework/reflection_macros.h>
-
-#ifndef FEATHER_REFLECTION_PARSER
-#include "quaternion.gen.h"
-#endif
-
 export module feather.math:quaternion;
 
 import rtm;
@@ -23,12 +17,10 @@ struct Matrix4x4f;
 // A rotation stored as four plain reals, laid out like a 4-component vector so it reaches RTM's
 // register type without a conversion step.
 struct Quaternionf {
-	FSTRUCT();
-
-	[[get, set]] float x = 0.0f;
-	[[get, set]] float y = 0.0f;
-	[[get, set]] float z = 0.0f;
-	[[get, set]] float w = 1.0f;
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float w = 1.0f;
 
 	constexpr Quaternionf() = default;
 	constexpr Quaternionf(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
@@ -104,12 +96,10 @@ inline constexpr Quaternionf Quaternionf::identity { 0.0f, 0.0f, 0.0f, 1.0f };
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Quaterniond {
-	FSTRUCT();
-
-	[[get, set]] double x = 0.0;
-	[[get, set]] double y = 0.0;
-	[[get, set]] double z = 0.0;
-	[[get, set]] double w = 1.0;
+	double x = 0.0;
+	double y = 0.0;
+	double z = 0.0;
+	double w = 1.0;
 
 	constexpr Quaterniond() = default;
 	constexpr Quaterniond(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}

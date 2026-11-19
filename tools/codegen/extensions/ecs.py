@@ -1,16 +1,16 @@
 """
-ecs.py — Flecs ECS modifiers: EcsModule, Component.
+ecs.py — Flecs ECS modifier: EcsModule.
 
-Unlike core_modifiers.py these aren't part of the base modifier vocabulary in
-principle (a headless, non-ECS consumer of this generator wouldn't need them),
-but FeatherEngine's own world module uses them, so they're shipped and always
-loaded the same way core_modifiers.py is. A project (or a future core
-subsystem) that never applies EcsModule/Component is unaffected either way --
-these hooks only ever run for a class that actually carries the modifier
-(Component's emit_dir is the one exception; see its docstring).
+Unlike core_modifiers.py this isn't part of the base modifier vocabulary in
+principle (a headless, non-ECS consumer of this generator wouldn't need it),
+but FeatherEngine's own world module uses it, so it's shipped and always
+loaded the same way core_modifiers.py is. Its hooks only run for a class that
+carries the modifier. Components need no modifier: every value type is
+registered as a component from ClassDB at runtime (see WorldSim::init), except
+one marked no_component.
 """
 
-from modifier_api import DirEmission, Modifier
+from modifier_api import Modifier
 
 
 class EcsModuleModifier(Modifier):
@@ -37,26 +37,12 @@ class EcsModuleModifier(Modifier):
         ]
 
 
-class ComponentModifier(Modifier):
-    """FSTRUCT(Component) (or FCLASS(novtable, Component)) marks a value type
-    as a Flecs component. Doesn't touch the class body or its FType at
-    all -- world.component<T>("T") needs a live flecs::world&, which neither
-    the per-class .gen.h macro nor ClassDB registration ever has access to.
-    Instead, registration is aggregated per source directory into one
-    register_<dir>_components(world) via emit_dir(), which the engine calls
-    once it actually has a world (see register_core_ecs_features)."""
-    name = "Component"
+class NoComponentModifier(Modifier):
+    """FSTRUCT(no_component): a value type that is never registered as an ECS component (see
+    World::register_reflected_components). It only records the name in ClassInfo::modifiers."""
+    name = "no_component"
     targets = frozenset({"class"})
     value_type = True
 
-    def emit_dir(self, classes, ctx):
-        members = [c for c in classes if any(m.name == self.name for m, _ in c.resolved_modifiers)]
-        func = f"register_{ctx.dir_name}_components"
-        # A template over the world type, so modules below world declare components without flecs.
-        decls = ["template <class TWorld>", f"void {func}([[maybe_unused]] TWorld& world) {{"]
-        decls += [f'\tworld.template component<{c.name}>("{c.name}");' for c in members]
-        decls += ["}", ""]
-        return DirEmission(header_decls=decls)
 
-
-MODIFIERS = [EcsModuleModifier(), ComponentModifier()]
+MODIFIERS = [EcsModuleModifier(), NoComponentModifier()]

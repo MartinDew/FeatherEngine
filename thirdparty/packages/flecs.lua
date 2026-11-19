@@ -10,7 +10,7 @@ package("flecs")
              "https://github.com/SanderMertens/flecs.git")
 
     -- Only the version the engine pins, forcing a check the patch below still applies on a bump.
-    add_versions("v4.1.5", "8b94f56dfdda0b3c86110f651a4e0ec1c59030db43bb4810ae296a0630682ab9")
+    add_versions("v4.2.0", "4107b0a36aa25f80ddcd6f939451ccfe1bacafcccdd2695840a4a8c413d05b40")
 
     add_deps("cmake")
 

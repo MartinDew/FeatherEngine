@@ -17,6 +17,7 @@ import feather.framework;
 import :simulation;
 import :components.scene;
 import :ecs_defs;
+import :world_ecs;
 import feather.reflection;
 
 export namespace feather {
@@ -31,14 +32,10 @@ class FEATHER_WORLD_API WorldSim final : public Simulation {
 	std::vector<Entity> _scenes;
 
 	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
+	ClassDB::subclass_delegate_t::id_t _class_delegate_id = -1;
 
 	// In world_sim.h, private section:
 	bool _is_in_scene(flecs::entity e, Entity scene) const;
-
-	template <class... TComps, class TFunc>
-	void _iterate_tree(flecs::entity e, TFunc func) {
-		// Todo
-	}
 
 protected:
 	template <std::derived_from<class EcsModule> T>
@@ -61,18 +58,13 @@ public:
 	[[nodiscard]]
 	Entity create_scene(const std::string& name) const;
 
-	[[nodiscard]]
-	Entity create_entity(const std::string& name = "") const;
-	[[nodiscard]]
-	Entity create_entity(const Entity& parent_entity, const std::string& name = "") const;
-
-	// get low level world impl
-	[[nodiscard]] inline World* get_world() { return &_world; }
+	// The world this simulation owns; the one scripts reach.
+	[[method]] [[nodiscard]] inline World* get_world() { return &_world; }
 
 	void add_to_scene(Entity entity) const;
 
 	template <class... T>
-	Ecs::system_builder<T...>& execute_fixed(Ecs::system_builder<T...>& system) {
+	flecs::system_builder<T...>& execute_fixed(flecs::system_builder<T...>& system) {
 		return system.tick_source(fixed_tick);
 	}
 
@@ -81,13 +73,8 @@ public:
 	// Build a query scoped to the active scene
 	template <class... TComps>
 	auto scene_query() {
-		return _world.query_builder<TComps...>().template with<ActiveScene>().up(Ecs::ChildOf).build();
+		return _world.query_builder<TComps...>().template with<ActiveScene>().up(flecs::ChildOf).build();
 	}
-
-	template <class... TComps>
-	auto scene_system() {
-
-	};
 };
 
 } //namespace feather

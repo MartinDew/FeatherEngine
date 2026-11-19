@@ -4,11 +4,140 @@ import std;
 
 namespace feather {
 
-ObjectRef Variant::_object_ref() const {
-	if (auto* ref = std::get_if<ObjectRef>(&_data)) {
-		return *ref;
+namespace {
+
+void* allocate_value(const ClassInfo& info) {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		return ::operator new(info.size, std::align_val_t { info.alignment });
 	}
-	return {};
+	return ::operator new(info.size);
+}
+
+void free_value(void* ptr, const ClassInfo& info) noexcept {
+	if (info.alignment > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+		::operator delete(ptr, info.size, std::align_val_t { info.alignment });
+	}
+	else {
+		::operator delete(ptr, info.size);
+	}
+}
+
+} // namespace
+
+ValueBox::ValueBox(const ClassInfo& info, const void* src) {
+	fassert(info.is_value_type && info.can_create(), "A ValueBox needs a creatable value type");
+	void* data = allocate_value(info);
+	try {
+		if (!src) {
+			if (info.lifecycle.default_construct) {
+				info.lifecycle.default_construct(data, 1);
+			}
+			else {
+				std::memset(data, 0, info.size);
+			}
+		}
+		else if (info.lifecycle.copy_construct) {
+			info.lifecycle.copy_construct(data, src, 1);
+		}
+		else {
+			fassert(
+					!has_flag(info.lifecycle.illegal, LifecycleIllegal::CopyConstruct),
+					"Boxing a value type that can't be copied"
+			);
+			std::memcpy(data, src, info.size);
+		}
+	} catch (...) {
+		free_value(data, info);
+		throw;
+	}
+	_info = &info;
+	_data = data;
+}
+
+ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {}
+
+ValueBox::ValueBox(ValueBox&& other) noexcept
+		: _info { std::exchange(other._info, nullptr) }
+		, _data { std::exchange(other._data, nullptr) } {}
+
+ValueBox& ValueBox::operator=(const ValueBox& other) {
+	if (this != &other) {
+		*this = ValueBox(other);
+	}
+	return *this;
+}
+
+ValueBox& ValueBox::operator=(ValueBox&& other) noexcept {
+	if (this != &other) {
+		_destroy();
+		_info = std::exchange(other._info, nullptr);
+		_data = std::exchange(other._data, nullptr);
+	}
+	return *this;
+}
+
+ValueBox::~ValueBox() {
+	_destroy();
+}
+
+void ValueBox::_destroy() noexcept {
+	if (_data) {
+		if (_info->lifecycle.destruct) {
+			_info->lifecycle.destruct(_data, 1);
+		}
+		free_value(_data, *_info);
+	}
+	_info = nullptr;
+	_data = nullptr;
+}
+
+bool ValueBox::is_class(StaticString name) const noexcept {
+	return _info && _info->name == name;
+}
+
+bool ValueBox::operator==(const ValueBox& other) const {
+	if (_info != other._info) {
+		return false;
+	}
+	if (!_info) {
+		return true;
+	}
+	if (_info->lifecycle.equals) {
+		return _info->lifecycle.equals(_data, other._data);
+	}
+	for (const ClassInfo::Property& property : _info->properties) {
+		if (property.getter && property.getter(_data) != property.getter(other._data)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+const ClassInfo* Variant::_find_class_info(StaticString name) {
+	return ClassDB::get_class_info(name);
+}
+
+Variant Variant::from_value(const ClassInfo& info, const void* src) {
+	if (!info.is_value_type || !info.can_create()) {
+		return {};
+	}
+	Variant result;
+	result._data = ValueBox(info, src);
+	result._type = VariantType::VALUE;
+	return result;
+}
+
+Variant Variant::default_value(const ClassInfo& info) {
+	return from_value(info, nullptr);
+}
+
+const ValueBox* Variant::get_value() const {
+	return std::get_if<ValueBox>(&_data);
+}
+
+Reflected* Variant::_object() const {
+	auto* object = std::get_if<Reflected*>(&_data);
+	return object ? *object : nullptr;
 }
 
 bool Variant::operator==(const Variant& other) const {
@@ -77,6 +206,8 @@ std::string_view Variant::get_type_name(VariantType type) {
 		return "Path";
 	case VariantType::OBJECT:
 		return "Object";
+	case VariantType::VALUE:
+		return "Value";
 	case VariantType::INVALID:
 		break;
 	}
@@ -102,8 +233,11 @@ bool Variant::booleanize() const {
 				{
 					return !value.empty();
 				}
-				else if constexpr (std::is_same_v<T, ObjectRef>) {
-					return static_cast<bool>(value);
+				else if constexpr (std::is_same_v<T, Reflected*>) {
+					return value != nullptr;
+				}
+				else if constexpr (std::is_same_v<T, ValueBox>) {
+					return true;
 				}
 				else if constexpr (std::is_same_v<T, RID>) {
 					return value != RID {};
@@ -163,6 +297,10 @@ std::string Variant::to_string() const {
 		return "[Array]";
 	case VariantType::OBJECT:
 		return "[Object] : " + get_name();
+	case VariantType::VALUE: {
+		const ValueBox& box = std::get<ValueBox>(_data);
+		return box.get_class_info() ? std::format("[{}]", box.get_class_info()->name.str()) : "[Value]";
+	}
 	case VariantType::INVALID:
 		return "[Invalid]";
 	}
@@ -173,25 +311,91 @@ std::string Variant::get_name() const {
 	if (_type != VariantType::OBJECT) {
 		return to_string();
 	}
-	ObjectRef ref = _object_ref();
-	if (!ref.get_class_info()) {
-		return "[Object: no class info]";
-	}
-	return std::string(ref.get_class_name());
+	Reflected* object = _object();
+	return object ? std::string(object->get_class_name()) : "[Object: null]";
 }
 
 namespace {
 
-// Walks the object's class hierarchy; see ClassInfo::walk.
-template <class TVisit>
-bool walk_hierarchy(ObjectRef ref, TVisit&& visit) {
-	const ClassInfo* info = ref.get_class_info();
-	return info && info->walk(ref.get(), std::forward<TVisit>(visit));
+template <class T>
+concept has_builtin_ftype = requires { FType<T>::properties; };
+
+} // namespace
+
+bool Variant::_is_reflectable() const {
+	return _type == VariantType::OBJECT || _type == VariantType::VALUE || _has_builtin_properties();
 }
 
-Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {
+bool Variant::_has_builtin_properties() const {
+	return std::visit([](const auto& value) { return has_builtin_ftype<std::decay_t<decltype(value)>>; }, _data);
+}
+
+Variant Variant::_get_builtin(std::string_view key) const {
+	return std::visit(
+			[&](const auto& value) -> Variant {
+				using T = std::decay_t<decltype(value)>;
+				Variant result;
+				if constexpr (has_builtin_ftype<T>) {
+					std::apply(
+							[&](const auto&... desc) {
+								((desc.name == key ? (result = Variant(value.*desc.getter), true) : false) || ...);
+							},
+							FType<T>::properties
+					);
+				}
+				return result;
+			},
+			_data
+	);
+}
+
+void Variant::_set_builtin(std::string_view key, const Variant& new_value) {
+	std::visit(
+			[&](auto& value) {
+				using T = std::decay_t<decltype(value)>;
+				if constexpr (has_builtin_ftype<T>) {
+					std::apply(
+							[&](const auto&... desc) {
+								auto assign = [&](const auto& property) {
+									using Field = std::decay_t<decltype(value.*property.setter)>;
+									if (property.name != key) {
+										return false;
+									}
+									if (auto converted = new_value.as<Field>()) {
+										value.*property.setter = std::move(*converted);
+									}
+									return true;
+								};
+								(assign(desc) || ...);
+							},
+							FType<T>::properties
+					);
+				}
+			},
+			_data
+	);
+}
+
+template <class TVisit>
+bool Variant::_walk(TVisit&& visit) {
+	if (_type == VariantType::OBJECT) {
+		Reflected* object = _object();
+		const ClassInfo* info = object ? object->get_class_info() : nullptr;
+		return info && info->walk(object, std::forward<TVisit>(visit));
+	}
+	if (ValueBox* box = std::get_if<ValueBox>(&_data); box && box->get()) {
+		return visit(*box->get_class_info(), box->get());
+	}
+	return false;
+}
+
+Variant Variant::_get_property(std::string_view key, bool enforce_public) const {
+	if (_has_builtin_properties()) {
+		return _get_builtin(key);
+	}
 	Variant result;
-	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+	// Getters take a mutable pointer but never write through it.
+	const_cast<Variant&>(*this)._walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				// Script-facing access: only public getters are reachable.
@@ -206,8 +410,12 @@ Variant get_property(ObjectRef ref, std::string_view key, bool enforce_public) {
 	return result;
 }
 
-void set_property(ObjectRef ref, std::string_view key, const Variant& value, bool enforce_public) {
-	walk_hierarchy(ref, [&](const ClassInfo& info, void* object) {
+void Variant::_set_property(std::string_view key, const Variant& value, bool enforce_public) {
+	if (_has_builtin_properties()) {
+		_set_builtin(key, value);
+		return;
+	}
+	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				// Script-facing access: only public setters are writable.
@@ -221,64 +429,65 @@ void set_property(ObjectRef ref, std::string_view key, const Variant& value, boo
 	});
 }
 
-} // namespace
-
 Variant Variant::get(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object_ref(), key, true);
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	return _get_property(key, true);
 }
 
 Variant Variant::get_internal(std::string_view key) const {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	return get_property(_object_ref(), key, false);
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	return _get_property(key, false);
 }
 
 void Variant::set(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object_ref(), key, value, true);
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	_set_property(key, value, true);
 }
 
 void Variant::set_internal(std::string_view key, const Variant& value) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	set_property(_object_ref(), key, value, false);
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	_set_property(key, value, false);
 }
 
 Variant Variant::call(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant self = _object_ref();
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	Variant self = _get_self();
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
-	fassert(_type == VariantType::OBJECT, "Variant is not an object");
-	Variant self = _object_ref();
+	fassert(_is_reflectable(), "Variant has no properties or methods");
+	Variant self = _get_self();
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/false);
 }
 
-// args[0] is the object itself; it is replaced by the object adjusted to the class that declares the method.
+Variant Variant::_get_self() const {
+	return _type == VariantType::OBJECT ? Variant(_object()) : *this;
+}
+
+// args[0] is the instance, which a static method doesn't take.
 Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
-	Variant result;
-	walk_hierarchy(_object_ref(), [&](const ClassInfo& info, void* object) {
-		for (auto& method : info.methods) {
-			if (method.name == method_name) {
-				// Script-facing calls (enforce_public) only reach public methods.
-				if (enforce_public && method.access != AccessLevel::Public) {
-					return true;
-				}
-				const Callable& callable = method.callable;
-				if (method.is_static) {
-					result = callable.call(args.subspan(1));
-				}
-				else {
-					args[0] = Variant(ObjectRef(object, &info));
-					result = callable.call(args);
-				}
-				return true;
+	fassert(!_has_builtin_properties(), "Built-in types have no methods");
+	const ClassInfo* info = nullptr;
+	if (Reflected* object = _object()) {
+		info = object->get_class_info();
+	}
+	else if (const ValueBox* box = get_value()) {
+		info = box->get_class_info();
+	}
+	for (; info; info = info->parent_info) {
+		for (const ClassInfo::Method& method : info->methods) {
+			if (method.name != method_name) {
+				continue;
 			}
+			// Script-facing calls (enforce_public) only reach public methods.
+			if (enforce_public && method.access != AccessLevel::Public) {
+				return {};
+			}
+			return method.callable.call(method.is_static ? args.subspan(1) : args);
 		}
-		return false;
-	});
-	return result;
+	}
+	return {};
 }
 
 } //namespace feather

@@ -11,7 +11,6 @@ import :class_info;
 import :enum_info;
 import :reflection_utils;
 import :ftype;
-import :object;
 import :reflected;
 import :variant;
 
@@ -38,6 +37,7 @@ private:
 	std::unordered_map<StaticString, ClassInfo> _class_infos;
 	std::unordered_map<StaticString, EnumInfo> _enum_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
+	subclass_delegate_t _class_registered_delegate;
 
 	static void _fire_subclass_delegates(const ClassInfo& info);
 
@@ -108,18 +108,18 @@ public:
 		_register<T>(ClassKind::Singleton);
 	}
 
-	// New default-constructed instance owned by the caller, who frees it with destroy(); a Reflected one may instead
-	// be deleted. Null when the class is unknown or can't be created.
-	static ObjectRef instantiate(StaticString class_name);
-	static void destroy(ObjectRef object);
+	// New default-constructed object owned by the caller. Null when the class is unknown, is a value type or can't be
+	// created.
+	static Reflected* instantiate(StaticString class_name);
 
 	// Null when the class can't be created or isn't a T.
-	template <is_reflected T>
+	template <std::derived_from<Reflected> T>
+		requires is_reflected<T>
 	static std::unique_ptr<T> create_object(StaticString class_name) {
-		ObjectRef object = instantiate(class_name);
-		T* typed = object.cast<T>();
-		if (!typed) {
-			destroy(object);
+		std::unique_ptr<Reflected> object { instantiate(class_name) };
+		T* typed = object_cast<T>(object.get());
+		if (typed) {
+			object.release();
 		}
 		return std::unique_ptr<T> { typed };
 	}
@@ -130,6 +130,14 @@ public:
 	);
 
 	static void unregister_subclass_delegate(std::string_view base_class_name, Delegate<std::string_view>::id_t id);
+
+	// Fires with the class name after every registration, including classes from extensions loaded later.
+	static Delegate<std::string_view>::id_t on_class_registered(
+			const Delegate<std::string_view>::DelegateFuncType& callback
+	);
+	static void unregister_class_delegate(Delegate<std::string_view>::id_t id);
+
+	static std::vector<StaticString> get_class_names();
 
 	static std::vector<StaticString> get_children_names(StaticString object_name, bool exclusive = false);
 
@@ -161,9 +169,11 @@ void ClassDB::_register(ClassKind kind) {
 	ClassDB& instance = *get();
 	ClassInfo& info = instance._class_infos[Desc::name];
 	info.name = Desc::name;
+	info.cpp_name = compiler_type_name<T>();
 	info.parent = Desc::parent_name;
 	info.is_abstract = kind == ClassKind::Abstract;
 	info.is_singleton = kind == ClassKind::Singleton;
+	info.is_value_type = is_value_type;
 	info.size = sizeof(T);
 	info.alignment = alignof(T);
 	info.is_empty = std::is_empty_v<T>;
@@ -174,12 +184,18 @@ void ClassDB::_register(ClassKind kind) {
 		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
 	}
 
-	if constexpr (!std::is_void_v<typename Desc::parent>) {
-		using Parent = typename Desc::parent;
-		info.to_parent = [](void* object) -> void* { return static_cast<Parent*>(static_cast<T*>(object)); };
+	if constexpr (std::is_base_of_v<Reflected, T>) {
+		info.from_reflected = [](Reflected* object) -> void* { return static_cast<T*>(object); };
+		info.create_reflected = nullptr;
+		if constexpr (!std::is_abstract_v<T> && std::is_default_constructible_v<T>) {
+			if (kind == ClassKind::Auto) {
+				info.create_reflected = []() -> Reflected* { return new T(); };
+			}
+		}
 	}
 	else {
-		info.to_parent = nullptr;
+		info.from_reflected = nullptr;
+		info.create_reflected = nullptr;
 	}
 
 	info.parent_info = nullptr;
@@ -194,12 +210,18 @@ void ClassDB::_register(ClassKind kind) {
 		}
 	}
 
+	info.modifiers.clear();
+	if constexpr (requires { Desc::modifiers; }) {
+		info.modifiers.assign(Desc::modifiers.begin(), Desc::modifiers.end());
+	}
+
 	info.properties.clear();
 	std::apply([&info](const auto&... desc) { (_add_property<T>(info, desc), ...); }, Desc::properties);
 	info.methods.clear();
 	std::apply([&info](const auto&... desc) { (_add_method<T>(info, desc), ...); }, Desc::methods);
 
 	_fire_subclass_delegates(info);
+	instance._class_registered_delegate.execute(info.name.str());
 }
 
 template <class T, auto Getter, auto Setter>
@@ -256,11 +278,23 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
 			using R = typename Traits::ret;
 			if constexpr (signature_bindable<R, A...>) {
-				// self is already adjusted to T by the caller (see Variant::_internal_call).
-				std::function<R(ObjectRef, A...)> func = [](ObjectRef self, A... args) -> R {
-					return (static_cast<T*>(self.get())->*Function)(args...);
-				};
-				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				if constexpr (std::is_base_of_v<Reflected, T>) {
+					std::function<R(Reflected*, A...)> func = [](Reflected* instance, A... args) -> R {
+						T* object = object_cast<T>(instance);
+						fassert(object, "Method called on an object of the wrong class");
+						return (object->*Function)(args...);
+					};
+					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				}
+				else if constexpr (Traits::is_const) {
+					std::function<R(const T&, A...)> func = [](const T& instance, A... args) -> R {
+						return (instance.*Function)(args...);
+					};
+					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
+				}
+				else {
+					static_assert(!Strict, "A value type's [[method]] must be const: it is called on a copy");
+				}
 			}
 			else {
 				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
@@ -271,29 +305,6 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		info.methods.push_back(
 				{ .name = desc.name, .access = desc.access, .is_static = true, .callable = Callable { Function } }
 		);
-	}
-}
-
-template <class T>
-	requires(!std::is_const_v<T> && (std::is_base_of_v<Reflected, T> || is_reflected<T>))
-ObjectRef::ObjectRef(T& object) {
-	if constexpr (std::is_base_of_v<Reflected, T>) {
-		*this = static_cast<Reflected&>(object)._get_object_ref();
-	}
-	else {
-		_ptr = &object;
-		_info = ClassDB::get_class_info<T>();
-	}
-}
-
-template <is_reflected T>
-T* ObjectRef::cast() const {
-	using U = std::remove_const_t<T>;
-	if constexpr (std::is_base_of_v<Reflected, U>) {
-		return object_cast<T>(_reflected);
-	}
-	else {
-		return static_cast<T*>(cast_to(ClassDB::get_class_info<U>()));
 	}
 }
 
