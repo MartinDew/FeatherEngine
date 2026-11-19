@@ -102,6 +102,9 @@ bool ValueBox::operator==(const ValueBox& other) const {
 	if (!_info) {
 		return true;
 	}
+	if (_info->lifecycle.equals) {
+		return _info->lifecycle.equals(_data, other._data);
+	}
 	for (const ClassInfo::Property& property : _info->properties) {
 		if (property.getter && property.getter(_data) != property.getter(other._data)) {
 			return false;
@@ -374,15 +377,14 @@ void Variant::_set_builtin(std::string_view key, const Variant& new_value) {
 }
 
 template <class TVisit>
-bool Variant::_walk(TVisit&& visit) const {
+bool Variant::_walk(TVisit&& visit) {
 	if (_type == VariantType::OBJECT) {
 		Reflected* object = _object();
 		const ClassInfo* info = object ? object->get_class_info() : nullptr;
 		return info && info->walk(object, std::forward<TVisit>(visit));
 	}
-	if (const ValueBox* box = get_value(); box && box->get()) {
-		// A value is its own storage, so a set through this reaches the box's instance.
-		return visit(*box->get_class_info(), const_cast<void*>(box->get()));
+	if (ValueBox* box = std::get_if<ValueBox>(&_data); box && box->get()) {
+		return visit(*box->get_class_info(), box->get());
 	}
 	return false;
 }
@@ -392,7 +394,8 @@ Variant Variant::_get_property(std::string_view key, bool enforce_public) const 
 		return _get_builtin(key);
 	}
 	Variant result;
-	_walk([&](const ClassInfo& info, void* object) {
+	// Getters take a mutable pointer but never write through it.
+	const_cast<Variant&>(*this)._walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				// Script-facing access: only public getters are reachable.
@@ -456,7 +459,8 @@ Variant Variant::call_internal(std::string_view method_name) {
 	return _internal_call(method_name, {}, /*enforce_public=*/false);
 }
 
-Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
+Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) {
+	fassert(!_has_builtin_properties(), "Built-in types have no methods");
 	Variant result;
 	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& method : info.methods) {
@@ -465,16 +469,7 @@ Variant Variant::_internal_call(std::string_view method_name, std::span<Variant>
 				if (enforce_public && method.access != AccessLevel::Public) {
 					return true;
 				}
-				if (method.is_static) {
-					result = method.callable.call(args);
-				}
-				else {
-					fassert(
-							args.size() == method.param_count,
-							std::format("Method called with {} parameters, expected {}", args.size(), method.param_count)
-					);
-					result = method.invoke(object, args);
-				}
+				result = method.callable.call_on(method.is_static ? nullptr : object, args);
 				return true;
 			}
 		}

@@ -8,18 +8,13 @@ import std;
 
 namespace feather {
 
-namespace {
-
-// The ClassInfo a component entity was registered from, or null.
-const ClassInfo* class_info_of(const EntityHandle& component) {
+const ClassInfo* EntityHandle::_get_class_info(const EntityHandle& component) {
 	if (!component.is_valid()) {
 		return nullptr;
 	}
 	const ReflectedComponent* reflected = Entity(component).try_get<ReflectedComponent>();
 	return reflected ? reflected->info : nullptr;
 }
-
-} //namespace
 
 bool EntityHandle::is_valid() const {
 	return world && id != 0 && ecs_is_alive(world, id);
@@ -82,7 +77,7 @@ bool EntityHandle::has(const EntityHandle& component) const {
 }
 
 Variant EntityHandle::get_component(const EntityHandle& component) const {
-	const ClassInfo* info = is_valid() ? class_info_of(component) : nullptr;
+	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
 	// A tag has no storage to copy.
 	if (!info || info->is_empty) {
 		return {};
@@ -92,7 +87,7 @@ Variant EntityHandle::get_component(const EntityHandle& component) const {
 }
 
 bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) {
-	const ClassInfo* info = is_valid() ? class_info_of(component) : nullptr;
+	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
 	const ValueBox* box = value.get_value();
 	if (!info || !box || box->get_class_info() != info) {
 		return false;

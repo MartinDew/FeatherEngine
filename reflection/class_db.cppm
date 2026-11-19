@@ -279,17 +279,7 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 			using R = typename Traits::ret;
 			if constexpr (signature_bindable<R, A...>) {
 				// self is already adjusted to T by the caller (see Variant::_internal_call).
-				info.methods.push_back({ .name = desc.name,
-										 .access = desc.access,
-										 .invoke = [](void* self, std::span<Variant> args) -> Variant {
-											 return callable_detail::invoke_marshaled<R, A...>(
-													 [self](A... call_args) -> R {
-														 return (static_cast<T*>(self)->*Function)(call_args...);
-													 },
-													 args
-											 );
-										 },
-										 .param_count = sizeof...(A) });
+				info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { Function } });
 			}
 			else {
 				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");

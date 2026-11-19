@@ -38,6 +38,8 @@ struct LifecycleHooks {
 	void (*move)(void* dst, void* src, size_t count) = nullptr;
 	void (*copy_construct)(void* dst, const void* src, size_t count) = nullptr;
 	void (*move_construct)(void* dst, void* src, size_t count) = nullptr;
+	// The type's operator==; null when it has none.
+	bool (*equals)(const void* a, const void* b) = nullptr;
 	LifecycleIllegal illegal = LifecycleIllegal::None;
 };
 
@@ -90,6 +92,11 @@ constexpr LifecycleHooks make_lifecycle_hooks() {
 	else if constexpr (!std::is_trivially_move_constructible_v<T>) {
 		hooks.move_construct = [](void* dst, void* src, size_t count) {
 			std::uninitialized_move_n(static_cast<T*>(src), count, static_cast<T*>(dst));
+		};
+	}
+	if constexpr (std::equality_comparable<T>) {
+		hooks.equals = [](const void* a, const void* b) {
+			return *static_cast<const T*>(a) == *static_cast<const T*>(b);
 		};
 	}
 	return hooks;
@@ -195,11 +202,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
 		bool is_static = false;
-		// Static methods only.
+		// A non-static method's callable takes the declaring class's instance as self.
 		Callable callable;
-		// Non-static methods only: `self` points at the declaring class, `args` excludes it.
-		Variant (*invoke)(void* self, std::span<Variant> args) = nullptr;
-		uint8_t param_count = 0;
 	};
 
 	std::vector<Method> methods;
