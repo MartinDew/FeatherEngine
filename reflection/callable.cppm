@@ -10,6 +10,23 @@ class FEATHER_REFLECTION_API Callable {
 	std::function<Variant(std::span<Variant>)> _internal_func;
 	uint8_t _param_amount;
 
+	// A non-const T& parameter binds to the instance inside the Variant; any other parameter gets a converted copy.
+	template <class TArg>
+	using _arg_storage_t = std::conditional_t<
+			std::is_lvalue_reference_v<TArg> && !std::is_const_v<std::remove_reference_t<TArg>>,
+			TArg,
+			std::decay_t<TArg>>;
+
+	template <class TArg>
+	static _arg_storage_t<TArg> _convert(Variant& param) {
+		if constexpr (std::is_reference_v<_arg_storage_t<TArg>>) {
+			return static_cast<TArg>(param);
+		}
+		else {
+			return param.as<std::decay_t<TArg>>().value();
+		}
+	}
+
 public:
 	Callable();
 	template <class TRet, class... TArgs>
@@ -17,9 +34,7 @@ public:
 	Callable(std::function<TRet(TArgs...)> func)
 			: _internal_func { [func](std::span<Variant> params) {
 				size_t i = 0;
-				std::tuple<std::decay_t<TArgs>...> converted_args = {
-					params[i++].as<std::decay_t<TArgs>>().value()...
-				};
+				std::tuple<_arg_storage_t<TArgs>...> converted_args = { _convert<TArgs>(params[i++])... };
 				if constexpr (std::is_void_v<TRet>) {
 					std::apply(func, converted_args);
 					return Variant();

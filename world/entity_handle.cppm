@@ -31,25 +31,25 @@ struct FEATHER_WORLD_API EntityHandle {
 	bool operator==(const EntityHandle&) const = default;
 
 	[[method]] [[nodiscard]] bool is_valid() const;
-	[[method]] void destroy() const;
+	[[method]] void destroy();
 
 	[[method]] [[nodiscard]] std::string get_name() const;
-	[[method]] void set_name(const std::string& name) const;
+	[[method]] void set_name(const std::string& name);
 
 	[[method]] [[nodiscard]] EntityHandle get_parent() const;
 	// An invalid parent unparents.
-	[[method]] void set_parent(const EntityHandle& parent) const;
+	[[method]] void set_parent(const EntityHandle& parent);
 	[[method]] [[nodiscard]] std::vector<EntityHandle> get_children() const;
 
 	// `component` is a component entity, as World::get_component returns; any live entity works as a tag.
-	[[method]] void add(const EntityHandle& component) const;
-	[[method]] void remove(const EntityHandle& component) const;
+	[[method]] void add(const EntityHandle& component);
+	[[method]] void remove(const EntityHandle& component);
 	[[method]] [[nodiscard]] bool has(const EntityHandle& component) const;
 
 	// A copy of the component's data as a VALUE; NIL when the entity lacks the component or it carries no data.
 	[[method]] [[nodiscard]] Variant get_component(const EntityHandle& component) const;
 	// Copies `value` in, which must be a VALUE of the component's class. Returns whether it was applied.
-	[[method]] bool set_component(const EntityHandle& component, const Variant& value) const;
+	[[method]] bool set_component(const EntityHandle& component, const Variant& value);
 
 private:
 	// The ClassInfo a component entity was registered from, or null.

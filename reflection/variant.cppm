@@ -143,6 +143,11 @@ consteval VariantType get_variant_type() {
 
 class Variant;
 
+template <class T, class TVariant>
+constexpr bool is_variant_alternative = false;
+template <class T, class... TAlternatives>
+constexpr bool is_variant_alternative<T, std::variant<TAlternatives...>> = (std::is_same_v<T, TAlternatives> || ...);
+
 // A type Variant can hold, or Variant itself, which a bound method takes or returns as is.
 template <typename T>
 concept VariantCompatible = std::is_same_v<T, Variant> || get_variant_type<T>() != VariantType::INVALID;
@@ -200,8 +205,6 @@ class FEATHER_REFLECTION_API Variant {
 
 	// The object of an OBJECT variant; null otherwise.
 	Reflected* _object() const;
-	// What a method takes as its instance: the object pointer, or a copy of the value.
-	Variant _get_self() const;
 
 	static const ClassInfo* _find_class_info(StaticString name);
 
@@ -219,9 +222,10 @@ class FEATHER_REFLECTION_API Variant {
 	[[nodiscard]] Variant _get_property(std::string_view key, bool enforce_public) const;
 	void _set_property(std::string_view key, const Variant& value, bool enforce_public);
 
-	// enforce_public denies non-Public methods; *_internal entry points pass false.
+	// args[0] is left for the instance, which this fills. enforce_public denies non-Public methods; *_internal entry
+	// points pass false.
 	[[nodiscard]] Variant
-	_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const;
+	_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public);
 
 public:
 	// Default constructor - NIL
@@ -422,7 +426,7 @@ public:
 	// Object method call
 	Variant call(std::string_view method_name);
 	template <class... TArgs>
-	Variant call(std::string_view method_name, TArgs&&... args) const;
+	Variant call(std::string_view method_name, TArgs&&... args);
 
 	// Privileged access for trusted engine systems (e.g. editor inspector);
 	// bypasses accessibility checks. Do not expose to scripts.
@@ -430,7 +434,7 @@ public:
 	void set_internal(std::string_view key, const Variant& value);
 	Variant call_internal(std::string_view method_name);
 	template <class... TArgs>
-	Variant call_internal(std::string_view method_name, TArgs&&... args) const;
+	Variant call_internal(std::string_view method_name, TArgs&&... args);
 
 	// implicit conversion
 	// In variant.h, inside the Variant class:
@@ -454,6 +458,27 @@ public:
 	inline operator VariantArray() const { return as<VariantArray>().value(); }
 	// Null when the Variant holds no object.
 	inline operator Reflected*() const { return _object(); }
+
+	// The held instance itself rather than a copy, as a T& parameter binds to it. Only types stored as-is qualify: a
+	// value type, a Reflected object, or a native alternative such as Vector3.
+	template <class T>
+		requires(!std::is_const_v<T>)
+	explicit operator T&() {
+		if constexpr (is_reflected_value_type<T>) {
+			ValueBox* box = std::get_if<ValueBox>(&_data);
+			fassert(box && box->is_class(FType<T>::name), "Variant value is not of the requested class");
+			return *static_cast<T*>(box->get());
+		}
+		else if constexpr (std::is_base_of_v<Reflected, T>) {
+			T* object = object_cast<T>(_object());
+			fassert(object, "Variant object is not of the requested type");
+			return *object;
+		}
+		else {
+			static_assert(is_variant_alternative<T, InternalVariant>, "T isn't stored as-is, so it can't be referenced");
+			return std::get<T>(_data);
+		}
+	}
 };
 
 // Force std::span<Variant> to be instantiated in this partition. Otherwise GCC
@@ -462,16 +487,16 @@ public:
 static_assert(sizeof(std::span<Variant>) > 0);
 
 template <class... TArgs>
-Variant Variant::call(std::string_view method_name, TArgs&&... args) const {
+Variant Variant::call(std::string_view method_name, TArgs&&... args) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant params[] = { _get_self(), args... };
+	Variant params[] = { Variant(), args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), true);
 }
 
 template <class... TArgs>
-Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) const {
+Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant params[] = { _get_self(), args... };
+	Variant params[] = { Variant(), args... };
 	return _internal_call(method_name, std::span<Variant>(params, sizeof...(args) + 1), false);
 }
 

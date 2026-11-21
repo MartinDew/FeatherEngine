@@ -285,14 +285,11 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 					};
 					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
 				}
-				else if constexpr (Traits::is_const) {
-					std::function<R(const T&, A...)> func = [](const T& instance, A... args) -> R {
+				else {
+					std::function<R(T&, A...)> func = [](T& instance, A... args) -> R {
 						return (instance.*Function)(args...);
 					};
 					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
-				}
-				else {
-					static_assert(!Strict, "A value type's [[method]] must be const: it is called on a copy");
 				}
 			}
 			else {

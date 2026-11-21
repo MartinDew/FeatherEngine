@@ -451,22 +451,17 @@ void Variant::set_internal(std::string_view key, const Variant& value) {
 
 Variant Variant::call(std::string_view method_name) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant self = _get_self();
+	Variant self;
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/true);
 }
 
 Variant Variant::call_internal(std::string_view method_name) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	Variant self = _get_self();
+	Variant self;
 	return _internal_call(method_name, std::span<Variant>(&self, 1), /*enforce_public=*/false);
 }
 
-Variant Variant::_get_self() const {
-	return _type == VariantType::OBJECT ? Variant(_object()) : *this;
-}
-
-// args[0] is the instance, which a static method doesn't take.
-Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) const {
+Variant Variant::_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public) {
 	fassert(!_has_builtin_properties(), "Built-in types have no methods");
 	const ClassInfo* info = nullptr;
 	if (Reflected* object = _object()) {
@@ -484,7 +479,21 @@ Variant Variant::_internal_call(std::string_view method_name, std::span<Variant>
 			if (enforce_public && method.access != AccessLevel::Public) {
 				return {};
 			}
-			return method.callable.call(method.is_static ? args.subspan(1) : args);
+			if (method.is_static) {
+				return method.callable.call(args.subspan(1));
+			}
+			if (_type == VariantType::OBJECT) {
+				args[0] = Variant(_object());
+				return method.callable.call(args);
+			}
+			// The box moves into args[0] and back, so the method works on this instance, which never changes address.
+			struct Restore {
+				Variant& owner;
+				Variant& self;
+				~Restore() { owner = std::move(self); }
+			} restore { *this, args[0] };
+			args[0] = std::move(*this);
+			return method.callable.call(args);
 		}
 	}
 	return {};
