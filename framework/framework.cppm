@@ -5,6 +5,7 @@ export import :bytes;
 export import :container_utils;
 export import :cow_vector;
 export import :delegate;
+export import :ftype;
 export import :functions;
 export import :path;
 export import :rid;

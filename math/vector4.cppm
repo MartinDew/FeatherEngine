@@ -14,6 +14,9 @@ export namespace feather {
 // A 4-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector4f {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector4f::*) > 0; }
+
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;
@@ -97,6 +100,9 @@ RTM_FORCE_INLINE Vector4f operator*(float s, const Vector4f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector4d {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector4d::*) > 0; }
+
 	double x = 0.0;
 	double y = 0.0;
 	double z = 0.0;

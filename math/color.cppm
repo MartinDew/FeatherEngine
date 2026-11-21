@@ -14,6 +14,9 @@ export namespace feather {
 // A linear RGBA color. Float only whatever the engine's precision: doubling a display quantity
 // buys a renderer nothing.
 struct Colorf {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Colorf::*) > 0; }
+
 	float r = 0.0f;
 	float g = 0.0f;
 	float b = 0.0f;

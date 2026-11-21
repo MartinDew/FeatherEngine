@@ -30,6 +30,9 @@ struct Vector4i {
 };
 
 struct FEATHER_MATH_API Vertex {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Vertex::*) > 0; }
+
 	Vector3 position;
 	Vector3 normal;
 	Vector2 uv;

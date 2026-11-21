@@ -3,6 +3,7 @@ export module feather.math;
 export import feather.framework;
 
 export import :color;
+export import :ftypes;
 export import :math_defs;
 export import :matrix;
 export import :mesh_data;

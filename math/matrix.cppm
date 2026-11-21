@@ -16,6 +16,9 @@ export namespace feather {
 // A 4x4 transformation matrix stored as four rows, for row vectors (`v * M`): rows 0-2 are the
 // basis axes and row 3 the translation, the layout RTM and the GPU uploads both use.
 struct Matrix4x4f {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Matrix4x4f::*) > 0; }
+
 	Vector4f x_axis { 1.0f, 0.0f, 0.0f, 0.0f };
 	Vector4f y_axis { 0.0f, 1.0f, 0.0f, 0.0f };
 	Vector4f z_axis { 0.0f, 0.0f, 1.0f, 0.0f };

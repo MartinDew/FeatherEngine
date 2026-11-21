@@ -17,6 +17,9 @@ struct Matrix4x4f;
 // A rotation stored as four plain reals, laid out like a 4-component vector so it reaches RTM's
 // register type without a conversion step.
 struct Quaternionf {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Quaternionf::*) > 0; }
+
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;
@@ -96,6 +99,9 @@ inline constexpr Quaternionf Quaternionf::identity { 0.0f, 0.0f, 0.0f, 1.0f };
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Quaterniond {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Quaterniond::*) > 0; }
+
 	double x = 0.0;
 	double y = 0.0;
 	double z = 0.0;

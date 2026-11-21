@@ -3,7 +3,6 @@ export module feather.reflection:variant;
 import std.compat;
 import feather.framework;
 import :variant_array;
-import :ftype;
 import :reflected;
 import :reflection_utils;
 import feather.math;

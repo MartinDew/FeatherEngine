@@ -7,6 +7,9 @@ import :math_defs;
 export namespace feather {
 
 struct FEATHER_MATH_API Transform {
+	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
+	static consteval bool _feather_member_pointer_model() { return sizeof(int Transform::*) > 0; }
+
 	// Feather uses right-handed coordinates
 	// up = Y
 	// right = X

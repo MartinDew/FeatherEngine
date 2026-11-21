@@ -1120,7 +1120,6 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
         imports.append("import std;")
         imports.append("import feather.framework;")
         if owner == "feather.reflection":
-            imports.append("import :ftype;")
             imports.append("import :enum_info;")
         else:
             imports.append("import feather.reflection;")

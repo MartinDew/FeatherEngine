@@ -1,7 +1,7 @@
-export module feather.reflection:ftype;
+export module feather.framework:ftype;
 
 import std.compat;
-import feather.framework;
+import :static_string;
 
 export namespace feather {
 

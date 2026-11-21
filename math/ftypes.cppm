@@ -1,13 +1,13 @@
-export module feather.reflection:builtin_types;
+export module feather.math:ftypes;
 
 import std.compat;
 import feather.framework;
-import feather.math;
-import :ftype;
+import :math_defs;
+import :precision;
+import :transform;
 
-// Descriptions of the types Variant stores natively. They live below reflection, so they can't carry their own FType
-// the way an FSTRUCT does. Variant::get/set read these directly, with no ClassInfo. The names are the precision
-// aliases, whichever type the build selects.
+// Descriptions of the types Variant stores natively, read with no ClassInfo and named after the precision aliases.
+// clang-cl crashes on a member pointer first formed in an importing unit, so each type forms one in its own partition.
 namespace feather {
 
 namespace builtin_detail {

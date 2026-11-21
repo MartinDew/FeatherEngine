@@ -4,7 +4,6 @@ import std.compat;
 import feather.framework;
 import :callable;
 import :enum_info;
-import :ftype;
 import :reflected;
 import :variant;
 

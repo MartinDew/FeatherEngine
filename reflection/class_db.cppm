@@ -10,7 +10,6 @@ import :callable;
 import :class_info;
 import :enum_info;
 import :reflection_utils;
-import :ftype;
 import :reflected;
 import :variant;
 

@@ -3,7 +3,6 @@ module;
 export module feather.reflection:reflected;
 
 import std;
-import :ftype;
 import :reflection_utils;
 import feather.framework;
 
