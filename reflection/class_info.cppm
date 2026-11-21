@@ -118,7 +118,8 @@ struct CompilerTypeName {
 		constexpr std::size_t start = signature.find("T = ") + 4;
 		return signature.substr(start, signature.find_first_of(";]", start) - start);
 #elif defined(_MSC_VER)
-		constexpr std::string_view signature = __FUNCSIG__; // "... CompilerTypeName<struct feather::Light>::slice(void)"
+		constexpr std::string_view signature =
+				__FUNCSIG__; // "... CompilerTypeName<struct feather::Light>::slice(void)"
 		constexpr std::string_view open = "CompilerTypeName<";
 		constexpr std::size_t start = signature.find(open) + open.size();
 		std::string_view name = signature.substr(start, signature.rfind(">::slice(void)") - start);

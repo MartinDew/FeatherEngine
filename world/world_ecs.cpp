@@ -116,10 +116,8 @@ Entity World::register_component(const ClassInfo& info) {
 	}
 
 	const std::string name(info.name.str());
-	fassert(
-			!ecs_lookup_child(world, 0, name.c_str()),
-			std::format("An entity named '{}' already exists and would become its component", name)
-	);
+	fassert(!ecs_lookup_child(world, 0, name.c_str()),
+			std::format("An entity named '{}' already exists and would become its component", name));
 
 	ecs_entity_desc_t entity_desc {};
 	entity_desc.name = name.c_str();

@@ -44,13 +44,15 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	auto s = _world_sim.create_scene("Ni");
 	_world_sim.set_active_scene(s);
 
-	auto _ = w.entity("Box1").child_of(s)
+	auto _ = w.entity("Box1")
+					 .child_of(s)
 					 .emplace<Transform>(t1)
 					 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					 .emplace<MaterialInstance>(material)
 					 .add<Move>();
 
-	_ = w.entity("Box2").child_of(s)
+	_ = w.entity("Box2")
+				.child_of(s)
 				.emplace<Transform>(t2)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
@@ -64,7 +66,8 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 
 	w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
-	w.entity("Floor").child_of(s)
+	w.entity("Floor")
+			.child_of(s)
 			.emplace<Transform>(Vector3 { 0, -2, 0 }, Quaternion::identity, Vector3 { 200, 0.1f, 200 })
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>());
 

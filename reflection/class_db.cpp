@@ -89,9 +89,8 @@ void ClassDB::unregister_subclass_delegate(std::string_view base_class_name, Del
 	}
 }
 
-Delegate<std::string_view>::id_t ClassDB::on_class_registered(
-		const Delegate<std::string_view>::DelegateFuncType& callback
-) {
+Delegate<std::string_view>::id_t
+ClassDB::on_class_registered(const Delegate<std::string_view>::DelegateFuncType& callback) {
 	return get()->_class_registered_delegate.subscribe(callback);
 }
 
@@ -130,10 +129,10 @@ bool ClassDB::has_parent(StaticString object_name, StaticString parent_name) {
 #ifdef BETA
 // TODO consider adding code directly in variant
 static std::string_view variant_type_name(VariantType type) {
-	static constexpr std::array<std::string_view, 19> names { "NIL",	 "BOOL",	  "INT",	"FLOAT",   "VECTOR3",
-															  "VECTOR2", "VERTEX",	  "COLOR",	"VECTOR4", "QUATERNION",
-															  "MATRIX",	 "TRANSFORM", "RID",	"STRING",  "ARRAY",
-															  "PATH",	 "OBJECT",	  "VALUE",	"INVALID" };
+	static constexpr std::array<std::string_view, 19> names { "NIL",	 "BOOL",	  "INT",   "FLOAT",	  "VECTOR3",
+															  "VECTOR2", "VERTEX",	  "COLOR", "VECTOR4", "QUATERNION",
+															  "MATRIX",	 "TRANSFORM", "RID",   "STRING",  "ARRAY",
+															  "PATH",	 "OBJECT",	  "VALUE", "INVALID" };
 	size_t index = std::to_underlying(type);
 	return index < names.size() ? names[index] : "UNKNOWN";
 }

@@ -132,9 +132,8 @@ public:
 	static void unregister_subclass_delegate(std::string_view base_class_name, Delegate<std::string_view>::id_t id);
 
 	// Fires with the class name after every registration, including classes from extensions loaded later.
-	static Delegate<std::string_view>::id_t on_class_registered(
-			const Delegate<std::string_view>::DelegateFuncType& callback
-	);
+	static Delegate<std::string_view>::id_t
+	on_class_registered(const Delegate<std::string_view>::DelegateFuncType& callback);
 	static void unregister_class_delegate(Delegate<std::string_view>::id_t id);
 
 	static std::vector<StaticString> get_class_names();
