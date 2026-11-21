@@ -20,7 +20,7 @@ add_requires("flecs 4.1.5", {
 
 -- Local package (packages/assimp.lua) builds assimp's bundled minizip instead of
 -- the system one, whose pkgconfig omits the include dir on Linux.
-add_requires("assimp 6.0.4", {
+add_requires("assimp 6.0.5", {
     system = false,
     alias  = "assimp",
     configs = {
