@@ -3,6 +3,7 @@ local FEATHER_ROOT = path.directory(os.scriptdir())
 
 -- Shared compile flags, applied to every feather target.
 rule("feather.base")
+    add_deps("xwin.std_modules")
     -- Same flags on every target, so xmake reuses module BMIs instead of
     -- rebuilding them per target (GCC rejects mixing the two: CRC mismatch).
     on_config(function (target)
