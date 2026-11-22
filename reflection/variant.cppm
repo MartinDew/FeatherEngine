@@ -223,8 +223,7 @@ class FEATHER_REFLECTION_API Variant {
 
 	// args[0] is left for the instance, which this fills. enforce_public denies non-Public methods; *_internal entry
 	// points pass false.
-	[[nodiscard]] Variant
-	_internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public);
+	[[nodiscard]] Variant _internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public);
 
 public:
 	// Default constructor - NIL
@@ -474,7 +473,9 @@ public:
 			return *object;
 		}
 		else {
-			static_assert(is_variant_alternative<T, InternalVariant>, "T isn't stored as-is, so it can't be referenced");
+			static_assert(
+					is_variant_alternative<T, InternalVariant>, "T isn't stored as-is, so it can't be referenced"
+			);
 			return std::get<T>(_data);
 		}
 	}
