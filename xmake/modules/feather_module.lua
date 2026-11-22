@@ -96,6 +96,9 @@ function load(target)
         target:add("defines", prefix .. "_API=" .. import_api, {interface = true})
     end
 
+    -- Private: a dependent compiles with its own module's name.
+    target:add("defines", "FMODULE_NAME=\"" .. name .. "\"")
+
     target:add("files", path.join(dir, "**.cppm|**.gen.cppm"), {public = true})
     target:add("files", path.join(dir, "**.cpp|**.gen.cpp"))
     -- Codegen output only exists after the first configure.

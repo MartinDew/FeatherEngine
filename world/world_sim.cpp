@@ -24,9 +24,8 @@ WorldSim::~WorldSim() {
 }
 
 void WorldSim::init() {
-	// Components are matched to typed flecs use by the compiler's name for the type, which ClassInfo derives the way
-	// flecs does. A compiler or flecs update that changes either spelling fails here rather than duplicating
-	// components.
+	// Typed flecs use finds a component by the compiler's name for its type, which ClassInfo derives the way flecs
+	// does; a compiler or flecs update that changes either spelling fails here rather than duplicating components.
 	fassert(ClassDB::get_class_info<Scene>()->cpp_name.str() == std::string_view(flecs::_::type_name<Scene>()),
 			std::format(
 					"ClassInfo names Scene '{}' but flecs names it '{}'",
@@ -35,14 +34,12 @@ void WorldSim::init() {
 			));
 
 	// Every value type is a component, registered before any EcsModule imports and uses them by type.
-	_world.component<ReflectedComponent>("ReflectedComponent");
 	_world.register_reflected_components();
 	_class_delegate_id = ClassDB::on_class_registered([this](std::string_view class_name) {
 		_world.register_component(StaticString(class_name));
 	});
 
-	// Not "Scene": that name already resolves to the Scene component's entity.
-	_scene_prefab = _world.prefab("ScenePrefab");
+	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);

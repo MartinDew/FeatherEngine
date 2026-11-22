@@ -155,6 +155,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	StaticString name = ""_ss;
 	// The C++ type's fully qualified name as the compiler spells it; see compiler_type_name().
 	StaticString cpp_name = ""_ss;
+	// The build module that declares the type (FMODULE_NAME); its ECS component lives under feather.<module_name>.
+	StaticString module_name = ""_ss;
 	StaticString parent = ""_ss;
 	std::vector<const ClassInfo*> children;
 	// The FCLASS(...)/FSTRUCT(...) modifier names, opaque to reflection.
@@ -224,6 +226,11 @@ struct FEATHER_REFLECTION_API ClassInfo {
 
 	bool can_create() const {
 		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&
+				!has_flag(lifecycle.illegal, LifecycleIllegal::Destruct);
+	}
+	// A copy of an existing instance needs no default constructor.
+	bool can_copy() const {
+		return !has_flag(lifecycle.illegal, LifecycleIllegal::CopyConstruct) &&
 				!has_flag(lifecycle.illegal, LifecycleIllegal::Destruct);
 	}
 };

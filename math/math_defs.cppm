@@ -108,12 +108,13 @@ enum class Axis : uint8_t {
 
 // Row `i` of the upper 3x3, which is axis `i` of the transform.
 inline Vector3 get_axis(const Matrix& mat, Axis axis) {
-	const Vector4& row = mat[std::to_underlying(axis)];
+	// Matrix stays single precision whatever real_t is.
+	const Vector4f& row = mat[std::to_underlying(axis)];
 	return { row.x, row.y, row.z };
 }
 
 inline void set_axis(Matrix& m, uint32_t i, const Vector3& axis) {
-	m[i] = { axis.x, axis.y, axis.z, m[i].w };
+	m[i] = { static_cast<float>(axis.x), static_cast<float>(axis.y), static_cast<float>(axis.z), m[i].w };
 }
 
 // Normalizes each of the three axes, keeping the rotation and dropping the scale.
@@ -126,7 +127,8 @@ inline void remove_scaling(Matrix& m) {
 }
 
 inline Vector3 get_origin(const Matrix& mat) {
-	return mat.translation();
+	const Vector3f origin = mat.translation();
+	return { origin.x, origin.y, origin.z };
 }
 
 } //namespace math::matrices

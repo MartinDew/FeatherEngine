@@ -970,6 +970,11 @@ def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -
            f"\tusing parent = {c.parent or 'void'};",
            f'\tstatic constexpr StaticString name = "{c.name}"_ss;',
            f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;']
+    # A bound type belongs to the module it is declared in, not to the one describing it (FMODULE_NAME there).
+    if external:
+        out.append(f'\tstatic constexpr StaticString module_name = "{_module_of(c.header).split(".")[-1]}"_ss;')
+    else:
+        out.append('\tstatic constexpr StaticString module_name = StaticString(FMODULE_NAME);')
     if c.resolved_modifiers:
         names = ", ".join(f'"{modifier.name}"_ss' for modifier, _arg in c.resolved_modifiers)
         out.append(f"\tstatic constexpr std::array<StaticString, {len(c.resolved_modifiers)}> modifiers {{ {names} }};")
@@ -994,6 +999,10 @@ def topological_sort(classes: list) -> list:
     for c in classes:
         visit(c)
     return result
+
+
+def _is_ecs_module(c: ClassDesc) -> bool:
+    return any(modifier.name == "EcsModule" for modifier, _arg in c.resolved_modifiers)
 
 
 def _module_of(header: Path) -> str:
@@ -1070,7 +1079,10 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
                     lines.extend(defs)
                     lines.append("")
 
-    registered = bound + ([] if external_bind else ordered)
+    # EcsModules last: importing one uses the module's value types as components, which must be registered by then.
+    own = [] if external_bind else ordered
+    own = [c for c in own if not _is_ecs_module(c)] + [c for c in own if _is_ecs_module(c)]
+    registered = bound + own
     lines.append(f"void {func}() {{")
     # Enums first, so a property of an enum type links to its EnumInfo.
     for e in bound_enums + ([] if external_bind else enums):
@@ -1126,7 +1138,8 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
         for module in sorted({_module_of(c.header) for c in list(bound) + list(bound_enums)}):
             imports.append(f"import {module};")
 
-    lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
+    lines = [GENERATED_NOTICE, "module;", "", "#ifndef FMODULE_NAME", f'#define FMODULE_NAME "{subfolder}"', "#endif",
+             "", f"export module {owner}:register_{subfolder}_types;", ""]
     if imports:
         lines += imports + [""]
     # Called by main across module libraries: exported with the module's API macro.

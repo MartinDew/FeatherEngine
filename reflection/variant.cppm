@@ -153,16 +153,18 @@ concept VariantCompatible = std::is_same_v<T, Variant> || get_variant_type<T>() 
 
 struct ClassInfo;
 
-// An instance of a reflected value type, owned by its box and managed through the ClassInfo's lifecycle hooks.
+// An instance of a reflected value type: owned by the box and managed through the ClassInfo's lifecycle hooks, or a
+// reference to one the caller keeps alive, which copies of the box share.
 class FEATHER_REFLECTION_API ValueBox {
 	const ClassInfo* _info = nullptr;
 	void* _data = nullptr;
+	bool _owned = true;
 
 	void _destroy() noexcept;
 
 public:
 	ValueBox() = default;
-	// Copies `src`; a null `src` is a default-constructed instance. `info` must be a creatable value type.
+	// Copies `src`, which needs a copyable type; a null `src` is a default-constructed instance of a creatable type.
 	ValueBox(const ClassInfo& info, const void* src);
 	ValueBox(const ValueBox& other);
 	ValueBox(ValueBox&& other) noexcept;
@@ -170,7 +172,11 @@ public:
 	ValueBox& operator=(ValueBox&& other) noexcept;
 	~ValueBox();
 
+	// Refers to `data` without copying it; it must outlive every box that refers to it.
+	static ValueBox ref(const ClassInfo& info, void* data);
+
 	const ClassInfo* get_class_info() const noexcept { return _info; }
+	bool is_reference() const noexcept { return !_owned; }
 	void* get() noexcept { return _data; }
 	const void* get() const noexcept { return _data; }
 	bool is_class(StaticString name) const noexcept;
@@ -287,12 +293,27 @@ public:
 		}
 	}
 
-	// An owned copy of a value type's instance; `src` null makes a default-constructed one. NIL when the class isn't a
-	// creatable value type.
+	// An owned copy of a value type's instance; `src` null makes a default-constructed one. NIL when the class can't be
+	// copied, or default-constructed for a null `src`.
 	static Variant from_value(const ClassInfo& info, const void* src);
 	static Variant default_value(const ClassInfo& info);
+	// A VALUE that edits `data` in place, which must outlive the Variant and its copies. NIL for a non-value type.
+	static Variant ref(const ClassInfo& info, void* data);
+	template <class T>
+		requires is_reflected_value_type<T>
+	static Variant ref(T& value) {
+		const ClassInfo* info = _find_class_info(FType<T>::name);
+		fassert(info, "Value type isn't registered in ClassDB");
+		return ref(*info, &value);
+	}
 	// The box of a VALUE variant; null otherwise.
 	const ValueBox* get_value() const;
+
+	// A natively stored math type (Vector*, Quaternion, Color, Matrix, Transform, Vertex) copied from raw memory of
+	// that type. NIL for any other type.
+	static Variant from_builtin(VariantType type, const void* src);
+	// The storage of a natively stored math type, as from_builtin reads it; null for any other type.
+	const void* builtin_data() const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;

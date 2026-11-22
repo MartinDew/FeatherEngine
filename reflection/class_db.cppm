@@ -168,6 +168,9 @@ void ClassDB::_register(ClassKind kind) {
 	ClassInfo& info = instance._class_infos[Desc::name];
 	info.name = Desc::name;
 	info.cpp_name = compiler_type_name<T>();
+	if constexpr (requires { Desc::module_name; }) {
+		info.module_name = Desc::module_name;
+	}
 	info.parent = Desc::parent_name;
 	info.is_abstract = kind == ClassKind::Abstract;
 	info.is_singleton = kind == ClassKind::Singleton;

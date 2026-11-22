@@ -102,6 +102,36 @@ void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
 	Entity(c_ptr(), component).set<ReflectedComponent>({ &info });
 }
 
+void World::_mark_builtin(flecs::entity_t component, VariantType type) {
+	Entity(c_ptr(), component).set<BuiltinComponent>({ type });
+}
+
+flecs::entity_t World::_module_scope(StaticString module_name) {
+	ecs_world_t* world = c_ptr();
+	const std::string path = module_name.str().empty() ? std::string("feather")
+														: std::format("feather.{}", module_name.str());
+	const ecs_entity_t scope = ecs_set_scope(world, 0);
+	const ecs_entity_t entity = ecs_new_from_path_w_sep(world, 0, path.c_str(), ".", nullptr);
+	ecs_set_scope(world, scope);
+	return entity;
+}
+
+void World::_place(flecs::entity_t entity, StaticString module_name, StaticString name) {
+	ecs_world_t* world = c_ptr();
+	const ecs_entity_t parent = _module_scope(module_name);
+	const std::string wanted(name.str());
+	if (ecs_get_parent(world, entity) != parent) {
+		const ecs_entity_t taken = ecs_lookup_child(world, parent, wanted.c_str());
+		fassert(!taken || taken == entity,
+				std::format("feather.{}.{} already names another entity", module_name.str(), wanted));
+		ecs_add_pair(world, entity, EcsChildOf, parent);
+	}
+	const char* current = ecs_get_name(world, entity);
+	if (!current || wanted != current) {
+		ecs_set_name(world, entity, wanted.c_str());
+	}
+}
+
 Entity World::register_component(const ClassInfo& info) {
 	if (!can_be_component(info)) {
 		return {};
@@ -109,24 +139,24 @@ Entity World::register_component(const ClassInfo& info) {
 	ecs_world_t* world = c_ptr();
 	const std::string symbol = get_symbol(info);
 
-	// Typed use in some binary may have registered the type already; it then only lacks its ClassInfo.
+	// Typed use in some binary may have registered the type already, possibly in a module's scope.
 	if (const ecs_entity_t existing = ecs_lookup_symbol(world, symbol.c_str(), false, false)) {
+		_place(existing, info.module_name, info.name);
 		_link_class_info(existing, info);
 		return Entity(world, existing);
 	}
 
 	const std::string name(info.name.str());
-	fassert(!ecs_lookup_child(world, 0, name.c_str()),
-			std::format("An entity named '{}' already exists and would become its component", name));
+	const ecs_entity_t parent = _module_scope(info.module_name);
+	fassert(!ecs_lookup_child(world, parent, name.c_str()),
+			std::format("feather.{}.{} already names another entity", info.module_name.str(), name));
 
 	ecs_entity_desc_t entity_desc {};
+	entity_desc.parent = parent;
 	entity_desc.name = name.c_str();
 	entity_desc.symbol = symbol.c_str();
 	entity_desc.use_low_id = true;
-	// At the root whichever module is being imported, so the name stays the class name.
-	const ecs_entity_t scope = ecs_set_scope(world, 0);
 	const ecs_entity_t entity = ecs_entity_init(world, &entity_desc);
-	ecs_set_scope(world, scope);
 
 	// An empty type is a tag: a component of size 0, as flecs' C++ API registers it.
 	ecs_component_desc_t component_desc {};
@@ -151,6 +181,8 @@ Entity World::register_component(StaticString class_name) {
 }
 
 void World::register_reflected_components() {
+	_place(component<ReflectedComponent>(), StaticString(FMODULE_NAME), "ReflectedComponent"_ss);
+	_place(component<BuiltinComponent>(), StaticString(FMODULE_NAME), "BuiltinComponent"_ss);
 	for (const StaticString& name : ClassDB::get_class_names()) {
 		const ClassInfo* info = ClassDB::get_class_info(name);
 		if (info && can_be_component(*info)) {
@@ -170,7 +202,13 @@ EntityHandle World::get_entity(const std::string& path) const {
 EntityHandle World::get_component(const std::string& class_name) const {
 	const ClassInfo* info = ClassDB::get_class_info(StaticString(class_name));
 	if (!info || info->cpp_name.str().empty()) {
-		return {};
+		Entity builtin;
+		each([&](Entity component, const BuiltinComponent&) {
+			if (!builtin && class_name == component.name().c_str()) {
+				builtin = component;
+			}
+		});
+		return builtin;
 	}
 	const ecs_entity_t found = ecs_lookup_symbol(c_ptr(), get_symbol(*info).c_str(), false, false);
 	return found ? Entity(c_ptr(), found) : Entity {};

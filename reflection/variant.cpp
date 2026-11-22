@@ -25,7 +25,8 @@ void free_value(void* ptr, const ClassInfo& info) noexcept {
 } // namespace
 
 ValueBox::ValueBox(const ClassInfo& info, const void* src) {
-	fassert(info.is_value_type && info.can_create(), "A ValueBox needs a creatable value type");
+	fassert(info.is_value_type && (src ? info.can_copy() : info.can_create()),
+			src ? "Boxing a value type that can't be copied" : "Boxing a value type that can't be default-constructed");
 	void* data = allocate_value(info);
 	try {
 		if (!src) {
@@ -40,8 +41,6 @@ ValueBox::ValueBox(const ClassInfo& info, const void* src) {
 			info.lifecycle.copy_construct(data, src, 1);
 		}
 		else {
-			fassert(!has_flag(info.lifecycle.illegal, LifecycleIllegal::CopyConstruct),
-					"Boxing a value type that can't be copied");
 			std::memcpy(data, src, info.size);
 		}
 	} catch (...) {
@@ -52,12 +51,24 @@ ValueBox::ValueBox(const ClassInfo& info, const void* src) {
 	_data = data;
 }
 
-ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {
+ValueBox ValueBox::ref(const ClassInfo& info, void* data) {
+	fassert(info.is_value_type && data, "A value reference needs a value type instance");
+	ValueBox box;
+	box._info = &info;
+	box._data = data;
+	box._owned = false;
+	return box;
+}
+
+ValueBox::ValueBox(const ValueBox& other)
+		: ValueBox(!other._info ? ValueBox() : other._owned ? ValueBox(*other._info, other._data)
+															: ref(*other._info, other._data)) {
 }
 
 ValueBox::ValueBox(ValueBox&& other) noexcept
 		: _info { std::exchange(other._info, nullptr) }
-		, _data { std::exchange(other._data, nullptr) } {
+		, _data { std::exchange(other._data, nullptr) }
+		, _owned { std::exchange(other._owned, true) } {
 }
 
 ValueBox& ValueBox::operator=(const ValueBox& other) {
@@ -72,6 +83,7 @@ ValueBox& ValueBox::operator=(ValueBox&& other) noexcept {
 		_destroy();
 		_info = std::exchange(other._info, nullptr);
 		_data = std::exchange(other._data, nullptr);
+		_owned = std::exchange(other._owned, true);
 	}
 	return *this;
 }
@@ -81,7 +93,7 @@ ValueBox::~ValueBox() {
 }
 
 void ValueBox::_destroy() noexcept {
-	if (_data) {
+	if (_data && _owned) {
 		if (_info->lifecycle.destruct) {
 			_info->lifecycle.destruct(_data, 1);
 		}
@@ -89,6 +101,7 @@ void ValueBox::_destroy() noexcept {
 	}
 	_info = nullptr;
 	_data = nullptr;
+	_owned = true;
 }
 
 bool ValueBox::is_class(StaticString name) const noexcept {
@@ -105,12 +118,17 @@ bool ValueBox::operator==(const ValueBox& other) const {
 	if (_info->lifecycle.equals) {
 		return _info->lifecycle.equals(_data, other._data);
 	}
+	// With nothing to compare by, two distinct boxes are never assumed equal.
+	bool compared = false;
 	for (const ClassInfo::Property& property : _info->properties) {
-		if (property.getter && property.getter(_data) != property.getter(other._data)) {
-			return false;
+		if (property.getter) {
+			if (property.getter(_data) != property.getter(other._data)) {
+				return false;
+			}
+			compared = true;
 		}
 	}
-	return true;
+	return compared || _data == other._data;
 }
 
 const ClassInfo* Variant::_find_class_info(StaticString name) {
@@ -118,7 +136,7 @@ const ClassInfo* Variant::_find_class_info(StaticString name) {
 }
 
 Variant Variant::from_value(const ClassInfo& info, const void* src) {
-	if (!info.is_value_type || !info.can_create()) {
+	if (!info.is_value_type || !(src ? info.can_copy() : info.can_create())) {
 		return {};
 	}
 	Variant result;
@@ -127,8 +145,51 @@ Variant Variant::from_value(const ClassInfo& info, const void* src) {
 	return result;
 }
 
+Variant Variant::ref(const ClassInfo& info, void* data) {
+	if (!info.is_value_type || !data) {
+		return {};
+	}
+	Variant result;
+	result._data = ValueBox::ref(info, data);
+	result._type = VariantType::VALUE;
+	return result;
+}
+
 Variant Variant::default_value(const ClassInfo& info) {
 	return from_value(info, nullptr);
+}
+
+namespace {
+
+template <class TVisit>
+bool visit_builtin_type(VariantType type, TVisit&& visit) {
+	switch (type) {
+		case VariantType::VECTOR2: visit(std::type_identity<Vector2> {}); return true;
+		case VariantType::VECTOR3: visit(std::type_identity<Vector3> {}); return true;
+		case VariantType::VECTOR4: visit(std::type_identity<Vector4> {}); return true;
+		case VariantType::QUATERNION: visit(std::type_identity<Quaternion> {}); return true;
+		case VariantType::COLOR: visit(std::type_identity<Color> {}); return true;
+		case VariantType::MATRIX: visit(std::type_identity<Matrix> {}); return true;
+		case VariantType::TRANSFORM: visit(std::type_identity<Transform> {}); return true;
+		case VariantType::VERTEX: visit(std::type_identity<Vertex> {}); return true;
+		default: return false;
+	}
+}
+
+} // namespace
+
+Variant Variant::from_builtin(VariantType type, const void* src) {
+	Variant result;
+	if (src) {
+		visit_builtin_type(type, [&]<class T>(std::type_identity<T>) { result = Variant(*static_cast<const T*>(src)); });
+	}
+	return result;
+}
+
+const void* Variant::builtin_data() const {
+	const void* data = nullptr;
+	visit_builtin_type(_type, [&]<class T>(std::type_identity<T>) { data = &std::get<T>(_data); });
+	return data;
 }
 
 const ValueBox* Variant::get_value() const {

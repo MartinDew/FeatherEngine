@@ -24,6 +24,7 @@ using Field = PropertyDesc<Member, Member>;
 		using parent = void;                                                                                           \
 		static constexpr StaticString name = StaticString(#type_name);                                                 \
 		static constexpr StaticString parent_name = ""_ss;                                                             \
+		static constexpr StaticString module_name = StaticString(FMODULE_NAME);                                        \
 		static constexpr auto properties = std::tuple { __VA_ARGS__ };                                                 \
 		static constexpr auto methods = std::tuple {};                                                                 \
 	};
@@ -56,6 +57,10 @@ FEATHER_BUILTIN_FTYPE(
 		FEATHER_FIELD(Color, b),
 		FEATHER_FIELD(Color, a)
 )
+// Matrix stays single precision, so its Vector4f axes only match Variant's Vector4 in a single-precision build.
+#ifdef FEATHER_DOUBLE_PRECISION
+FEATHER_BUILTIN_FTYPE(Matrix)
+#else
 FEATHER_BUILTIN_FTYPE(
 		Matrix,
 		FEATHER_FIELD(Matrix, x_axis),
@@ -63,6 +68,7 @@ FEATHER_BUILTIN_FTYPE(
 		FEATHER_FIELD(Matrix, z_axis),
 		FEATHER_FIELD(Matrix, w_axis)
 )
+#endif
 FEATHER_BUILTIN_FTYPE(
 		Transform,
 		FEATHER_FIELD(Transform, position),

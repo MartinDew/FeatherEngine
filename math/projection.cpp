@@ -154,7 +154,9 @@ void Projection::_rebuild_orthographic() {
 // Utility functions
 Vector3 Projection::project_point(const Vector3& world_point, const Matrix& view_matrix) const {
 	Matrix view_proj = view_matrix * _projection_matrix;
-	Vector4 clip_space = view_proj * Vector4(world_point.x, world_point.y, world_point.z, 1.0f);
+	// Matrix stays single precision whatever real_t is.
+	Vector4f clip_space = view_proj * Vector4f(static_cast<float>(world_point.x), static_cast<float>(world_point.y),
+										  static_cast<float>(world_point.z), 1.0f);
 
 	// Perspective divide
 	if (std::abs(clip_space.w) > 0.0001f) {
@@ -182,7 +184,8 @@ Vector3 Projection::unproject_point(
 	Matrix inv_view_proj = view_proj.inverse();
 
 	// Transform from NDC to world space
-	Vector4 world_point = inv_view_proj * Vector4(ndc.x, ndc.y, ndc.z, 1.0f);
+	Vector4f world_point = inv_view_proj * Vector4f(static_cast<float>(ndc.x), static_cast<float>(ndc.y),
+											   static_cast<float>(ndc.z), 1.0f);
 
 	// Perspective divide
 	if (std::abs(world_point.w) > 0.0001f) {
@@ -213,7 +216,8 @@ std::array<Vector3, 8> Projection::get_frustum_corners() const {
 	};
 
 	for (int i = 0; i < 8; ++i) {
-		Vector4 view_corner = inv_proj * Vector4(ndc_corners[i].x, ndc_corners[i].y, ndc_corners[i].z, 1.0f);
+		const Vector4f view_corner = inv_proj * Vector4f(static_cast<float>(ndc_corners[i].x),
+				static_cast<float>(ndc_corners[i].y), static_cast<float>(ndc_corners[i].z), 1.0f);
 
 		// Perspective divide
 		if (std::abs(view_corner.w) > 0.0001f) {

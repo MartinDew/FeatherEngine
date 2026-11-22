@@ -16,8 +16,8 @@ import :ecs_defs;
 
 export namespace feather {
 
-// A script-facing reference to an entity: plain data that stays valid only while its world does. Components are read
-// and written by copy, so a Variant holding one never points into ECS storage.
+// A script-facing reference to an entity: plain data that stays valid only while its world does. Scripts read and
+// write components by copy; only get_component_ref points into ECS storage.
 struct FEATHER_WORLD_API EntityHandle {
 	FSTRUCT(no_component);
 
@@ -46,9 +46,13 @@ struct FEATHER_WORLD_API EntityHandle {
 	[[method]] void remove(const EntityHandle& component);
 	[[method]] [[nodiscard]] bool has(const EntityHandle& component) const;
 
-	// A copy of the component's data as a VALUE; NIL when the entity lacks the component or it carries no data.
+	// A copy of the component's data, as a VALUE or a builtin type such as TRANSFORM; NIL when the entity lacks the
+	// component or it carries no data.
 	[[method]] [[nodiscard]] Variant get_component(const EntityHandle& component) const;
-	// Copies `value` in, which must be a VALUE of the component's class. Returns whether it was applied.
+	// The component's data itself, edited in place; NIL as for get_component, and for a builtin type. Edits don't
+	// notify observers, and any structural change to the entity invalidates the reference.
+	[[nodiscard]] Variant get_component_ref(const EntityHandle& component);
+	// Copies `value` in, which must be of the component's type. Returns whether it was applied.
 	[[method]] bool set_component(const EntityHandle& component, const Variant& value);
 
 private:
