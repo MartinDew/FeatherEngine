@@ -1,6 +1,12 @@
 module;
 
+#include <framework/reflection_macros.h>
+
 #include <rtm/impl/compiler_utils.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "matrix.gen.h"
+#endif
 
 export module feather.math:matrix;
 
@@ -18,13 +24,12 @@ struct Matrix4x4d;
 // A 4x4 transformation matrix stored as four rows, for row vectors (`v * M`): rows 0-2 are the
 // basis axes and row 3 the translation, the layout RTM and the GPU uploads both use.
 struct Matrix4x4f {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Matrix4x4f::*) > 0; }
+	FSTRUCT(builtin(Matrix));
 
-	Vector4f x_axis { 1.0f, 0.0f, 0.0f, 0.0f };
-	Vector4f y_axis { 0.0f, 1.0f, 0.0f, 0.0f };
-	Vector4f z_axis { 0.0f, 0.0f, 1.0f, 0.0f };
-	Vector4f w_axis { 0.0f, 0.0f, 0.0f, 1.0f };
+	[[get, set]] Vector4f x_axis = { 1.0f, 0.0f, 0.0f, 0.0f };
+	[[get, set]] Vector4f y_axis = { 0.0f, 1.0f, 0.0f, 0.0f };
+	[[get, set]] Vector4f z_axis = { 0.0f, 0.0f, 1.0f, 0.0f };
+	[[get, set]] Vector4f w_axis = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	constexpr Matrix4x4f() = default;
 	// Narrows each element, as for a GPU upload.
@@ -140,13 +145,12 @@ inline constexpr Matrix4x4f Matrix4x4f::identity {};
 
 // The double-precision counterpart of Matrix4x4f, with the same layout and conventions.
 struct Matrix4x4d {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Matrix4x4d::*) > 0; }
+	FSTRUCT(builtin(Matrix));
 
-	Vector4d x_axis { 1.0, 0.0, 0.0, 0.0 };
-	Vector4d y_axis { 0.0, 1.0, 0.0, 0.0 };
-	Vector4d z_axis { 0.0, 0.0, 1.0, 0.0 };
-	Vector4d w_axis { 0.0, 0.0, 0.0, 1.0 };
+	[[get, set]] Vector4d x_axis = { 1.0, 0.0, 0.0, 0.0 };
+	[[get, set]] Vector4d y_axis = { 0.0, 1.0, 0.0, 0.0 };
+	[[get, set]] Vector4d z_axis = { 0.0, 0.0, 1.0, 0.0 };
+	[[get, set]] Vector4d w_axis = { 0.0, 0.0, 0.0, 1.0 };
 
 	constexpr Matrix4x4d() = default;
 	constexpr Matrix4x4d(const Matrix4x4f& m)

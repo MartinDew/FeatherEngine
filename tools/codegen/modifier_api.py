@@ -125,6 +125,14 @@ class Modifier:
         tuple, e.g. for a method this modifier declared in gen_body_lines."""
         return []
 
+    def ftype_name(self, cls, arg, ctx: EmitContext):
+        """A StaticString expression for FType<T>::name in place of the class's own name, or None to keep it."""
+        return None
+
+    def ftype_name_dependencies(self, cls, arg, ctx: EmitContext) -> list:
+        """Names ftype_name()'s expression uses; the register partition imports the partitions declaring them."""
+        return []
+
     def register_statements(self, cls, ctx: EmitContext):
         """Statements to call in register_<dir>_types() for this class,
         replacing the default `ClassDB::register_class<T>()` call. Return None to leave the default

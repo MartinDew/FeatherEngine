@@ -1,6 +1,12 @@
 module;
 
+#include <framework/reflection_macros.h>
+
 #include <rtm/impl/compiler_utils.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "vector3.gen.h"
+#endif
 
 export module feather.math:vector3;
 
@@ -16,12 +22,11 @@ struct Vector3d;
 // A 3-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector3f {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector3f::*) > 0; }
+	FSTRUCT(builtin(Vector3));
 
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
+	[[get, set]] float x = 0.0f;
+	[[get, set]] float y = 0.0f;
+	[[get, set]] float z = 0.0f;
 
 	constexpr Vector3f() = default;
 	constexpr Vector3f(float x, float y, float z) : x(x), y(y), z(z) {}
@@ -128,12 +133,11 @@ RTM_FORCE_INLINE Vector3f operator*(float s, const Vector3f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector3d {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector3d::*) > 0; }
+	FSTRUCT(builtin(Vector3));
 
-	double x = 0.0;
-	double y = 0.0;
-	double z = 0.0;
+	[[get, set]] double x = 0.0;
+	[[get, set]] double y = 0.0;
+	[[get, set]] double z = 0.0;
 
 	constexpr Vector3d() = default;
 	constexpr Vector3d(double x, double y, double z) : x(x), y(y), z(z) {}

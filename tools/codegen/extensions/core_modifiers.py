@@ -1,7 +1,7 @@
 """
 core_modifiers.py — the FCLASS/FSTRUCT modifiers every reflected type can use,
 regardless of ECS or any other higher-level concern: singleton, abstract,
-novtable. Always loaded (see build_registry in generate_reflection.py) — these
+novtable, builtin. Always loaded (see build_registry in generate_reflection.py) — these
 define the base modifier vocabulary itself, not an opt-in extension a project
 chooses to pull in.
 
@@ -64,4 +64,25 @@ class NovtableModifier(Modifier):
     value_type = True
 
 
-MODIFIERS = [SingletonModifier(), AbstractModifier(), NovtableModifier()]
+class BuiltinModifier(Modifier):
+    """FSTRUCT(builtin) / FSTRUCT(builtin(Alias)) -- a type Variant stores natively (the math types). It gets an
+    FType but no ClassDB registration and doesn't pass for a reflected value type. With an alias, the type that alias
+    names in this build is described as the alias (Vector3f as "Vector3" when Vector3 = Vector3f)."""
+    name = "builtin"
+    targets = frozenset({"class"})
+    value_type = True
+    takes_args = True
+
+    def ftype_name(self, cls, arg, ctx):
+        if not arg:
+            return None
+        return f'std::is_same_v<{cls.name}, {arg}> ? "{arg}"_ss : "{cls.name}"_ss'
+
+    def ftype_name_dependencies(self, cls, arg, ctx):
+        return [arg] if arg else []
+
+    def register_statements(self, cls, ctx):
+        return []
+
+
+MODIFIERS = [SingletonModifier(), AbstractModifier(), NovtableModifier(), BuiltinModifier()]

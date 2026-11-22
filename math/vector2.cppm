@@ -1,6 +1,12 @@
 module;
 
+#include <framework/reflection_macros.h>
+
 #include <rtm/impl/compiler_utils.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "vector2.gen.h"
+#endif
 
 export module feather.math:vector2;
 
@@ -11,18 +17,21 @@ import :rtm_interop;
 
 export namespace feather {
 
+struct Vector2d;
+
 // A 2-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector2f {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector2f::*) > 0; }
+	FSTRUCT(builtin(Vector2));
 
-	float x = 0.0f;
-	float y = 0.0f;
+	[[get, set]] float x = 0.0f;
+	[[get, set]] float y = 0.0f;
 
 	constexpr Vector2f() = default;
 	constexpr Vector2f(float x, float y) : x(x), y(y) {}
 	explicit constexpr Vector2f(float value) : x(value), y(value) {}
+	// Narrows each component.
+	constexpr Vector2f(const Vector2d& v);
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, 0.0f, 0.0f); }
@@ -106,15 +115,15 @@ RTM_FORCE_INLINE Vector2f operator*(float s, const Vector2f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector2d {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector2d::*) > 0; }
+	FSTRUCT(builtin(Vector2));
 
-	double x = 0.0;
-	double y = 0.0;
+	[[get, set]] double x = 0.0;
+	[[get, set]] double y = 0.0;
 
 	constexpr Vector2d() = default;
 	constexpr Vector2d(double x, double y) : x(x), y(y) {}
 	explicit constexpr Vector2d(double value) : x(value), y(value) {}
+	constexpr Vector2d(const Vector2f& v) : x(v.x), y(v.y) {}
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, 0.0, 0.0); }
@@ -197,6 +206,8 @@ inline constexpr Vector2d Vector2d::down { 0.0, -1.0 };
 RTM_FORCE_INLINE Vector2d operator*(double s, const Vector2d& v) {
 	return v * s;
 }
+
+constexpr Vector2f::Vector2f(const Vector2d& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)) {}
 
 } //namespace feather
 

@@ -1,3 +1,11 @@
+module;
+
+#include <framework/reflection_macros.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "transform.gen.h"
+#endif
+
 export module feather.math:transform;
 
 import std;
@@ -7,16 +15,15 @@ import :math_defs;
 export namespace feather {
 
 struct FEATHER_MATH_API Transform {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Transform::*) > 0; }
+	FSTRUCT(builtin);
 
 	// Feather uses right-handed coordinates
 	// up = Y
 	// right = X
 	// forward = -Z
-	Vector3 position = Vector3::zero; // X, Y, Z
-	Quaternion rotation = Quaternion::identity; // Quaternion
-	Vector3 scale = Vector3::one; // X, Y, Z
+	[[get, set]] Vector3 position = Vector3::zero; // X, Y, Z
+	[[get, set]] Quaternion rotation = Quaternion::identity; // Quaternion
+	[[get, set]] Vector3 scale = Vector3::one; // X, Y, Z
 
 	Transform() = default;
 	explicit Transform(const Matrix& transformationMat);

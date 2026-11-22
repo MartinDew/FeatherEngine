@@ -399,7 +399,8 @@ Variant Variant::_get_builtin(std::string_view key) const {
 				if constexpr (has_builtin_ftype<T>) {
 					std::apply(
 							[&](const auto&... desc) {
-								((desc.name == key ? (result = Variant(value.*desc.getter), true) : false) || ...);
+								((desc.name == key ? (result = Variant(std::invoke(desc.getter, value)), true) : false) ||
+								 ...);
 							},
 							FType<T>::properties
 					);
@@ -418,12 +419,18 @@ void Variant::_set_builtin(std::string_view key, const Variant& new_value) {
 					std::apply(
 							[&](const auto&... desc) {
 								auto assign = [&](const auto& property) {
-									using Field = std::decay_t<decltype(value.*property.setter)>;
 									if (property.name != key) {
 										return false;
 									}
-									if (auto converted = new_value.as<Field>()) {
-										value.*property.setter = std::move(*converted);
+									constexpr auto setter = std::decay_t<decltype(property)>::setter;
+									using Value = typename reflection_detail::accessor_value<setter, false>::type;
+									if (auto converted = new_value.as<Value>()) {
+										if constexpr (reflection_detail::is_data_member<setter>) {
+											value.*setter = std::move(*converted);
+										}
+										else {
+											(value.*setter)(std::move(*converted));
+										}
 									}
 									return true;
 								};

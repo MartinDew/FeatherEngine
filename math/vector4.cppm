@@ -1,6 +1,12 @@
 module;
 
+#include <framework/reflection_macros.h>
+
 #include <rtm/impl/compiler_utils.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "vector4.gen.h"
+#endif
 
 export module feather.math:vector4;
 
@@ -16,13 +22,12 @@ struct Vector4d;
 // A 4-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector4f {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector4f::*) > 0; }
+	FSTRUCT(builtin(Vector4));
 
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
-	float w = 0.0f;
+	[[get, set]] float x = 0.0f;
+	[[get, set]] float y = 0.0f;
+	[[get, set]] float z = 0.0f;
+	[[get, set]] float w = 0.0f;
 
 	constexpr Vector4f() = default;
 	constexpr Vector4f(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
@@ -104,13 +109,12 @@ RTM_FORCE_INLINE Vector4f operator*(float s, const Vector4f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector4d {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Vector4d::*) > 0; }
+	FSTRUCT(builtin(Vector4));
 
-	double x = 0.0;
-	double y = 0.0;
-	double z = 0.0;
-	double w = 0.0;
+	[[get, set]] double x = 0.0;
+	[[get, set]] double y = 0.0;
+	[[get, set]] double z = 0.0;
+	[[get, set]] double w = 0.0;
 
 	constexpr Vector4d() = default;
 	constexpr Vector4d(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}

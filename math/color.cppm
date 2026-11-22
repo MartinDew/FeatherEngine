@@ -1,6 +1,12 @@
 module;
 
+#include <framework/reflection_macros.h>
+
 #include <rtm/impl/compiler_utils.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "color.gen.h"
+#endif
 
 export module feather.math:color;
 
@@ -14,13 +20,12 @@ export namespace feather {
 // A linear RGBA color. Float only whatever the engine's precision: doubling a display quantity
 // buys a renderer nothing.
 struct Colorf {
-	// Fixes the MSVC-ABI member pointer model in this partition; see math:ftypes.
-	static consteval bool _feather_member_pointer_model() { return sizeof(int Colorf::*) > 0; }
+	FSTRUCT(builtin(Color));
 
-	float r = 0.0f;
-	float g = 0.0f;
-	float b = 0.0f;
-	float a = 1.0f;
+	[[get, set]] float r = 0.0f;
+	[[get, set]] float g = 0.0f;
+	[[get, set]] float b = 0.0f;
+	[[get, set]] float a = 1.0f;
 
 	constexpr Colorf() = default;
 	constexpr Colorf(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
