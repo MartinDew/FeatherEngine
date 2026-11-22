@@ -11,6 +11,8 @@ import :rtm_interop;
 
 export namespace feather {
 
+struct Vector4d;
+
 // A 4-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector4f {
@@ -25,6 +27,8 @@ struct Vector4f {
 	constexpr Vector4f() = default;
 	constexpr Vector4f(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 	explicit constexpr Vector4f(float value) : x(value), y(value), z(value), w(value) {}
+	// Narrows each component.
+	constexpr Vector4f(const Vector4d& v);
 
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, z, w); }
 	static RTM_FORCE_INLINE Vector4f from_rtm(rtm::vector4f v) {
@@ -111,6 +115,7 @@ struct Vector4d {
 	constexpr Vector4d() = default;
 	constexpr Vector4d(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
 	explicit constexpr Vector4d(double value) : x(value), y(value), z(value), w(value) {}
+	constexpr Vector4d(const Vector4f& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
 
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, z, w); }
 	static RTM_FORCE_INLINE Vector4d from_rtm(rtm::vector4d v) {
@@ -183,6 +188,12 @@ inline constexpr Vector4d Vector4d::one { 1.0, 1.0, 1.0, 1.0 };
 RTM_FORCE_INLINE Vector4d operator*(double s, const Vector4d& v) {
 	return v * s;
 }
+
+constexpr Vector4f::Vector4f(const Vector4d& v)
+		: x(static_cast<float>(v.x))
+		, y(static_cast<float>(v.y))
+		, z(static_cast<float>(v.z))
+		, w(static_cast<float>(v.w)) {}
 
 } //namespace feather
 

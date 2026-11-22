@@ -11,6 +11,8 @@ import :rtm_interop;
 
 export namespace feather {
 
+struct Vector3d;
+
 // A 3-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector3f {
@@ -24,6 +26,8 @@ struct Vector3f {
 	constexpr Vector3f() = default;
 	constexpr Vector3f(float x, float y, float z) : x(x), y(y), z(z) {}
 	explicit constexpr Vector3f(float value) : x(value), y(value), z(value) {}
+	// Narrows each component.
+	constexpr Vector3f(const Vector3d& v);
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, z, 0.0f); }
@@ -134,6 +138,7 @@ struct Vector3d {
 	constexpr Vector3d() = default;
 	constexpr Vector3d(double x, double y, double z) : x(x), y(y), z(z) {}
 	explicit constexpr Vector3d(double value) : x(value), y(value), z(value) {}
+	constexpr Vector3d(const Vector3f& v) : x(v.x), y(v.y), z(v.z) {}
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, z, 0.0); }
@@ -232,6 +237,11 @@ inline constexpr Vector3d Vector3d::backward { 0.0, 0.0, 1.0 };
 RTM_FORCE_INLINE Vector3d operator*(double s, const Vector3d& v) {
 	return v * s;
 }
+
+constexpr Vector3f::Vector3f(const Vector3d& v)
+		: x(static_cast<float>(v.x))
+		, y(static_cast<float>(v.y))
+		, z(static_cast<float>(v.z)) {}
 
 } //namespace feather
 

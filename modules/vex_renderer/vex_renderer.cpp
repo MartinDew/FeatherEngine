@@ -541,7 +541,7 @@ void VexRenderer::_render_shadow_pass(const RenderScene& capture, vex::CommandCo
 			};
 
 			struct ShadowUniforms {
-				Matrix mvp;
+				Matrix4x4f mvp;
 				vex::BindlessHandle vertex_buffer_handle;
 			};
 			const vex::BufferBinding vertex_binding = _vertex_buffer_binding(meshBuffers);

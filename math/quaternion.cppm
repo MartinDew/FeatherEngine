@@ -13,6 +13,7 @@ import :vector3;
 export namespace feather {
 
 struct Matrix4x4f;
+struct Matrix4x4d;
 
 // A rotation stored as four plain reals, laid out like a 4-component vector so it reaches RTM's
 // register type without a conversion step.
@@ -122,6 +123,8 @@ struct Quaterniond {
 		return from_axis_angle(Vector3d::backward, roll) * from_axis_angle(Vector3d::right, pitch) *
 				from_axis_angle(Vector3d::up, yaw);
 	}
+	// The rotation part of a matrix, which must already be free of scale.
+	FEATHER_MATH_API static Quaterniond from_matrix(const Matrix4x4d& m);
 
 	RTM_FORCE_INLINE Quaterniond operator*(const Quaterniond& o) const {
 		return from_rtm(rtm::quat_mul(to_rtm(), o.to_rtm()));
