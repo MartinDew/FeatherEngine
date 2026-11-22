@@ -15,11 +15,8 @@ class FEATHER_REFLECTION_API Reflected {
 	friend class ClassDB;
 	struct _class_type {};
 
-protected:
-	using Type = Reflected;
-
 public:
-	using _feather_self = Reflected;
+	using Type = Reflected;
 
 	virtual ~Reflected() = default;
 
