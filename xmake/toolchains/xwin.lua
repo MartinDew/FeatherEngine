@@ -31,6 +31,13 @@ toolchain("xwin")
         end
         toolchain:config_set("sysroot", sysroot)
 
+        if not toolchain:is_plat("windows") then
+            raise("xwin toolchain only targets windows (got -p %s), use: xmake f -p windows -a x64 --toolchain=xwin", toolchain:plat())
+        end
+        -- Without -a, xmake falls back to the host arch (x86_64), which is not an MSVC arch name.
+        if not table.contains({"x64", "x86", "arm64"}, toolchain:arch()) then
+            raise("xwin toolchain needs -a x64, x86 or arm64 (got %s), use: xmake f -p windows -a x64 --toolchain=xwin", toolchain:arch())
+        end
         local wrapperdir = path.join(sysroot, "bin", toolchain:arch())
         if not os.isfile(path.join(wrapperdir, "clang-cl")) then
             raise("msvc wrappers not found in %s, please re-run: python %s --root %s",
