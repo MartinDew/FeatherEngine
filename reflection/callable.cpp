@@ -6,8 +6,7 @@ using namespace std::literals;
 
 namespace feather {
 
-Callable::Callable() : _internal_func { nullptr }, _param_amount(0) {
-}
+Callable::Callable() : _internal_func { nullptr }, _param_amount(0) {}
 
 Variant Callable::call(std::span<Variant> params) const {
 	if (!is_valid()) {

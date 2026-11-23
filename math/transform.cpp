@@ -150,8 +150,7 @@ Transform::Transform(const Matrix& transformationMat) {
 Transform::Transform(const Vector3& position, const Quaternion& rotation, const Vector3& scale)
 		: position(position)
 		, rotation(rotation)
-		, scale(scale) {
-}
+		, scale(scale) {}
 
 Transform Transform::construct_from_matrices_and_scale(const Matrix& mat1, const Matrix& mat2, Vector3 desiredScale) {
 	using namespace math::matrices;

@@ -201,16 +201,14 @@ StaticIndexedArray<T>::Iterator::Iterator(VecIt it, VecIt lowerBound, VecIt uppe
 		: it { it }
 		, lowerBound { lowerBound }
 		, upperBound { upperBound }
-		, first { first } {
-}
+		, first { first } {}
 
 template <class T>
 StaticIndexedArray<T>::ConstIterator::ConstIterator(VecIt it, VecIt lowerBound, VecIt upperBound, VecIt first)
 		: it { it }
 		, lowerBound { lowerBound }
 		, upperBound { upperBound }
-		, first { first } {
-}
+		, first { first } {}
 
 template <class T>
 T& StaticIndexedArray<T>::Iterator::operator*() {

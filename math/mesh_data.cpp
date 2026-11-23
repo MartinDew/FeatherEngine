@@ -6,8 +6,7 @@ namespace feather {
 
 MeshData::MeshData(std::vector<Vertex> vertices, std::vector<Index> indices)
 		: _vertices { vertices.begin(), vertices.end() }
-		, _indices { indices.begin(), indices.end() } {
-}
+		, _indices { indices.begin(), indices.end() } {}
 
 const CowVector<Vertex>& MeshData::get_vertices() const {
 	return _vertices;

@@ -51,13 +51,11 @@ ValueBox::ValueBox(const ClassInfo& info, const void* src) {
 	_data = data;
 }
 
-ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {
-}
+ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {}
 
 ValueBox::ValueBox(ValueBox&& other) noexcept
 		: _info { std::exchange(other._info, nullptr) }
-		, _data { std::exchange(other._data, nullptr) } {
-}
+		, _data { std::exchange(other._data, nullptr) } {}
 
 ValueBox& ValueBox::operator=(const ValueBox& other) {
 	if (this != &other) {

@@ -8,8 +8,7 @@ import std;
 
 namespace feather {
 
-SharedLibrary::SharedLibrary() : _handle(nullptr) {
-}
+SharedLibrary::SharedLibrary() : _handle(nullptr) {}
 
 SharedLibrary::~SharedLibrary() {
 	unload();

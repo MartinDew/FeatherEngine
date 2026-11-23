@@ -261,8 +261,7 @@ RTM_FORCE_INLINE Vector3d operator*(double s, const Vector3d& v) {
 constexpr Vector3f::Vector3f(const Vector3d& v)
 		: x(static_cast<float>(v.x))
 		, y(static_cast<float>(v.y))
-		, z(static_cast<float>(v.z)) {
-}
+		, z(static_cast<float>(v.z)) {}
 
 } //namespace feather
 

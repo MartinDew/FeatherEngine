@@ -215,8 +215,7 @@ constexpr Vector4f::Vector4f(const Vector4d& v)
 		: x(static_cast<float>(v.x))
 		, y(static_cast<float>(v.y))
 		, z(static_cast<float>(v.z))
-		, w(static_cast<float>(v.w)) {
-}
+		, w(static_cast<float>(v.w)) {}
 
 } //namespace feather
 
