@@ -102,10 +102,6 @@ void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
 	Entity(c_ptr(), component).set<ReflectedComponent>({ &info });
 }
 
-void World::_mark_builtin(flecs::entity_t component, VariantType type) {
-	Entity(c_ptr(), component).set<BuiltinComponent>({ type });
-}
-
 flecs::entity_t World::_module_scope(StaticString module_name) {
 	ecs_world_t* world = c_ptr();
 	const std::string path =
@@ -182,7 +178,6 @@ Entity World::register_component(StaticString class_name) {
 
 void World::register_reflected_components() {
 	_place(component<ReflectedComponent>(), StaticString(FMODULE_NAME), "ReflectedComponent"_ss);
-	_place(component<BuiltinComponent>(), StaticString(FMODULE_NAME), "BuiltinComponent"_ss);
 	for (const StaticString& name : ClassDB::get_class_names()) {
 		const ClassInfo* info = ClassDB::get_class_info(name);
 		if (info && can_be_component(*info)) {
@@ -201,10 +196,11 @@ EntityHandle World::get_entity(const std::string& path) const {
 
 EntityHandle World::get_component(const std::string& class_name) const {
 	const ClassInfo* info = ClassDB::get_class_info(StaticString(class_name));
+	// Built-ins aren't in ClassDB: find the component linked to their ClassInfo by name.
 	if (!info || info->cpp_name.str().empty()) {
 		Entity builtin;
-		each([&](Entity component, const BuiltinComponent&) {
-			if (!builtin && class_name == component.name().c_str()) {
+		each([&](Entity component, const ReflectedComponent& reflected) {
+			if (!builtin && class_name == reflected.info->name.str()) {
 				builtin = component;
 			}
 		});

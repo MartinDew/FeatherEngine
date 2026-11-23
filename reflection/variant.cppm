@@ -148,12 +148,10 @@ concept VariantCompatible = std::is_same_v<T, Variant> || get_variant_type<T>() 
 
 struct ClassInfo;
 
-// An instance of a reflected value type: owned by the box and managed through the ClassInfo's lifecycle hooks, or a
-// reference to one the caller keeps alive, which copies of the box share.
+// An instance of a reflected value type, owned by its box and managed through the ClassInfo's lifecycle hooks.
 class FEATHER_REFLECTION_API ValueBox {
 	const ClassInfo* _info = nullptr;
 	void* _data = nullptr;
-	bool _owned = true;
 
 	void _destroy() noexcept;
 
@@ -167,11 +165,7 @@ public:
 	ValueBox& operator=(ValueBox&& other) noexcept;
 	~ValueBox();
 
-	// Refers to `data` without copying it; it must outlive every box that refers to it.
-	static ValueBox ref(const ClassInfo& info, void* data);
-
 	const ClassInfo* get_class_info() const noexcept { return _info; }
-	bool is_reference() const noexcept { return !_owned; }
 	void* get() noexcept { return _data; }
 	const void* get() const noexcept { return _data; }
 	bool is_class(StaticString name) const noexcept;
@@ -208,14 +202,7 @@ class FEATHER_REFLECTION_API Variant {
 
 	static const ClassInfo* _find_class_info(StaticString name);
 
-	struct Instance {
-		void* data = nullptr;
-		const ClassInfo* info = nullptr;
-	};
-	// The held instance and its class, the same way for an object, a boxed value and a built-in (Vector3...); both
-	// null when the held type has no members. An object's data is its Reflected*.
-	Instance _instance() const;
-	bool _is_reflectable() const { return _instance().info != nullptr; }
+	inline bool _is_reflectable() const { return get_instance().info != nullptr; }
 
 	// Visits each (class, instance adjusted to it) level that get/set/call search, most derived first.
 	template <class TVisit>
@@ -289,27 +276,23 @@ public:
 		}
 	}
 
-	// An owned copy of a value type's instance; `src` null makes a default-constructed one. NIL when the class can't be
-	// copied, or default-constructed for a null `src`.
+	struct Instance {
+		void* data = nullptr;
+		const ClassInfo* info = nullptr;
+	};
+	// The held instance and its class, the same way for an object, a boxed value and a built-in (Vector3...); both
+	// null when the held type has no members. An object's data is its Reflected*.
+	Instance get_instance() const;
+
+	// The ClassInfo of a built-in (Vector3...), which ClassDB never registers; null for any other type.
+	static const ClassInfo* get_builtin_class_info(VariantType type);
+
+	// A copy of a value type's or built-in's instance; `src` null makes a default-constructed one. NIL for an object
+	// class, or one that can't be copied (default-constructed for a null `src`).
 	static Variant from_value(const ClassInfo& info, const void* src);
 	static Variant default_value(const ClassInfo& info);
-	// A VALUE that edits `data` in place, which must outlive the Variant and its copies. NIL for a non-value type.
-	static Variant ref(const ClassInfo& info, void* data);
-	template <class T>
-		requires is_reflected_value_type<T>
-	static Variant ref(T& value) {
-		const ClassInfo* info = _find_class_info(FType<T>::name);
-		fassert(info, "Value type isn't registered in ClassDB");
-		return ref(*info, &value);
-	}
 	// The box of a VALUE variant; null otherwise.
 	const ValueBox* get_value() const;
-
-	// A natively stored math type (Vector*, Quaternion, Color, Matrix, Transform, Vertex) copied from raw memory of
-	// that type. NIL for any other type.
-	static Variant from_builtin(VariantType type, const void* src);
-	// The storage of a natively stored math type, as from_builtin reads it; null for any other type.
-	const void* builtin_data() const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;

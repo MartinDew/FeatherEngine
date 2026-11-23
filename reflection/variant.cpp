@@ -51,27 +51,12 @@ ValueBox::ValueBox(const ClassInfo& info, const void* src) {
 	_data = data;
 }
 
-ValueBox ValueBox::ref(const ClassInfo& info, void* data) {
-	fassert(info.is_value_type && data, "A value reference needs a value type instance");
-	ValueBox box;
-	box._info = &info;
-	box._data = data;
-	box._owned = false;
-	return box;
-}
-
-ValueBox::ValueBox(const ValueBox& other)
-		: ValueBox(
-				  !other._info			 ? ValueBox()
-						  : other._owned ? ValueBox(*other._info, other._data)
-										 : ref(*other._info, other._data)
-		  ) {
+ValueBox::ValueBox(const ValueBox& other) : ValueBox(other._info ? ValueBox(*other._info, other._data) : ValueBox()) {
 }
 
 ValueBox::ValueBox(ValueBox&& other) noexcept
 		: _info { std::exchange(other._info, nullptr) }
-		, _data { std::exchange(other._data, nullptr) }
-		, _owned { std::exchange(other._owned, true) } {
+		, _data { std::exchange(other._data, nullptr) } {
 }
 
 ValueBox& ValueBox::operator=(const ValueBox& other) {
@@ -86,7 +71,6 @@ ValueBox& ValueBox::operator=(ValueBox&& other) noexcept {
 		_destroy();
 		_info = std::exchange(other._info, nullptr);
 		_data = std::exchange(other._data, nullptr);
-		_owned = std::exchange(other._owned, true);
 	}
 	return *this;
 }
@@ -96,7 +80,7 @@ ValueBox::~ValueBox() {
 }
 
 void ValueBox::_destroy() noexcept {
-	if (_data && _owned) {
+	if (_data) {
 		if (_info->lifecycle.destruct) {
 			_info->lifecycle.destruct(_data, 1);
 		}
@@ -104,7 +88,6 @@ void ValueBox::_destroy() noexcept {
 	}
 	_info = nullptr;
 	_data = nullptr;
-	_owned = true;
 }
 
 bool ValueBox::is_class(StaticString name) const noexcept {
@@ -136,30 +119,6 @@ bool ValueBox::operator==(const ValueBox& other) const {
 
 const ClassInfo* Variant::_find_class_info(StaticString name) {
 	return ClassDB::get_class_info(name);
-}
-
-Variant Variant::from_value(const ClassInfo& info, const void* src) {
-	if (!info.is_value_type || !(src ? info.can_copy() : info.can_create())) {
-		return {};
-	}
-	Variant result;
-	result._data = ValueBox(info, src);
-	result._type = VariantType::VALUE;
-	return result;
-}
-
-Variant Variant::ref(const ClassInfo& info, void* data) {
-	if (!info.is_value_type || !data) {
-		return {};
-	}
-	Variant result;
-	result._data = ValueBox::ref(info, data);
-	result._type = VariantType::VALUE;
-	return result;
-}
-
-Variant Variant::default_value(const ClassInfo& info) {
-	return from_value(info, nullptr);
 }
 
 namespace {
@@ -198,20 +157,36 @@ bool visit_builtin_type(VariantType type, TVisit&& visit) {
 
 } // namespace
 
-Variant Variant::from_builtin(VariantType type, const void* src) {
+const ClassInfo* Variant::get_builtin_class_info(VariantType type) {
+	const ClassInfo* info = nullptr;
+	visit_builtin_type(type, [&]<class T>(std::type_identity<T>) {
+		static const ClassInfo builtin = ClassDB::_describe_builtin<T>();
+		info = &builtin;
+	});
+	return info;
+}
+
+Variant Variant::from_value(const ClassInfo& info, const void* src) {
 	Variant result;
-	if (src) {
-		visit_builtin_type(type, [&]<class T>(std::type_identity<T>) {
-			result = Variant(*static_cast<const T*>(src));
-		});
+	if (visit_builtin_type(
+				info.variant_type,
+				[&]<class T>(std::type_identity<T>) {
+					result = src ? Variant(*static_cast<const T*>(src)) : Variant(T {});
+				}
+		))
+	{
+		return result;
 	}
+	if (info.variant_type != VariantType::VALUE || !(src ? info.can_copy() : info.can_create())) {
+		return {};
+	}
+	result._data = ValueBox(info, src);
+	result._type = VariantType::VALUE;
 	return result;
 }
 
-const void* Variant::builtin_data() const {
-	const void* data = nullptr;
-	visit_builtin_type(_type, [&]<class T>(std::type_identity<T>) { data = &std::get<T>(_data); });
-	return data;
+Variant Variant::default_value(const ClassInfo& info) {
+	return from_value(info, nullptr);
 }
 
 const ValueBox* Variant::get_value() const {
@@ -405,7 +380,7 @@ concept has_builtin_ftype = requires { FType<T>::properties; };
 
 } // namespace
 
-Variant::Instance Variant::_instance() const {
+Variant::Instance Variant::get_instance() const {
 	return std::visit(
 			[](const auto& value) -> Instance {
 				using T = std::decay_t<decltype(value)>;
@@ -416,8 +391,7 @@ Variant::Instance Variant::_instance() const {
 					return { const_cast<void*>(value.get()), value.get() ? value.get_class_info() : nullptr };
 				}
 				else if constexpr (has_builtin_ftype<T>) {
-					static const ClassInfo info = ClassDB::_describe_builtin<T>();
-					return { const_cast<T*>(&value), &info };
+					return { const_cast<T*>(&value), get_builtin_class_info(get_variant_type<T>()) };
 				}
 				else {
 					return {};
@@ -429,7 +403,7 @@ Variant::Instance Variant::_instance() const {
 
 template <class TVisit>
 bool Variant::_walk(TVisit&& visit) const {
-	Instance instance = _instance();
+	Instance instance = get_instance();
 	return instance.info && instance.info->walk(instance.data, std::forward<TVisit>(visit));
 }
 

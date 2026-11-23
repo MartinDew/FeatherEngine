@@ -22,11 +22,6 @@ struct ReflectedComponent {
 	const ClassInfo* info = nullptr;
 };
 
-// Set on the component entity of a type Variant stores natively (Transform, Vector3...): how a Variant holds it.
-struct BuiltinComponent {
-	VariantType type = VariantType::INVALID;
-};
-
 // flecs' world plus reflection-driven registration. A copy, or a World built from any flecs::world handle, views the
 // same refcounted world. Reflected is the first base because codegen takes the first base as the reflected parent.
 class FEATHER_WORLD_API World : public Reflected, public flecs::world {
@@ -37,7 +32,6 @@ class FEATHER_WORLD_API World : public Reflected, public flecs::world {
 	flecs::entity_t _module_scope(StaticString module_name);
 	// Moves an entity typed flecs use created to feather.<module_name>.<name>, wherever it was made.
 	void _place(flecs::entity_t entity, StaticString module_name, StaticString name);
-	void _mark_builtin(flecs::entity_t component, VariantType type);
 
 public:
 	using flecs::world::world;
@@ -59,7 +53,7 @@ public:
 	Entity register_builtin_component() {
 		const Entity c = component<T>();
 		_place(c, FType<T>::module_name, FType<T>::name);
-		_mark_builtin(c, get_variant_type<T>());
+		_link_class_info(c, *Variant::get_builtin_class_info(get_variant_type<T>()));
 		return c;
 	}
 

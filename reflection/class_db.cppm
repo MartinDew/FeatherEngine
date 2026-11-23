@@ -232,6 +232,7 @@ void ClassDB::_describe(ClassInfo& info) {
 		info.module_name = Desc::module_name;
 	}
 	info.is_value_type = !std::is_base_of_v<Reflected, T>;
+	info.variant_type = get_variant_type<T>();
 	info.size = sizeof(T);
 	info.alignment = alignof(T);
 	info.is_empty = std::is_empty_v<T>;

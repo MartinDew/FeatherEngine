@@ -76,22 +76,8 @@ bool EntityHandle::has(const EntityHandle& component) const {
 	return is_valid() && component.is_valid() && Entity(*this).has(Entity(component));
 }
 
-namespace {
-
-const BuiltinComponent* get_builtin(const EntityHandle& component) {
-	return component.is_valid() ? Entity(component).try_get<BuiltinComponent>() : nullptr;
-}
-
-} // namespace
-
 Variant EntityHandle::get_component(const EntityHandle& component) const {
-	if (!is_valid()) {
-		return {};
-	}
-	if (const BuiltinComponent* builtin = get_builtin(component)) {
-		return Variant::from_builtin(builtin->type, ecs_get_id(world, id, component.id));
-	}
-	const ClassInfo* info = _get_class_info(component);
+	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
 	// A tag has no storage to copy.
 	if (!info || info->is_empty) {
 		return {};
@@ -100,30 +86,10 @@ Variant EntityHandle::get_component(const EntityHandle& component) const {
 	return data ? Variant::from_value(*info, data) : Variant {};
 }
 
-Variant EntityHandle::get_component_ref(const EntityHandle& component) {
-	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
-	if (!info || info->is_empty) {
-		return {};
-	}
-	void* data = ecs_get_mut_id(world, id, component.id);
-	return data ? Variant::ref(*info, data) : Variant {};
-}
-
 bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) {
-	if (!is_valid()) {
-		return false;
-	}
-	if (const BuiltinComponent* builtin = get_builtin(component)) {
-		const ecs_type_info_t* type_info = ecs_get_type_info(world, component.id);
-		if (value.get_type() != builtin->type || !type_info) {
-			return false;
-		}
-		ecs_set_id(world, id, component.id, static_cast<size_t>(type_info->size), value.builtin_data());
-		return true;
-	}
-	const ClassInfo* info = _get_class_info(component);
-	const ValueBox* box = value.get_value();
-	if (!info || !box || box->get_class_info() != info) {
+	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
+	const Variant::Instance instance = value.get_instance();
+	if (!info || instance.info != info) {
 		return false;
 	}
 	if (info->is_empty) {
@@ -131,7 +97,7 @@ bool EntityHandle::set_component(const EntityHandle& component, const Variant& v
 		return true;
 	}
 	// flecs copies through the component's hooks and notifies observers.
-	ecs_set_id(world, id, component.id, info->size, box->get());
+	ecs_set_id(world, id, component.id, info->size, instance.data);
 	return true;
 }
 

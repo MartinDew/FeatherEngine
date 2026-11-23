@@ -167,6 +167,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 	bool is_singleton = false;
 	// Not derived from Reflected: stored by value, with no vtable.
 	bool is_value_type = false;
+	// How a Variant holds an instance: OBJECT, VALUE, or a built-in's own type (VECTOR3...).
+	VariantType variant_type = VariantType::INVALID;
 
 	// An empty type still reports sizeof 1, so is_empty tells storage it needs none.
 	size_t size = 0;
