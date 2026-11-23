@@ -210,15 +210,14 @@ Callable ClassDB::get_static_method(const StaticString& class_name, std::string_
 	auto ci = _get_class_info_internal(class_name);
 	if (!ci)
 		return {};
-	auto it = std::find_if(ci->methods.begin(), ci->methods.end(), [&func_name](ClassInfo::Method& m) {
-		// An instance method's callable expects the object first, which a static call can't supply.
+	auto it = std::ranges::find_if(ci->methods, [&func_name](const ClassInfo::Method& m) {
 		return m.is_static && m.name == func_name;
 	});
-
-	if (it != ci->methods.end()) {
-		return it->callable;
+	if (it == ci->methods.end()) {
+		return {};
 	}
-	return {};
+	auto invoke = it->invoke;
+	return Callable { [invoke](std::span<Variant> args) { return invoke(nullptr, args); }, it->param_count };
 }
 
 } //namespace feather

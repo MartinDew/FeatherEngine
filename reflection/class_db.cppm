@@ -47,6 +47,18 @@ private:
 	template <is_reflected T>
 	static void _register(ClassKind kind);
 
+	// The fields of T's ClassInfo that come from its FType alone: name, layout, lifecycle and members.
+	template <class T>
+	static void _describe(ClassInfo& info);
+
+	// The ClassInfo of a type Variant stores natively (Vector3...), which is never registered.
+	template <class T>
+	static ClassInfo _describe_builtin() {
+		ClassInfo info;
+		_describe<T>(info);
+		return info;
+	}
+
 	template <class T, auto Getter, auto Setter>
 	static void _add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc);
 
@@ -166,19 +178,10 @@ void ClassDB::_register(ClassKind kind) {
 
 	ClassDB& instance = *get();
 	ClassInfo& info = instance._class_infos[Desc::name];
-	info.name = Desc::name;
-	info.cpp_name = compiler_type_name<T>();
-	if constexpr (requires { Desc::module_name; }) {
-		info.module_name = Desc::module_name;
-	}
+	_describe<T>(info);
 	info.parent = Desc::parent_name;
 	info.is_abstract = kind == ClassKind::Abstract;
 	info.is_singleton = kind == ClassKind::Singleton;
-	info.is_value_type = is_value_type;
-	info.size = sizeof(T);
-	info.alignment = alignof(T);
-	info.is_empty = std::is_empty_v<T>;
-	info.lifecycle = make_lifecycle_hooks<T>();
 	// Singletons are owned by the engine and resolved through T::get(); neither they nor abstract classes are
 	// created through reflection.
 	if (kind != ClassKind::Auto) {
@@ -216,13 +219,28 @@ void ClassDB::_register(ClassKind kind) {
 		info.modifiers.assign(Desc::modifiers.begin(), Desc::modifiers.end());
 	}
 
+	_fire_subclass_delegates(info);
+	instance._class_registered_delegate.execute(info.name.str());
+}
+
+template <class T>
+void ClassDB::_describe(ClassInfo& info) {
+	using Desc = FType<T>;
+	info.name = Desc::name;
+	info.cpp_name = compiler_type_name<T>();
+	if constexpr (requires { Desc::module_name; }) {
+		info.module_name = Desc::module_name;
+	}
+	info.is_value_type = !std::is_base_of_v<Reflected, T>;
+	info.size = sizeof(T);
+	info.alignment = alignof(T);
+	info.is_empty = std::is_empty_v<T>;
+	info.lifecycle = make_lifecycle_hooks<T>();
+
 	info.properties.clear();
 	std::apply([&info](const auto&... desc) { (_add_property<T>(info, desc), ...); }, Desc::properties);
 	info.methods.clear();
 	std::apply([&info](const auto&... desc) { (_add_method<T>(info, desc), ...); }, Desc::methods);
-
-	_fire_subclass_delegates(info);
-	instance._class_registered_delegate.execute(info.name.str());
 }
 
 template <class T, auto Getter, auto Setter>
@@ -278,21 +296,21 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		using Traits = member_function_traits<F>;
 		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
 			using R = typename Traits::ret;
-			if constexpr (signature_bindable<R, A...>) {
-				if constexpr (std::is_base_of_v<Reflected, T>) {
-					std::function<R(Reflected*, A...)> func = [](Reflected* instance, A... args) -> R {
-						T* object = object_cast<T>(instance);
-						fassert(object, "Method called on an object of the wrong class");
-						return (object->*Function)(args...);
-					};
-					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
-				}
-				else {
-					std::function<R(T&, A...)> func = [](T& instance, A... args) -> R {
-						return (instance.*Function)(args...);
-					};
-					info.methods.push_back({ .name = desc.name, .access = desc.access, .callable = Callable { func } });
-				}
+			if constexpr (VariantBindable<R, A...>) {
+				info.methods.push_back(
+						{ .name = desc.name,
+						  .access = desc.access,
+						  .param_count = sizeof...(A),
+						  .invoke = [](void* self, std::span<Variant> args) -> Variant {
+							  T* instance = static_cast<T*>(self);
+							  return invoke_with_variants<R, A...>(
+									  [instance](A... forwarded) -> R {
+										  return (instance->*Function)(std::forward<A>(forwarded)...);
+									  },
+									  args
+							  );
+						  } }
+				);
 			}
 			else {
 				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
@@ -300,9 +318,22 @@ void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& d
 		}(std::type_identity<typename Traits::args> {});
 	}
 	else {
-		info.methods.push_back(
-				{ .name = desc.name, .access = desc.access, .is_static = true, .callable = Callable { Function } }
-		);
+		[&]<class R, class... A>(std::type_identity<R (*)(A...)>) {
+			if constexpr (VariantBindable<R, A...>) {
+				info.methods.push_back(
+						{ .name = desc.name,
+						  .access = desc.access,
+						  .is_static = true,
+						  .param_count = sizeof...(A),
+						  .invoke = [](void*, std::span<Variant> args) -> Variant {
+							  return invoke_with_variants<R, A...>(Function, args);
+						  } }
+				);
+			}
+			else {
+				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
+			}
+		}(std::type_identity<F> {});
 	}
 }
 

@@ -204,18 +204,20 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		// Possibly need to store param names later
 		AccessLevel access = AccessLevel::Public;
 		bool is_static = false;
-		// A non-static method's callable takes its instance first: a Reflected* for an object, a T& for a value type.
-		Callable callable;
+		uint8_t param_count = 0;
+		// Takes a pointer to an instance of the declaring class, like the property accessors; null for a static method.
+		Variant (*invoke)(void* self, std::span<Variant> args) = nullptr;
 	};
 
 	std::vector<Method> methods;
 
-	// Visits (class, object adjusted to that class) from this class, the object's own, up to the root; stops at the
-	// first level visit returns true for, and returns whether one did.
+	// Visits (class, instance adjusted to that class) from this class, the instance's own, up to the root; stops at
+	// the first level visit returns true for. An object's instance is its Reflected*, a value's is the value itself.
 	template <class TVisit>
-	bool walk(Reflected* object, TVisit&& visit) const {
-		for (const ClassInfo* info = this; info && object && info->from_reflected; info = info->parent_info) {
-			if (visit(*info, info->from_reflected(object))) {
+	bool walk(void* instance, TVisit&& visit) const {
+		for (const ClassInfo* info = this; info && instance; info = info->parent_info) {
+			void* self = info->from_reflected ? info->from_reflected(static_cast<Reflected*>(instance)) : instance;
+			if (visit(*info, self)) {
 				return true;
 			}
 		}
@@ -287,9 +289,6 @@ struct accessor_value<Accessor, IsGetter> {
 	}
 	using type = std::decay_t<typename decltype(pick())::type>;
 };
-
-template <class R, class... A>
-constexpr bool signature_bindable = VariantCompatible<std::decay_t<R>> && (VariantCompatible<std::decay_t<A>> && ...);
 
 } // namespace reflection_detail
 
