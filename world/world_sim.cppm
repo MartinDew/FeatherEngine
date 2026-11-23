@@ -26,10 +26,7 @@ class FEATHER_WORLD_API WorldSim final : public Simulation {
 	FCLASS(singleton);
 
 	World _world;
-	Entity _scene_prefab;
 	Entity _current_scene;
-
-	std::vector<Entity> _scenes;
 
 	ClassDB::subclass_delegate_t::id_t _subclass_delegate_id = -1;
 	ClassDB::subclass_delegate_t::id_t _class_delegate_id = -1;

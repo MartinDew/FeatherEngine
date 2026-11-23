@@ -39,7 +39,6 @@ void WorldSim::init() {
 		_world.register_component(StaticString(class_name));
 	});
 
-	_scene_prefab = _world.prefab("Scene");
 	auto scene = create_scene("new scene");
 	fassert(scene.is_valid());
 	set_active_scene(scene);
@@ -69,7 +68,7 @@ void WorldSim::update(double delta) {
 
 Entity WorldSim::create_scene(const std::string& name) const {
 	Scene s { { name } };
-	return _world.entity(name.c_str()).is_a(_scene_prefab).set<Scene>(s);
+	return _world.entity(name.c_str()).set<Scene>(s);
 }
 
 void WorldSim::add_to_scene(Entity entity) const {
@@ -87,7 +86,7 @@ bool WorldSim::_is_in_scene(flecs::entity e, Entity scene) const {
 }
 
 void WorldSim::set_active_scene(Entity scene) {
-	fassert(scene.is_a(_scene_prefab), "Given scene isn't a scene instance");
+	fassert(scene.has<Scene>(), "Given entity isn't a scene");
 
 	// Clear old active scene marker
 	_world.remove_all<ActiveScene>();
