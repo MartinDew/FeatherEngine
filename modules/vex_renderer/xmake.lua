@@ -6,6 +6,13 @@ option("enable_vex_renderer")
     after_check("feather_module_option")
 option_end()
 
+option("vex_backend")
+    set_default("auto")
+    set_values("auto", "dx12", "vulkan")
+    set_category("feather_modules")
+    set_description("vex_renderer graphics backend: auto is dx12 on windows and vulkan elsewhere (dx12 is windows only)")
+option_end()
+
 if (is_plat("macosx")) then
     return
 end
@@ -19,7 +26,7 @@ rule("vex_renderer.deploy_runtime")
         -- startup, so DX12AgilitySDK.cpp must compile into the exe itself.
         if not is_plat("windows") then return end
         local vex = target:pkg("vex") or target:dep("vex_renderer"):pkg("vex")
-        if not vex then return end
+        if not vex or vex:requireconf("configs", "backend") ~= "dx12" then return end
         local agility_src = path.join(vex:installdir(), "src", "DX12", "DX12AgilitySDK.cpp")
         if os.isfile(agility_src) then
             target:add("files", agility_src)
@@ -51,7 +58,7 @@ rule("vex_renderer.deploy_runtime")
             end
         end
 
-        if (is_plat("windows")) then
+        if is_plat("windows") and vex:requireconf("configs", "backend") == "dx12" then
             -- D3D12 Agility SDK DLLs come from xrepo's directx12-agility package,
             -- not Vex's internal _deps/ (see thirdparty/xmake.lua).
             local agility = target:pkg("directx12-agility") or target:dep("vex_renderer"):pkg("directx12-agility")
@@ -80,6 +87,7 @@ target("vex_renderer")
     add_rules("feather.module")
     add_deps("rendering")
     add_packages("vex", {public = true})
+    -- The package is only required for the dx12 backend; add_packages skips it otherwise.
     if is_plat("windows") then
         add_packages("directx12-agility", {public = true})
     end

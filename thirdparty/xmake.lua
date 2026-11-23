@@ -39,15 +39,19 @@ add_requires("sdl3_feather", {system = false, alias = "sdl3", configs = {shared 
 -- Only requested with the vex_renderer module (enable_vex_renderer, off on Apple).
 if has_config("enable_vex_renderer") and not is_plat("macosx") then
     local vex_mode = is_mode("debug") and "debug" or (is_mode("releasedbg") and "development" or "shipping")
-    add_requires("vex", {system = false, alias = "vex", configs = {vex_mode = vex_mode}})
+    local vex_backend = get_config("vex_backend")
+    if vex_backend == nil or vex_backend == "auto" then
+        vex_backend = is_plat("windows") and "dx12" or "vulkan"
+    end
+    add_requires("vex", {system = false, alias = "vex", configs = {vex_mode = vex_mode, backend = vex_backend}})
 
     -- Version must track Vex's vendored DIRECTX_AGILITY_SDK_VERSION (618); xrepo
     -- doesn't carry the exact patch Vex vendors, so use the closest 1.618.x.
-    if is_plat("windows") then
+    if vex_backend == "dx12" then
         add_requires("directx12-agility 1.618.1", {system = false, alias = "directx12-agility"})
     end
 
-    if is_plat("mingw") then
+    if is_plat("mingw") or (is_plat("windows") and vex_backend == "vulkan") then
         add_requires("vulkan-headers 1.4.335+0", {system = false, alias = "vulkan-headers"})
         add_requires("vulkan-loader 1.4.335+0", {system = false, alias = "vulkan-loader"})
     end
