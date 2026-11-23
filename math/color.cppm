@@ -35,6 +35,7 @@ struct Colorf {
 		return { rtm::vector_get_x(v), rtm::vector_get_y(v), rtm::vector_get_z(v), rtm::vector_get_w(v) };
 	}
 
+	[[method]]
 	static constexpr Colorf from_bytes(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) {
 		return { r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f };
 	}
@@ -53,7 +54,7 @@ struct Colorf {
 
 	RTM_FORCE_INLINE bool operator==(const Colorf& o) const { return r == o.r && g == o.g && b == o.b && a == o.a; }
 	RTM_FORCE_INLINE bool operator!=(const Colorf& o) const { return !(*this == o); }
-	[[nodiscard]] inline bool is_near(const Colorf& o, float tolerance = 1.e-4f) const {
+	[[method]] [[nodiscard]] inline bool is_near(const Colorf& o, float tolerance = 1.e-4f) const {
 		return rtm::vector_all_near_equal(to_rtm(), o.to_rtm(), tolerance);
 	}
 
@@ -61,15 +62,15 @@ struct Colorf {
 	RTM_FORCE_INLINE const float& operator[](size_t i) const { return (&r)[i]; }
 
 	// Clamped to the unit range a renderer expects after arithmetic.
-	[[nodiscard]] inline Colorf saturated() const {
+	[[method]] [[nodiscard]] inline Colorf saturated() const {
 		return {
 			std::clamp(r, 0.0f, 1.0f), std::clamp(g, 0.0f, 1.0f), std::clamp(b, 0.0f, 1.0f), std::clamp(a, 0.0f, 1.0f)
 		};
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Colorf lerp(const Colorf& o, float alpha) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Colorf lerp(const Colorf& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Colorf with_alpha(float alpha) const { return { r, g, b, alpha }; }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Colorf with_alpha(float alpha) const { return { r, g, b, alpha }; }
 
 	static const Colorf black;
 	static const Colorf white;

@@ -42,8 +42,14 @@ struct FEATHER_MATH_API Transform {
 	[[method]]
 	void set_to_relative_transform(const Transform& parent);
 
-	inline void translate(const Vector3& translation) noexcept { position += translation; }
-	inline void apply_scaling(const Vector3& scaling) noexcept { scale *= scaling; }
+	[[method]]
+	inline void translate(const Vector3& translation) noexcept {
+		position += translation;
+	}
+	[[method]]
+	inline void apply_scaling(const Vector3& scaling) noexcept {
+		scale *= scaling;
+	}
 	[[method]]
 	Vector3 get_forward_vector() const noexcept;
 	[[method]]

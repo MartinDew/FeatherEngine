@@ -69,39 +69,48 @@ struct Vector3f {
 	RTM_FORCE_INLINE bool operator==(const Vector3f& o) const { return x == o.x && y == o.y && z == o.z; }
 	RTM_FORCE_INLINE bool operator!=(const Vector3f& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] inline bool is_near(const Vector3f& o, float tolerance = 1.e-4f) const {
+	[[method]] [[nodiscard]] inline bool is_near(const Vector3f& o, float tolerance = 1.e-4f) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance && std::abs(z - o.z) <= tolerance;
 	}
 
 	RTM_FORCE_INLINE float& operator[](size_t i) { return (&x)[i]; }
 	RTM_FORCE_INLINE const float& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] RTM_FORCE_INLINE float length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE float length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE float dot(const Vector3f& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f cross(const Vector3f& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float length() const { return rtm::vector_length3(to_rtm()); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float length_squared() const {
+		return rtm::vector_length_squared3(to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float dot(const Vector3f& o) const {
+		return rtm::vector_dot3(to_rtm(), o.to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f cross(const Vector3f& o) const {
 		return from_rtm(rtm::vector_cross3(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
-	[[nodiscard]] inline float distance(const Vector3f& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f min(const Vector3f& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f normalized() const {
+		return from_rtm(rtm::vector_normalize3(to_rtm()));
+	}
+	[[method]]
+	RTM_FORCE_INLINE void normalize() {
+		*this = normalized();
+	}
+	[[method]] [[nodiscard]] inline float distance(const Vector3f& o) const { return (*this - o).length(); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f min(const Vector3f& o) const {
 		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f max(const Vector3f& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f max(const Vector3f& o) const {
 		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector3f lerp(const Vector3f& o, float alpha) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3f lerp(const Vector3f& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 	// Component-wise 1/x, leaving components within `tolerance` of zero at zero.
-	[[nodiscard]] inline Vector3f reciprocal_safe(float tolerance = 1.e-4f) const {
+	[[method]] [[nodiscard]] inline Vector3f reciprocal_safe(float tolerance = 1.e-4f) const {
 		return { std::abs(x) <= tolerance ? 0.0f : 1.0f / x,
 				 std::abs(y) <= tolerance ? 0.0f : 1.0f / y,
 				 std::abs(z) <= tolerance ? 0.0f : 1.0f / z };
 	}
-	[[nodiscard]] RTM_FORCE_INLINE bool any_component_less_equal(float value) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE bool any_component_less_equal(float value) const {
 		return x <= value || y <= value || z <= value;
 	}
 
@@ -179,41 +188,48 @@ struct Vector3d {
 	RTM_FORCE_INLINE bool operator==(const Vector3d& o) const { return x == o.x && y == o.y && z == o.z; }
 	RTM_FORCE_INLINE bool operator!=(const Vector3d& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] inline bool is_near(const Vector3d& o, double tolerance = 1.e-8) const {
+	[[method]] [[nodiscard]] inline bool is_near(const Vector3d& o, double tolerance = 1.e-8) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance && std::abs(z - o.z) <= tolerance;
 	}
 
 	RTM_FORCE_INLINE double& operator[](size_t i) { return (&x)[i]; }
 	RTM_FORCE_INLINE const double& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double dot(const Vector3d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double length_squared() const {
+		return rtm::vector_length_squared3(to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double dot(const Vector3d& o) const {
 		return rtm::vector_dot3(to_rtm(), o.to_rtm());
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d cross(const Vector3d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d cross(const Vector3d& o) const {
 		return from_rtm(rtm::vector_cross3(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
-	[[nodiscard]] inline double distance(const Vector3d& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d min(const Vector3d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d normalized() const {
+		return from_rtm(rtm::vector_normalize3(to_rtm()));
+	}
+	[[method]]
+	RTM_FORCE_INLINE void normalize() {
+		*this = normalized();
+	}
+	[[method]] [[nodiscard]] inline double distance(const Vector3d& o) const { return (*this - o).length(); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d min(const Vector3d& o) const {
 		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d max(const Vector3d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d max(const Vector3d& o) const {
 		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector3d lerp(const Vector3d& o, double alpha) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector3d lerp(const Vector3d& o, double alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 	// Component-wise 1/x, leaving components within `tolerance` of zero at zero.
-	[[nodiscard]] inline Vector3d reciprocal_safe(double tolerance = 1.e-8) const {
+	[[method]] [[nodiscard]] inline Vector3d reciprocal_safe(double tolerance = 1.e-8) const {
 		return { std::abs(x) <= tolerance ? 0.0 : 1.0 / x,
 				 std::abs(y) <= tolerance ? 0.0 : 1.0 / y,
 				 std::abs(z) <= tolerance ? 0.0 : 1.0 / z };
 	}
-	[[nodiscard]] RTM_FORCE_INLINE bool any_component_less_equal(double value) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE bool any_component_less_equal(double value) const {
 		return x <= value || y <= value || z <= value;
 	}
 
