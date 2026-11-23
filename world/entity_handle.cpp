@@ -27,7 +27,8 @@ void EntityHandle::destroy() {
 }
 
 std::string EntityHandle::get_name() const {
-	return is_valid() ? std::string(Entity(*this).name().c_str()) : std::string {};
+	const char* name = is_valid() ? ecs_get_name(world, id) : nullptr;
+	return name ? std::string(name) : std::string {};
 }
 
 void EntityHandle::set_name(const std::string& name) {
