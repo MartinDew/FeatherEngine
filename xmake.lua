@@ -10,6 +10,7 @@ add_moduledirs("xmake/modules")
 
 includes("xmake/options.lua")
 includes("xmake/rules.lua")
+includes("xmake/toolchains/xwin.lua")
 
 -- ---- Build modes --------------------------------------------------------
 -- debug      -> CMake Debug       (-O0, symbols, BETA, no NDEBUG)

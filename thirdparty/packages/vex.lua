@@ -5,22 +5,30 @@ package("vex")
     -- Selects Vex's build type and its VEX_DEBUG/VEX_DEVELOPMENT/VEX_SHIPPING macros, which importers must share.
     add_configs("vex_mode", {description = "Vex build mode.", default = "shipping",
                              values = {"debug", "development", "shipping"}})
+    -- DX12 only exists on Windows, which can also use Vulkan (for example under Wine/Proton).
+    add_configs("backend", {description = "Vex graphics backend.", default = is_plat("windows") and "dx12" or "vulkan",
+                            values = {"dx12", "vulkan"}})
     -- Must match VexDX12.cmake's DX_AGILITY_VERSION
     local AGILITY_VERSION = "618"
-    if is_plat("windows") then
-        add_deps("directx12-agility 1.618.1")
-    end
-    if is_plat("mingw") then
-        add_deps("vulkan-headers 1.4.335+0", "vulkan-loader 1.4.335+0")
-    end
     add_deps("cmake ~4.2.2")
+
+    on_load(function (package)
+        if package:config("backend") == "dx12" then
+            if not package:is_plat("windows") then
+                raise("vex: the dx12 backend is only available on windows")
+            end
+            package:add("deps", "directx12-agility 1.618.1")
+        elseif package:is_plat("windows", "mingw") then
+            package:add("deps", "vulkan-headers 1.4.335+0", "vulkan-loader 1.4.335+0")
+        end
+    end)
 
     -- Shared by on_fetch and the module build in on_install, so both see the same includes/defines.
     local function vex_platform_info(package)
         local libdir = package:installdir("lib")
         local inc    = package:installdir("include")
 
-        if package:is_plat("windows") then
+        if package:config("backend") == "dx12" then
             if not os.isfile(path.join(libdir, "Vex.lib")) then
                 return nil
             end
@@ -45,16 +53,17 @@ package("vex")
                     "VEX_DXC=1",
                 },
             }
-        elseif package:is_plat("mingw") then
-            if not os.isfile(path.join(libdir, "libVex.a")) then
+        elseif package:is_plat("windows", "mingw") then
+            if not os.isfile(path.join(libdir, package:is_plat("windows") and "Vex.lib" or "libVex.a")) then
                 return nil
             end
             local vk_headers = package:dep("vulkan-headers"):fetch()
             local vk_loader  = package:dep("vulkan-loader"):fetch()
             return {
+                -- Fetched package include dirs may come back as sysincludedirs.
                 includedirs = table.join(
                     {inc, path.join(inc, "magic_enum"), path.join(inc, "dxc"), path.join(inc, "slang")},
-                    (vk_headers and vk_headers.includedirs) or {}
+                    (vk_headers and (vk_headers.includedirs or vk_headers.sysincludedirs)) or {}
                 ),
                 linkdirs = table.join({libdir}, (vk_loader and vk_loader.linkdirs) or {}),
                 links    = table.join(
@@ -130,7 +139,45 @@ package("vex")
                 'layers%.push_back%("VK_LAYER_KHRONOS_synchronization2"%);[^\n]*\n?', "")
             if n > 0 then
                 cprint("${cyan}[vex]${reset} Patched VkRHI.cpp: removed VK_LAYER_KHRONOS_synchronization2")
-                io.writefile(vkrhi, patched)
+                content = patched
+                io.writefile(vkrhi, content)
+            end
+            -- Validation is skipped when its layer isn't installed (e.g. under Wine/Proton) instead of failing instance creation.
+            local layer_old = [[
+    if (enableGPUBasedValidation)
+    {
+        layers.push_back("VK_LAYER_KHRONOS_validation");
+    }
+]]
+            local layer_new = [[
+    if (enableGPUBasedValidation)
+    {
+        u32 layerCount = 0;
+        VEX_VK_CHECK << ::vk::enumerateInstanceLayerProperties(&layerCount, nullptr);
+        std::vector<::vk::LayerProperties> layerProperties(layerCount);
+        VEX_VK_CHECK << ::vk::enumerateInstanceLayerProperties(&layerCount, layerProperties.data());
+        enableGPUBasedValidation = false;
+        for (const auto& layer : layerProperties)
+        {
+            if (std::string_view(layer.layerName.data()) == "VK_LAYER_KHRONOS_validation")
+            {
+                enableGPUBasedValidation = true;
+            }
+        }
+        if (enableGPUBasedValidation)
+        {
+            layers.push_back("VK_LAYER_KHRONOS_validation");
+        }
+        else
+        {
+            VEX_LOG(Warning, "VK_LAYER_KHRONOS_validation is not installed, GPU validation is disabled.");
+        }
+    }
+]]
+            local s, e = content:find(layer_old, 1, true)
+            if s then
+                cprint("${cyan}[vex]${reset} Patched VkRHI.cpp: validation layer only requested when installed")
+                io.writefile(vkrhi, content:sub(1, s - 1) .. layer_new .. content:sub(e + 1))
             end
         end
 
@@ -203,18 +250,21 @@ package("vex")
             if cc  then table.insert(configs, "-DCMAKE_C_COMPILER="   .. cc)  end
             if cxx then table.insert(configs, "-DCMAKE_CXX_COMPILER=" .. cxx) end
         end
-        if package:is_plat("mingw") then
-            table.insert(configs, "-DVEX_GRAPHICS_BACKEND=VULKAN")
-
+        if package:is_plat("windows", "mingw") then
+            table.insert(configs, "-DVEX_GRAPHICS_BACKEND=" .. package:config("backend"):upper())
+        end
+        if package:config("backend") == "vulkan" and package:is_plat("windows", "mingw") then
             local vk_headers = package:dep("vulkan-headers"):fetch()
             local vk_loader  = package:dep("vulkan-loader"):fetch()
             if vk_headers and vk_headers.includedirs and vk_headers.includedirs[1] then
                 table.insert(configs, "-DVulkan_INCLUDE_DIR=" .. vk_headers.includedirs[1])
             end
             if vk_loader and vk_loader.linkdirs and vk_loader.linkdirs[1] then
-                table.insert(configs, "-DVulkan_LIBRARY=" .. path.join(vk_loader.linkdirs[1], "libvulkan-1.dll.a"))
+                local implib = package:is_plat("windows") and "vulkan-1.lib" or "libvulkan-1.dll.a"
+                table.insert(configs, "-DVulkan_LIBRARY=" .. path.join(vk_loader.linkdirs[1], implib))
             end
-
+        end
+        if package:is_plat("mingw") then
             local uuid_shim = path.join(builddir, "mingw_dxc_uuidof_shim.h")
             os.mkdir(builddir)
             io.writefile(uuid_shim, [[
@@ -382,7 +432,7 @@ __CRT_UUID_DECL(IDxcCompiler3, 0x228B4687,0x5A6A,0x4730,0x90,0x0C,0x97,0x02,0xB2
 
         -- Must be compiled into the host executable, not just linked
         local agility_src = path.join("src", "DX12", "DX12AgilitySDK.cpp")
-        if os.isfile(agility_src) then
+        if package:config("backend") == "dx12" and os.isfile(agility_src) then
             local dst = package:installdir("src", "DX12")
             os.mkdir(dst)
             os.cp(agility_src, dst)
