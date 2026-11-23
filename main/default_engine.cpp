@@ -41,7 +41,7 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	material->set_base_color_factor({ .7f, .7f, .0f });
 
 	struct Move {};
-	auto s = _world_sim.create_scene("Ni");
+	auto s = _world_sim.create_scene("Default Scene");
 	_world_sim.set_active_scene(s);
 
 	auto _ = w.entity("Box1")
