@@ -189,10 +189,6 @@ Variant Variant::default_value(const ClassInfo& info) {
 	return from_value(info, nullptr);
 }
 
-const ValueBox* Variant::get_value() const {
-	return std::get_if<ValueBox>(&_data);
-}
-
 Reflected* Variant::_object() const {
 	auto* object = std::get_if<Reflected*>(&_data);
 	return object ? *object : nullptr;

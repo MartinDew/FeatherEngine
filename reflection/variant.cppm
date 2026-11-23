@@ -148,6 +148,11 @@ concept VariantCompatible = std::is_same_v<T, Variant> || get_variant_type<T>() 
 
 struct ClassInfo;
 
+} // namespace feather
+
+// Not exported: Variant's storage for a reflected value type, which users reach through get_instance().
+namespace feather {
+
 // An instance of a reflected value type, owned by its box and managed through the ClassInfo's lifecycle hooks.
 class FEATHER_REFLECTION_API ValueBox {
 	const ClassInfo* _info = nullptr;
@@ -172,6 +177,10 @@ public:
 	// Same class, and equal by the type's operator== or else by every readable property.
 	bool operator==(const ValueBox& other) const;
 };
+
+} // namespace feather
+
+export namespace feather {
 
 class FEATHER_REFLECTION_API Variant {
 	using InternalVariant = std::variant<
@@ -291,8 +300,6 @@ public:
 	// class, or one that can't be copied (default-constructed for a null `src`).
 	static Variant from_value(const ClassInfo& info, const void* src);
 	static Variant default_value(const ClassInfo& info);
-	// The box of a VALUE variant; null otherwise.
-	const ValueBox* get_value() const;
 
 	// Copy and move constructors
 	Variant(const Variant& other) = default;
@@ -470,6 +477,11 @@ Variant Variant::call_internal(std::string_view method_name, TArgs&&... args) {
 	std::array<Variant, sizeof...(TArgs)> params { Variant(std::forward<TArgs>(args))... };
 	return _internal_call(method_name, params, false);
 }
+
+} // namespace feather
+
+// Not exported: the marshalling behind Callable and ClassDB's method thunks, which instantiate it in user code.
+namespace feather {
 
 // How a bound function's parameter of type A is read from its Variant. An object parameter is the Variant's object,
 // copied only when A is by value; any other parameter, T& included, gets a converted copy.
