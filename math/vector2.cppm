@@ -207,7 +207,8 @@ RTM_FORCE_INLINE Vector2d operator*(double s, const Vector2d& v) {
 	return v * s;
 }
 
-constexpr Vector2f::Vector2f(const Vector2d& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)) {}
+constexpr Vector2f::Vector2f(const Vector2d& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)) {
+}
 
 } //namespace feather
 

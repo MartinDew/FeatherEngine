@@ -108,8 +108,8 @@ void World::_mark_builtin(flecs::entity_t component, VariantType type) {
 
 flecs::entity_t World::_module_scope(StaticString module_name) {
 	ecs_world_t* world = c_ptr();
-	const std::string path = module_name.str().empty() ? std::string("feather")
-														: std::format("feather.{}", module_name.str());
+	const std::string path =
+			module_name.str().empty() ? std::string("feather") : std::format("feather.{}", module_name.str());
 	const ecs_entity_t scope = ecs_set_scope(world, 0);
 	const ecs_entity_t entity = ecs_new_from_path_w_sep(world, 0, path.c_str(), ".", nullptr);
 	ecs_set_scope(world, scope);

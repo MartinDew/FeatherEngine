@@ -164,15 +164,32 @@ namespace {
 template <class TVisit>
 bool visit_builtin_type(VariantType type, TVisit&& visit) {
 	switch (type) {
-		case VariantType::VECTOR2: visit(std::type_identity<Vector2> {}); return true;
-		case VariantType::VECTOR3: visit(std::type_identity<Vector3> {}); return true;
-		case VariantType::VECTOR4: visit(std::type_identity<Vector4> {}); return true;
-		case VariantType::QUATERNION: visit(std::type_identity<Quaternion> {}); return true;
-		case VariantType::COLOR: visit(std::type_identity<Color> {}); return true;
-		case VariantType::MATRIX: visit(std::type_identity<Matrix> {}); return true;
-		case VariantType::TRANSFORM: visit(std::type_identity<Transform> {}); return true;
-		case VariantType::VERTEX: visit(std::type_identity<Vertex> {}); return true;
-		default: return false;
+	case VariantType::VECTOR2:
+		visit(std::type_identity<Vector2> {});
+		return true;
+	case VariantType::VECTOR3:
+		visit(std::type_identity<Vector3> {});
+		return true;
+	case VariantType::VECTOR4:
+		visit(std::type_identity<Vector4> {});
+		return true;
+	case VariantType::QUATERNION:
+		visit(std::type_identity<Quaternion> {});
+		return true;
+	case VariantType::COLOR:
+		visit(std::type_identity<Color> {});
+		return true;
+	case VariantType::MATRIX:
+		visit(std::type_identity<Matrix> {});
+		return true;
+	case VariantType::TRANSFORM:
+		visit(std::type_identity<Transform> {});
+		return true;
+	case VariantType::VERTEX:
+		visit(std::type_identity<Vertex> {});
+		return true;
+	default:
+		return false;
 	}
 }
 
@@ -181,7 +198,9 @@ bool visit_builtin_type(VariantType type, TVisit&& visit) {
 Variant Variant::from_builtin(VariantType type, const void* src) {
 	Variant result;
 	if (src) {
-		visit_builtin_type(type, [&]<class T>(std::type_identity<T>) { result = Variant(*static_cast<const T*>(src)); });
+		visit_builtin_type(type, [&]<class T>(std::type_identity<T>) {
+			result = Variant(*static_cast<const T*>(src));
+		});
 	}
 	return result;
 }
@@ -399,7 +418,8 @@ Variant Variant::_get_builtin(std::string_view key) const {
 				if constexpr (has_builtin_ftype<T>) {
 					std::apply(
 							[&](const auto&... desc) {
-								((desc.name == key ? (result = Variant(std::invoke(desc.getter, value)), true) : false) ||
+								((desc.name == key ? (result = Variant(std::invoke(desc.getter, value)), true)
+												   : false) ||
 								 ...);
 							},
 							FType<T>::properties

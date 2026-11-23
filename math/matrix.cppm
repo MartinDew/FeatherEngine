@@ -271,7 +271,8 @@ constexpr Matrix4x4f::Matrix4x4f(const Matrix4x4d& m)
 		: x_axis(m.x_axis)
 		, y_axis(m.y_axis)
 		, z_axis(m.z_axis)
-		, w_axis(m.w_axis) {}
+		, w_axis(m.w_axis) {
+}
 
 } //namespace feather
 
