@@ -206,18 +206,27 @@ void ClassDB::print_db() {
 #endif
 }
 
-Callable ClassDB::get_static_method(const StaticString& class_name, std::string_view func_name) {
-	auto ci = _get_class_info_internal(class_name);
-	if (!ci)
-		return {};
-	auto it = std::ranges::find_if(ci->methods, [&func_name](const ClassInfo::Method& m) {
-		return m.is_static && m.name == func_name;
-	});
-	if (it == ci->methods.end()) {
-		return {};
+Callable ClassDB::_find_static_method(StaticString class_name, std::string_view func_name, bool enforce_public) {
+	for (const ClassInfo* info = _get_class_info_internal(class_name); info; info = info->parent_info) {
+		auto it = std::ranges::find_if(info->methods, [&](const ClassInfo::Method& m) { return m.name == func_name; });
+		if (it == info->methods.end()) {
+			continue;
+		}
+		if (!it->is_static || (enforce_public && it->access != AccessLevel::Public)) {
+			return {};
+		}
+		auto invoke = it->invoke;
+		return Callable { [invoke](std::span<Variant> args) { return invoke(nullptr, args); }, it->param_count };
 	}
-	auto invoke = it->invoke;
-	return Callable { [invoke](std::span<Variant> args) { return invoke(nullptr, args); }, it->param_count };
+	return {};
+}
+
+Callable ClassDB::get_static_method(const StaticString& class_name, std::string_view func_name) {
+	return _find_static_method(class_name, func_name, true);
+}
+
+Callable ClassDB::get_static_method_internal(const StaticString& class_name, std::string_view func_name) {
+	return _find_static_method(class_name, func_name, false);
 }
 
 } //namespace feather

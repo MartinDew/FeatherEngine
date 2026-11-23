@@ -44,6 +44,8 @@ private:
 
 	static ClassInfo* _get_class_info_internal(StaticString name);
 
+	static Callable _find_static_method(StaticString class_name, std::string_view func_name, bool enforce_public);
+
 	template <is_reflected T>
 	static void _register(ClassKind kind);
 
@@ -79,7 +81,10 @@ public:
 		return get_class_info(T::get_class_static());
 	}
 
+	// Resolves `func_name` as Variant::call does: the nearest class up the hierarchy declaring it wins. Invalid when
+	// that method isn't static, or isn't public (the _internal variant skips the access check).
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
+	static Callable get_static_method_internal(const StaticString& class_name, std::string_view func_name);
 
 	// Register an enum before any class with a property of that type, so the property links to its EnumInfo.
 	template <class E>
