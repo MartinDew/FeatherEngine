@@ -39,8 +39,8 @@ public:
 	inline World() : flecs::world() {}
 	inline World(const flecs::world& other) : flecs::world(other) {}
 
-	// Registers a value type at feather.<module>.<class>, idempotent. Typed use (set<T>, queries) in any binary
-	// resolves to it by the C++ type's flecs symbol, before or after this call. Null for a if the type cannot live in a column.
+	// Registers a value type at feather.<module>.<class>, idempotent; typed use in any binary resolves to it by the
+	// type's flecs symbol, before or after this call. Null when the type cannot live in a column.
 	Entity register_component(const ClassInfo& info);
 	// Looks the class up in ClassDB; null when unknown.
 	Entity register_component(StaticString class_name);
