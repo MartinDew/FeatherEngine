@@ -12,7 +12,7 @@ FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
 	FSINGLETON_CONSTRUCT_INSTANCE()
-	_register<Reflected>(ClassKind::Abstract);
+	register_class<Reflected>();
 }
 
 ClassDB::~ClassDB() {
@@ -55,7 +55,35 @@ ClassInfo* ClassDB::_get_class_info_internal(StaticString name) {
 const EnumInfo* ClassDB::get_enum(StaticString name) {
 	auto& infos = get()->_enum_infos;
 	auto it = infos.find(name);
-	return it == infos.end() ? nullptr : &it->second;
+	return it == infos.end() ? nullptr : it->second;
+}
+
+void ClassDB::_insert(ClassInfo info) {
+	const char* kind_name = info.is_abstract ? "abstract"
+			: info.is_singleton				 ? "singleton"
+			: info.is_value_type			 ? "value type"
+											 : "implementation";
+	std::println("Registering class '{}' as {} object", info.name, kind_name);
+
+	ClassDB& instance = *get();
+	// Registering a class again (an extension reloaded without clear()) keeps the subclasses already linked to it.
+	ClassInfo& stored = instance._class_infos[info.name];
+	info.children = std::move(stored.children);
+	stored = std::move(info);
+
+	stored.parent_info = nullptr;
+	if (stored.parent != ""_ss) {
+		// Codegen orders registration parent-first within a module, and modules register bottom-up.
+		auto parent = instance._class_infos.find(stored.parent);
+		fassert(parent != instance._class_infos.end(), "Class registered before its parent");
+		stored.parent_info = &parent->second;
+		if (!std::ranges::contains(parent->second.children, &stored)) {
+			parent->second.children.emplace_back(&stored);
+		}
+	}
+
+	_fire_subclass_delegates(stored);
+	instance._class_registered_delegate.execute(stored.name.str());
 }
 
 std::vector<StaticString> ClassDB::get_children_names(StaticString object_name, bool exclusive) {
@@ -193,7 +221,7 @@ void ClassDB::print_db() {
 
 	std::vector<const EnumInfo*> enums;
 	for (auto& [name, info] : _enum_infos) {
-		enums.push_back(&info);
+		enums.push_back(info);
 	}
 	std::ranges::sort(enums, {}, [](const EnumInfo* info) { return info->name.str(); });
 

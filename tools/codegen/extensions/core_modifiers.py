@@ -17,10 +17,10 @@ from modifier_api import Modifier
 class SingletonModifier(Modifier):
     """FCLASS(singleton). Reflection contract with FDECLARE_SINGLETON/
     FSINGLETON_INSTANCE (framework/singleton_helpers.h): adds the
-    get()/instance boilerplate to the class body and routes registration
-    through ClassDB::register_singleton_class, which marks the class as not
-    creatable through reflection (the engine constructs the single instance
-    itself; reflection only ever resolves it via T::get())."""
+    get()/instance boilerplate to the class body. The name reaches
+    FType::modifiers, which ClassInfo::create_from_type reads to mark the
+    class as not creatable through reflection (the engine constructs the
+    single instance itself; reflection only ever resolves it via T::get())."""
     name = "singleton"
     targets = frozenset({"class"})
     value_type = False
@@ -31,23 +31,15 @@ class SingletonModifier(Modifier):
     def gen_body_lines(self, cls, ctx):
         return [("pre", f"FDECLARE_SINGLETON({cls.name});")]
 
-    def register_statements(self, cls, ctx):
-        return [f"ClassDB::register_singleton_class<{cls.name}>();"]
-
-
 class AbstractModifier(Modifier):
-    """FCLASS(abstract). Usually redundant -- ClassDB::register_class already
-    auto-detects an abstract/non-default-constructible T at compile time and
-    routes to register_abstract_class itself -- this is the explicit "force
-    it" escape hatch for a type that's abstract in spirit but not in the
-    is_abstract_v<T>/default-constructible sense the auto-detection checks."""
+    """FCLASS(abstract). Usually redundant -- ClassInfo::create_from_type
+    already auto-detects an abstract/non-default-constructible T -- this is
+    the explicit "force it" escape hatch for a type that's abstract in spirit
+    but not in the is_abstract_v<T>/default-constructible sense the
+    auto-detection checks."""
     name = "abstract"
     targets = frozenset({"class"})
     value_type = False
-
-    def register_statements(self, cls, ctx):
-        return [f"ClassDB::register_abstract_class<{cls.name}>();"]
-
 
 class NovtableModifier(Modifier):
     """FCLASS(novtable) -- the `class`-spelling of what FSTRUCT is for

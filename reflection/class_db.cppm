@@ -15,12 +15,6 @@ import :variant;
 
 export namespace feather {
 
-enum class ClassKind : uint8_t {
-	Auto = 0,
-	Abstract,
-	Singleton,
-};
-
 class FEATHER_REFLECTION_API ClassDB {
 	friend Variant;
 	FDECLARE_SINGLETON(ClassDB);
@@ -34,7 +28,7 @@ public:
 private:
 	// Node-based, so a ClassInfo never moves once registered and ClassInfo* stays valid.
 	std::unordered_map<StaticString, ClassInfo> _class_infos;
-	std::unordered_map<StaticString, EnumInfo> _enum_infos;
+	std::unordered_map<StaticString, const EnumInfo*> _enum_infos;
 	std::unordered_map<StaticString, subclass_delegate_t> _subclass_delegates;
 	subclass_delegate_t _class_registered_delegate;
 
@@ -46,26 +40,8 @@ private:
 
 	static Callable _find_static_method(StaticString class_name, std::string_view func_name, bool enforce_public);
 
-	template <is_reflected T>
-	static void _register(ClassKind kind);
-
-	// The fields of T's ClassInfo that come from its FType alone: name, layout, lifecycle and members.
-	template <class T>
-	static void _describe(ClassInfo& info);
-
-	// The ClassInfo of a type Variant stores natively (Vector3...), which is never registered.
-	template <class T>
-	static ClassInfo _describe_builtin() {
-		ClassInfo info;
-		_describe<T>(info);
-		return info;
-	}
-
-	template <class T, auto Getter, auto Setter>
-	static void _add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc);
-
-	template <class T, auto Function, bool Strict>
-	static void _add_method(ClassInfo& info, const MethodDesc<Function, Strict>& desc);
+	// Stores a built ClassInfo and links it to its parent; fires the registration delegates.
+	static void _insert(ClassInfo info);
 
 public:
 	void print_db();
@@ -76,9 +52,9 @@ public:
 
 	inline static const ClassInfo* get_class_info(StaticString name) { return _get_class_info_internal(name); };
 
-	template <is_reflected T>
+	template <has_ftype T>
 	static const ClassInfo* get_class_info() {
-		return get_class_info(T::get_class_static());
+		return get_class_info(FType<T>::name);
 	}
 
 	// Resolves `func_name` as Variant::call does: the nearest class up the hierarchy declaring it wins. Invalid when
@@ -91,11 +67,7 @@ public:
 	template <class E>
 		requires std::is_enum_v<E>
 	static void register_enum() {
-		using Desc = FEnum<E>;
-		EnumInfo& info = get()->_enum_infos[Desc::name];
-		info.name = Desc::name;
-		info.underlying_size = sizeof(E);
-		info.values.assign(Desc::values.begin(), Desc::values.end());
+		get()->_enum_infos[FEnum<E>::name] = &enum_info_v<E>;
 	}
 
 	static const EnumInfo* get_enum(StaticString name);
@@ -109,20 +81,10 @@ public:
 	// TODO: runtime registration (C API / scripts) needs a public register_class(ClassInfo), and
 	// ClassInfo::Property getter/setter need user data, since only the templated _register<T> can insert today.
 
-	// Abstract, not default-constructible and singleton classes are detected from T itself.
+	// Abstract, not default-constructible and singleton classes are detected from T and its FType modifiers.
 	template <is_reflected T>
 	static void register_class() {
-		_register<T>(ClassKind::Auto);
-	}
-
-	template <is_reflected T>
-	static void register_abstract_class() {
-		_register<T>(ClassKind::Abstract);
-	}
-
-	template <is_reflected T>
-	static void register_singleton_class() {
-		_register<T>(ClassKind::Singleton);
+		_insert(ClassInfo::create_from_type<T>());
 	}
 
 	// New default-constructed object owned by the caller. Null when the class is unknown, is a value type or can't be
@@ -161,187 +123,5 @@ public:
 
 	static bool has_parent(StaticString object_name, StaticString parent_name);
 };
-
-template <is_reflected T>
-void ClassDB::_register(ClassKind kind) {
-	using Desc = FType<T>;
-	static_assert(std::is_same_v<typename Desc::type, T>, "FType<T>::type must be T");
-	constexpr bool is_value_type = is_reflected_value_type<T>;
-
-	if (kind == ClassKind::Auto && !is_value_type) {
-		if constexpr (std::is_abstract_v<T> || !std::is_default_constructible_v<T>) {
-			kind = ClassKind::Abstract;
-		}
-		else if constexpr (is_singleton_v<T>) {
-			kind = ClassKind::Singleton;
-		}
-	}
-	const char* kind_name = kind == ClassKind::Abstract ? "abstract"
-			: kind == ClassKind::Singleton				? "singleton"
-			: is_value_type								? "value type"
-														: "implementation";
-	std::println("Registering class '{}' as {} object", Desc::name, kind_name);
-
-	ClassDB& instance = *get();
-	ClassInfo& info = instance._class_infos[Desc::name];
-	_describe<T>(info);
-	info.parent = Desc::parent_name;
-	info.is_abstract = kind == ClassKind::Abstract;
-	info.is_singleton = kind == ClassKind::Singleton;
-	// Singletons are owned by the engine and resolved through T::get(); neither they nor abstract classes are
-	// created through reflection.
-	if (kind != ClassKind::Auto) {
-		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
-	}
-
-	if constexpr (std::is_base_of_v<Reflected, T>) {
-		info.from_reflected = [](Reflected* object) -> void* { return static_cast<T*>(object); };
-		info.create_reflected = nullptr;
-		if constexpr (!std::is_abstract_v<T> && std::is_default_constructible_v<T>) {
-			if (kind == ClassKind::Auto) {
-				info.create_reflected = []() -> Reflected* { return new T(); };
-			}
-		}
-	}
-	else {
-		info.from_reflected = nullptr;
-		info.create_reflected = nullptr;
-	}
-
-	info.parent_info = nullptr;
-	if (info.parent != ""_ss) {
-		// Codegen orders registration parent-first within a module, and modules register bottom-up.
-		auto parent = instance._class_infos.find(info.parent);
-		fassert(parent != instance._class_infos.end(), "Class registered before its parent");
-		info.parent_info = &parent->second;
-		// Registering a class again (an extension reloaded without clear()) mustn't list it twice.
-		if (!std::ranges::contains(parent->second.children, &info)) {
-			parent->second.children.emplace_back(&info);
-		}
-	}
-
-	info.modifiers.clear();
-	if constexpr (requires { Desc::modifiers; }) {
-		info.modifiers.assign(Desc::modifiers.begin(), Desc::modifiers.end());
-	}
-
-	_fire_subclass_delegates(info);
-	instance._class_registered_delegate.execute(info.name.str());
-}
-
-template <class T>
-void ClassDB::_describe(ClassInfo& info) {
-	using Desc = FType<T>;
-	info.name = Desc::name;
-	info.cpp_name = compiler_type_name<T>();
-	if constexpr (requires { Desc::module_name; }) {
-		info.module_name = Desc::module_name;
-	}
-	info.is_value_type = !std::is_base_of_v<Reflected, T>;
-	info.variant_type = get_variant_type<T>();
-	info.size = sizeof(T);
-	info.alignment = alignof(T);
-	info.is_empty = std::is_empty_v<T>;
-	info.lifecycle = make_lifecycle_hooks<T>();
-
-	info.properties.clear();
-	std::apply([&info](const auto&... desc) { (_add_property<T>(info, desc), ...); }, Desc::properties);
-	info.methods.clear();
-	std::apply([&info](const auto&... desc) { (_add_method<T>(info, desc), ...); }, Desc::methods);
-}
-
-template <class T, auto Getter, auto Setter>
-void ClassDB::_add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc) {
-	using namespace reflection_detail;
-	using GetType = typename accessor_value<Getter, true>::type;
-	using SetType = typename accessor_value<Setter, false>::type;
-	using U = std::conditional_t<std::is_void_v<GetType>, SetType, GetType>;
-	static_assert(
-			VariantCompatible<U> && (std::is_void_v<SetType> || VariantCompatible<SetType>),
-			"Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member"
-	);
-
-	ClassInfo::Property prop { .name = desc.name,
-							   .type = get_variant_type<U>(),
-							   .getter_access = desc.getter_access,
-							   .setter_access = desc.setter_access };
-
-	if constexpr (!std::is_void_v<GetType>) {
-		prop.getter = [](void* object) -> Variant {
-			if constexpr (is_data_member<Getter>) {
-				return Variant(static_cast<T*>(object)->*Getter);
-			}
-			else {
-				return Variant((static_cast<T*>(object)->*Getter)());
-			}
-		};
-	}
-	if constexpr (!std::is_void_v<SetType>) {
-		prop.setter = [](void* object, const Variant& value) {
-			auto result = value.as<SetType>();
-			fassert(result.has_value(), "Property setter called with an incompatible Variant type");
-			if constexpr (is_data_member<Setter>) {
-				static_cast<T*>(object)->*Setter = std::move(result.value());
-			}
-			else {
-				(static_cast<T*>(object)->*Setter)(std::move(result.value()));
-			}
-		};
-	}
-	if constexpr (std::is_enum_v<U> && requires { FEnum<U>::name; }) {
-		prop.enum_info = get_enum<U>();
-	}
-	info.properties.push_back(std::move(prop));
-}
-
-template <class T, auto Function, bool Strict>
-void ClassDB::_add_method(ClassInfo& info, const MethodDesc<Function, Strict>& desc) {
-	using namespace reflection_detail;
-	using F = decltype(Function);
-
-	if constexpr (std::is_member_function_pointer_v<F>) {
-		using Traits = member_function_traits<F>;
-		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
-			using R = typename Traits::ret;
-			if constexpr (VariantBindable<R, A...>) {
-				info.methods.push_back(
-						{ .name = desc.name,
-						  .access = desc.access,
-						  .param_count = sizeof...(A),
-						  .invoke = [](void* self, std::span<Variant> args) -> Variant {
-							  T* instance = static_cast<T*>(self);
-							  return invoke_with_variants<R, A...>(
-									  [instance](A... forwarded) -> R {
-										  return (instance->*Function)(std::forward<A>(forwarded)...);
-									  },
-									  args
-							  );
-						  } }
-				);
-			}
-			else {
-				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
-			}
-		}(std::type_identity<typename Traits::args> {});
-	}
-	else {
-		[&]<class R, class... A>(std::type_identity<R (*)(A...)>) {
-			if constexpr (VariantBindable<R, A...>) {
-				info.methods.push_back(
-						{ .name = desc.name,
-						  .access = desc.access,
-						  .is_static = true,
-						  .param_count = sizeof...(A),
-						  .invoke = [](void*, std::span<Variant> args) -> Variant {
-							  return invoke_with_variants<R, A...>(Function, args);
-						  } }
-				);
-			}
-			else {
-				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
-			}
-		}(std::type_identity<F> {});
-	}
-}
 
 } //namespace feather

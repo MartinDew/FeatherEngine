@@ -102,6 +102,10 @@ void World::_link_class_info(flecs::entity_t component, const ClassInfo& info) {
 	Entity(c_ptr(), component).set<ReflectedComponent>({ &info });
 }
 
+void World::_link_class_info(flecs::entity_t component, std::shared_ptr<const ClassInfo> info) {
+	Entity(c_ptr(), component).set<ReflectedComponent>({ nullptr, std::move(info) });
+}
+
 flecs::entity_t World::_module_scope(StaticString module_name) {
 	ecs_world_t* world = c_ptr();
 	const std::string path =
@@ -200,7 +204,7 @@ EntityHandle World::get_component(const std::string& class_name) const {
 	if (!info || info->cpp_name.str().empty()) {
 		Entity builtin;
 		each([&](Entity component, const ReflectedComponent& reflected) {
-			if (!builtin && class_name == reflected.info->name.str()) {
+			if (!builtin && class_name == reflected.get_class_info()->name.str()) {
 				builtin = component;
 			}
 		});
@@ -212,7 +216,7 @@ EntityHandle World::get_component(const std::string& class_name) const {
 
 const ClassInfo* World::get_component_class_info(Entity component) const {
 	const ReflectedComponent* reflected = component ? component.try_get<ReflectedComponent>() : nullptr;
-	return reflected ? reflected->info : nullptr;
+	return reflected ? reflected->get_class_info() : nullptr;
 }
 
 } //namespace feather

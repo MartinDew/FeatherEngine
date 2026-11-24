@@ -13,7 +13,7 @@ const ClassInfo* EntityHandle::_get_class_info(const EntityHandle& component) {
 		return nullptr;
 	}
 	const ReflectedComponent* reflected = Entity(component).try_get<ReflectedComponent>();
-	return reflected ? reflected->info : nullptr;
+	return reflected ? reflected->get_class_info() : nullptr;
 }
 
 bool EntityHandle::is_valid() const {
@@ -90,7 +90,8 @@ Variant EntityHandle::get_component(const EntityHandle& component) const {
 bool EntityHandle::set_component(const EntityHandle& component, const Variant& value) {
 	const ClassInfo* info = is_valid() ? _get_class_info(component) : nullptr;
 	const Variant::Instance instance = value.get_instance();
-	if (!info || instance.info != info) {
+	// A built-in's ClassInfo is built per call, so classes are matched by type rather than by address.
+	if (!info || !instance.info || instance.info->cpp_name != info->cpp_name) {
 		return false;
 	}
 	if (info->is_empty) {

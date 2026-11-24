@@ -15,11 +15,17 @@ struct Enumerator {
 template <class E>
 struct FEnum;
 
-// Runtime description of a registered enum. Owned by ClassDB, so a pointer to one stays valid until clear().
+// Runtime description of an enum, viewing its FEnum's constexpr values.
 struct FEATHER_REFLECTION_API EnumInfo {
 	StaticString name = ""_ss;
 	size_t underlying_size = 0;
-	std::vector<Enumerator> values;
+	std::span<const Enumerator> values;
+
+	template <class E>
+		requires std::is_enum_v<E>
+	static constexpr EnumInfo create_from_type() {
+		return { .name = FEnum<E>::name, .underlying_size = sizeof(E), .values = FEnum<E>::values };
+	}
 
 	// Null when no enumerator has this value (e.g. a flag combination).
 	const Enumerator* find(int64_t value) const {
@@ -42,5 +48,8 @@ struct FEATHER_REFLECTION_API EnumInfo {
 		return e ? std::optional { e->value } : std::nullopt;
 	}
 };
+
+template <class E>
+inline constexpr EnumInfo enum_info_v = EnumInfo::create_from_type<E>();
 
 } // namespace feather

@@ -151,6 +151,10 @@ constexpr std::string_view compiler_type_name() {
 	return { Name::storage.data(), Name::storage.size() - 1 };
 }
 
+// T has a compile-time description (FType), which is all ClassInfo::create_from_type needs.
+template <class T>
+concept has_ftype = requires { typename FType<T>::type; };
+
 struct FEATHER_REFLECTION_API ClassInfo {
 	StaticString name = ""_ss;
 	// The C++ type's fully qualified name as the compiler spells it; see compiler_type_name().
@@ -213,6 +217,11 @@ struct FEATHER_REFLECTION_API ClassInfo {
 
 	std::vector<Method> methods;
 
+	// Builds T's ClassInfo from its FType alone. The result owns vectors, so it can't be a constant itself; callers
+	// store it (ClassDB) or build it on demand.
+	template <has_ftype T>
+	static constexpr ClassInfo create_from_type();
+
 	// Visits (class, instance adjusted to that class) from this class, the instance's own, up to the root; stops at
 	// the first level visit returns true for. An object's instance is its Reflected*, a value's is the value itself.
 	template <class TVisit>
@@ -226,7 +235,7 @@ struct FEATHER_REFLECTION_API ClassInfo {
 		return false;
 	}
 
-	bool has_modifier(StaticString modifier) const { return std::ranges::contains(modifiers, modifier); }
+	constexpr bool has_modifier(StaticString modifier) const { return std::ranges::contains(modifiers, modifier); }
 
 	bool can_create() const {
 		return !has_flag(lifecycle.illegal, LifecycleIllegal::DefaultConstruct) &&
@@ -292,6 +301,145 @@ struct accessor_value<Accessor, IsGetter> {
 	using type = std::decay_t<typename decltype(pick())::type>;
 };
 
+template <class T, auto Getter, auto Setter>
+constexpr void add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>& desc) {
+	using GetType = typename accessor_value<Getter, true>::type;
+	using SetType = typename accessor_value<Setter, false>::type;
+	using U = std::conditional_t<std::is_void_v<GetType>, SetType, GetType>;
+	static_assert(
+			VariantCompatible<U> && (std::is_void_v<SetType> || VariantCompatible<SetType>),
+			"Property type isn't Variant-marshalable: add it to Variant or drop [[get]]/[[set]] from the member"
+	);
+
+	ClassInfo::Property prop { .name = desc.name,
+							   .type = get_variant_type<U>(),
+							   .getter_access = desc.getter_access,
+							   .setter_access = desc.setter_access };
+
+	if constexpr (!std::is_void_v<GetType>) {
+		prop.getter = [](void* object) -> Variant {
+			if constexpr (is_data_member<Getter>) {
+				return Variant(static_cast<T*>(object)->*Getter);
+			}
+			else {
+				return Variant((static_cast<T*>(object)->*Getter)());
+			}
+		};
+	}
+	if constexpr (!std::is_void_v<SetType>) {
+		prop.setter = [](void* object, const Variant& value) {
+			auto result = value.as<SetType>();
+			fassert(result.has_value(), "Property setter called with an incompatible Variant type");
+			if constexpr (is_data_member<Setter>) {
+				static_cast<T*>(object)->*Setter = std::move(result.value());
+			}
+			else {
+				(static_cast<T*>(object)->*Setter)(std::move(result.value()));
+			}
+		};
+	}
+	if constexpr (std::is_enum_v<U> && requires { FEnum<U>::name; }) {
+		prop.enum_info = &enum_info_v<U>;
+	}
+	info.properties.push_back(std::move(prop));
+}
+
+template <class T, auto Function, bool Strict>
+constexpr void add_method(ClassInfo& info, const MethodDesc<Function, Strict>& desc) {
+	using F = decltype(Function);
+
+	if constexpr (std::is_member_function_pointer_v<F>) {
+		using Traits = member_function_traits<F>;
+		[&]<class... A>(std::type_identity<std::tuple<A...>>) {
+			using R = typename Traits::ret;
+			if constexpr (VariantBindable<R, A...>) {
+				info.methods.push_back(
+						{ .name = desc.name,
+						  .access = desc.access,
+						  .param_count = sizeof...(A),
+						  .invoke = [](void* self, std::span<Variant> args) -> Variant {
+							  T* instance = static_cast<T*>(self);
+							  return invoke_with_variants<R, A...>(
+									  [instance](A... forwarded) -> R {
+										  return (instance->*Function)(std::forward<A>(forwarded)...);
+									  },
+									  args
+							  );
+						  } }
+				);
+			}
+			else {
+				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
+			}
+		}(std::type_identity<typename Traits::args> {});
+	}
+	else {
+		[&]<class R, class... A>(std::type_identity<R (*)(A...)>) {
+			if constexpr (VariantBindable<R, A...>) {
+				info.methods.push_back(
+						{ .name = desc.name,
+						  .access = desc.access,
+						  .is_static = true,
+						  .param_count = sizeof...(A),
+						  .invoke = [](void*, std::span<Variant> args) -> Variant {
+							  return invoke_with_variants<R, A...>(Function, args);
+						  } }
+				);
+			}
+			else {
+				static_assert(!Strict, "[[method]] signature isn't Variant-marshalable");
+			}
+		}(std::type_identity<F> {});
+	}
+}
+
 } // namespace reflection_detail
+
+template <has_ftype T>
+constexpr ClassInfo ClassInfo::create_from_type() {
+	using Desc = FType<T>;
+	static_assert(std::is_same_v<typename Desc::type, T>, "FType<T>::type must be T");
+	constexpr bool is_reflected_object = std::is_base_of_v<Reflected, T>;
+
+	ClassInfo info;
+	info.name = Desc::name;
+	info.cpp_name = compiler_type_name<T>();
+	if constexpr (requires { Desc::module_name; }) {
+		info.module_name = Desc::module_name;
+	}
+	info.parent = Desc::parent_name;
+	if constexpr (requires { Desc::modifiers; }) {
+		info.modifiers.assign(Desc::modifiers.begin(), Desc::modifiers.end());
+	}
+	info.is_value_type = !is_reflected_object;
+	info.variant_type = get_variant_type<T>();
+	info.size = sizeof(T);
+	info.alignment = alignof(T);
+	info.is_empty = std::is_empty_v<T>;
+	info.lifecycle = make_lifecycle_hooks<T>();
+
+	// Singletons are owned by the engine and resolved through T::get(); neither they nor abstract classes are created
+	// through reflection.
+	info.is_singleton = info.has_modifier("singleton"_ss);
+	info.is_abstract = !info.is_singleton &&
+			(info.has_modifier("abstract"_ss) ||
+			 (is_reflected_object && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>)));
+	if (info.is_singleton || info.is_abstract) {
+		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
+	}
+
+	if constexpr (is_reflected_object) {
+		info.from_reflected = [](Reflected* object) -> void* { return static_cast<T*>(object); };
+		if constexpr (!std::is_abstract_v<T> && std::is_default_constructible_v<T>) {
+			if (!info.is_singleton && !info.is_abstract) {
+				info.create_reflected = []() -> Reflected* { return new T(); };
+			}
+		}
+	}
+
+	std::apply([&info](const auto&... desc) { (reflection_detail::add_property<T>(info, desc), ...); }, Desc::properties);
+	std::apply([&info](const auto&... desc) { (reflection_detail::add_method<T>(info, desc), ...); }, Desc::methods);
+	return info;
+}
 
 } //namespace feather

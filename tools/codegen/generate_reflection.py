@@ -1074,7 +1074,7 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
     if registered:
         for c in registered:
             # A modifier may replace the default register_class
-            # call entirely (e.g. singleton -> register_singleton_class); the first
+            # call entirely (e.g. builtin -> no call); the first
             # applied modifier (in resolved/sorted order) that opts in wins.
             stmts = None
             for modifier, _arg in c.resolved_modifiers:

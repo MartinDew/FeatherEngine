@@ -288,13 +288,12 @@ public:
 	struct Instance {
 		void* data = nullptr;
 		const ClassInfo* info = nullptr;
+		// Keeps `info` alive when it was built for this call (a built-in's) rather than owned by ClassDB.
+		std::shared_ptr<const ClassInfo> owned = nullptr;
 	};
 	// The held instance and its class, the same way for an object, a boxed value and a built-in (Vector3...); both
 	// null when the held type has no members. An object's data is its Reflected*.
 	Instance get_instance() const;
-
-	// The ClassInfo of a built-in (Vector3...), which ClassDB never registers; null for any other type.
-	static const ClassInfo* get_builtin_class_info(VariantType type);
 
 	// A copy of a value type's or built-in's instance; `src` null makes a default-constructed one. NIL for an object
 	// class, or one that can't be copied (default-constructed for a null `src`).

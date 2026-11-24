@@ -20,6 +20,10 @@ export namespace feather {
 // Set on a component's own entity: the reflection it was registered from.
 struct ReflectedComponent {
 	const ClassInfo* info = nullptr;
+	// Set for a type ClassDB doesn't hold (a built-in's), which this component keeps alive instead.
+	std::shared_ptr<const ClassInfo> owned = nullptr;
+
+	const ClassInfo* get_class_info() const { return owned ? owned.get() : info; }
 };
 
 // flecs' world plus reflection-driven registration. A copy, or a World built from any flecs::world handle, views the
@@ -28,6 +32,7 @@ class FEATHER_WORLD_API World : public Reflected, public flecs::world {
 	FCLASS();
 
 	void _link_class_info(flecs::entity_t component, const ClassInfo& info);
+	void _link_class_info(flecs::entity_t component, std::shared_ptr<const ClassInfo> info);
 	// feather.<module_name>, created on first use.
 	flecs::entity_t _module_scope(StaticString module_name);
 	// Moves an entity typed flecs use created to feather.<module_name>.<name>, wherever it was made.
@@ -52,7 +57,7 @@ public:
 	Entity register_builtin_component() {
 		const Entity c = component<T>();
 		_place(c, FType<T>::module_name, FType<T>::name);
-		_link_class_info(c, *Variant::get_builtin_class_info(get_variant_type<T>()));
+		_link_class_info(c, std::make_shared<const ClassInfo>(ClassInfo::create_from_type<T>()));
 		return c;
 	}
 

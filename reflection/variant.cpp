@@ -155,15 +155,6 @@ bool visit_builtin_type(VariantType type, TVisit&& visit) {
 
 } // namespace
 
-const ClassInfo* Variant::get_builtin_class_info(VariantType type) {
-	const ClassInfo* info = nullptr;
-	visit_builtin_type(type, [&]<class T>(std::type_identity<T>) {
-		static const ClassInfo builtin = ClassDB::_describe_builtin<T>();
-		info = &builtin;
-	});
-	return info;
-}
-
 Variant Variant::from_value(const ClassInfo& info, const void* src) {
 	Variant result;
 	if (visit_builtin_type(
@@ -370,7 +361,7 @@ std::string Variant::get_name() const {
 namespace {
 
 template <class T>
-concept has_builtin_ftype = requires { FType<T>::properties; };
+concept has_builtin_ftype = has_ftype<T>;
 
 } // namespace
 
@@ -385,7 +376,8 @@ Variant::Instance Variant::get_instance() const {
 					return { const_cast<void*>(value.get()), value.get() ? value.get_class_info() : nullptr };
 				}
 				else if constexpr (has_builtin_ftype<T>) {
-					return { const_cast<T*>(&value), get_builtin_class_info(get_variant_type<T>()) };
+					auto info = std::make_shared<const ClassInfo>(ClassInfo::create_from_type<T>());
+					return { const_cast<T*>(&value), info.get(), info };
 				}
 				else {
 					return {};
