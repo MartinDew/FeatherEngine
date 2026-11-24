@@ -1,4 +1,4 @@
-// Data structures for GPU buffers and shader resources
+// Data structures for GPU buffers and shader resources: single precision whatever real_t is.
 
 export module feather.rendering:render_data;
 
@@ -8,14 +8,14 @@ import feather.math;
 export namespace feather {
 
 struct FEATHER_RENDERING_API CameraBufferData {
-	Matrix viewProj;
-	Vector3 cameraPos;
+	Matrix4x4f viewProj;
+	Vector3f cameraPos;
 	float _padding;
 };
 
 struct FEATHER_RENDERING_API InstanceBufferData {
-	Matrix model;
-	Matrix normalMatrix;
+	Matrix4x4f model;
+	Matrix4x4f normalMatrix;
 };
 
 template <class THandle>
@@ -34,14 +34,14 @@ struct PbrMaterialBufferDataTemplate {
 template <class THandle>
 struct LightBufferDataTemplate {
 	uint32_t type;
-	Vector3 position;
-	Vector3 direction;
+	Vector3f position;
+	Vector3f direction;
 	Color color; // RGB + intensity in alpha
 	float range;
 	float spotAngleCos;
 	THandle shadowMapHandle;
 	float shadowBias;
-	Matrix viewProj;
+	Matrix4x4f viewProj;
 };
 
 } //namespace feather

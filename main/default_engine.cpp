@@ -41,16 +41,18 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 	material->set_base_color_factor({ .7f, .7f, .0f });
 
 	struct Move {};
-	auto s = _world_sim.create_scene("Ni");
+	auto s = _world_sim.create_scene("Default Scene");
 	_world_sim.set_active_scene(s);
 
-	auto _ = _world_sim.create_entity(s, "Box1")
+	auto _ = w.entity("Box1")
+					 .child_of(s)
 					 .emplace<Transform>(t1)
 					 .emplace<MeshInstance>(std::make_shared<BoxMesh>())
 					 .emplace<MaterialInstance>(material)
 					 .add<Move>();
 
-	_ = _world_sim.create_entity(s, "Box2")
+	_ = w.entity("Box2")
+				.child_of(s)
 				.emplace<Transform>(t2)
 				.emplace<MeshInstance>(std::make_shared<BoxMesh>())
 				.emplace<MaterialInstance>(material)
@@ -64,7 +66,8 @@ inline void _setup_demo_scene(WorldSim& _world_sim) {
 
 	w.entity("BoxChild").emplace<Transform>(t4).emplace<MeshInstance>(std::make_shared<BoxMesh>()).child_of(_);
 
-	_world_sim.create_entity(s, "Floor")
+	w.entity("Floor")
+			.child_of(s)
 			.emplace<Transform>(Vector3 { 0, -2, 0 }, Quaternion::identity, Vector3 { 200, 0.1f, 200 })
 			.emplace<MeshInstance>(std::make_shared<BoxMesh>());
 

@@ -18,6 +18,7 @@ using Vector2 = Vector2d;
 using Vector3 = Vector3d;
 using Vector4 = Vector4d;
 using Quaternion = Quaterniond;
+using Matrix = Matrix4x4d;
 #else
 using real_t = float;
 
@@ -25,10 +26,10 @@ using Vector2 = Vector2f;
 using Vector3 = Vector3f;
 using Vector4 = Vector4f;
 using Quaternion = Quaternionf;
+using Matrix = Matrix4x4f;
 #endif
 
-// Single precision either way: a color is a display quantity, and a matrix is what the GPU reads.
+// Single precision either way: a color is a display quantity. GPU data names the f types explicitly.
 using Color = Colorf;
-using Matrix = Matrix4x4f;
 
 } //namespace feather

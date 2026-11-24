@@ -8,8 +8,7 @@ import std.compat;
 
 namespace feather {
 
-Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {
-}
+Mesh::Mesh(const std::shared_ptr<MeshData>& mesh_data) : _mesh_data(mesh_data) {}
 
 void Mesh::set_vertices(const CowVector<Vertex>& vertices) {
 	if (_mesh_data) {
@@ -144,7 +143,6 @@ static std::shared_ptr<MeshData> box_mesh = std::make_shared<MeshData>(
 		std::vector<uint32_t> { cube_indices.begin(), cube_indices.end() }
 );
 
-BoxMesh::BoxMesh() : Super(box_mesh) {
-}
+BoxMesh::BoxMesh() : Super(box_mesh) {}
 
 } // namespace feather

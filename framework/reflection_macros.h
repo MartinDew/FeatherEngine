@@ -2,6 +2,12 @@
 
 struct NO_PARENT {};
 
+// The build module a translation unit belongs to (xmake sets it per module); reflected components are scoped under
+// feather.<FMODULE_NAME> in the ECS.
+#ifndef FMODULE_NAME
+#define FMODULE_NAME "game"
+#endif
+
 // Token-paste helpers (two levels so args like __LINE__/CURRENT_FILE_ID expand
 // before being pasted).
 #define FEATHER_JOIN_INNER(a, b) a##b

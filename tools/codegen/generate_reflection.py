@@ -52,7 +52,7 @@ ACCESS_ENUM = {"public": "AccessLevel::Public", "protected": "AccessLevel::Prote
 
 # FCLASS(...)/FSTRUCT(...) invocation: macro name + modifier list. \b at both
 # ends avoids matching a longer identifier like FCLASS_ANYTHING(.
-_FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(([^)]*)\)")
+_FCLASS_RE = re.compile(r"\b(FCLASS|FSTRUCT)\b\s*\(((?:[^()]|\([^()]*\))*)\)")
 _ATTR_RE = re.compile(r"\[\[(.*?)\]\]", re.DOTALL)
 
 # `FENUM()` then `enum [class|struct] Name [: underlying] {`; the marker must directly precede `enum`.
@@ -852,18 +852,24 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
         body = []
         if not external_bind:
             body.append("friend class ClassDB;")
-            # FType<T> is specialized outside the class and may name its private members.
-            body.append("template <class> friend struct ::feather::FType;")
+        # FType<T> is specialized outside the class and may name its private members.
+        body.append("template <class> friend struct ::feather::FType;")
         body.append("struct _class_type {};")
         body.extend(pre_lines)
         body.append("public:")
         body.append(f'\tconstexpr static StaticString get_class_static() {{ return "{c.name}"_ss; }}')
         body.append(f'\tconstexpr static StaticString get_parent_name() {{ return "{c.parent}"_ss; }}')
         # Redeclared by every reflected class, so a plain subclass never passes for its parent (is_reflected).
-        body.append(f"\tusing _feather_self = {c.name};")
+        # A builtin is stored natively by Variant, so it must not pass for a reflected type.
+        if not _is_builtin(c):
+            body.append(f"\tusing Type = {c.name};")
+        # A rootless type (only possible for a value type) has no base clause
+        # to alias -- `using Super = ;` would be a syntax error.
+        if c.parent:
+            body.append(f"\tusing Super = {c.parent};")
         # The MSVC ABI fixes a class's member-pointer model when one is first formed; clang crashes when that
         # first happens in an importing partition (the FType descriptors), so form one in the defining unit.
-        body.append("\tstatic consteval bool _feather_member_pointer_model() { return sizeof(int _feather_self::*) > 0; }")
+        body.append(f"\tstatic consteval bool _feather_member_pointer_model() {{ return sizeof(int {c.name}::*) > 0; }}")
         # A value type gets no virtual member at all -- that's the point: no
         # vtable, so e.g. an ECS component keeps its exact plain-struct size.
         # Runtime type queries go through ClassInfo instead of is_of_type().
@@ -871,16 +877,10 @@ def generate_gen_header(classes: list, header: Path, project_root: Path, registr
             body.append("\tinline bool is_of_type(StaticString type_name) const override "
                         "{ return get_class_static() == type_name || Super::is_of_type(type_name); }")
             body.append("\tinline StaticString get_class_name() override { return get_class_static(); }")
-            body.append("\tinline ::feather::ObjectRef _get_object_ref() override "
-                        "{ return _make_object_ref(this, this, get_class_static()); }")
         body.extend(public_lines)
-        body.append("protected:")
-        body.append(f"\tusing Type = {c.name};")
-        # A rootless type (only possible for a value type) has no base clause
-        # to alias -- `using Super = ;` would be a syntax error.
-        if c.parent:
-            body.append(f"\tusing Super = {c.parent};")
-        body.extend(protected_lines)
+        if protected_lines:
+            body.append("protected:")
+            body.extend(protected_lines)
         if private_lines:
             body.append("private:")
             body.extend(private_lines)
@@ -936,32 +936,16 @@ def _tuple_lines(member: str, entries: list) -> list:
     return out
 
 
-def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -> list:
-    """The FType<T> specialization ClassDB::register_class<T> builds T's ClassInfo from."""
-    if external:
-        # A type below reflection can't befriend FType, so its description may only name public members.
-        for p in c.properties:
-            sides = [(k, m) for k, m in ((p.getter_kind, p.getter_method), (p.setter_kind, p.setter_method))]
-            # A field side names the member itself; a manual side only names its accessor.
-            if any(k == "field" for k, _ in sides) and p.member_access != "public":
-                raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' binds "
-                                 f"{p.member_access} member '{p.member_name}', but {c.name} is described from "
-                                 f"the reflection module, which can only reach public members")
-            for kind, method in sides:
-                if kind != "manual":
-                    continue
-                # An accessor not declared in the body (e.g. inherited) is left to the compiler.
-                accesses = c.method_access.get(method, {"public"})
-                if accesses != {"public"}:
-                    raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: property '{p.prop_name}' "
-                                     f"uses non-public accessor '{method}', but {c.name} is described from "
-                                     f"the reflection module, which can only reach public members")
-        for m in c.methods:
-            if m.access != "public":
-                raise ParseError(f"{c.header}:{c.fclass_line}: class {c.name}: [[method]] '{m.name}' is "
-                                 f"{m.access}, but {c.name} is described from the reflection module, which can "
-                                 f"only reach public members")
+def _ftype_name(c: ClassDesc, ctx: EmitContext) -> str:
+    for modifier, arg in c.resolved_modifiers:
+        expr = modifier.ftype_name(c, arg, ctx)
+        if expr is not None:
+            return expr
+    return f'"{c.name}"_ss'
 
+
+def _ftype_specialization(c: ClassDesc, dir_name: str) -> list:
+    """The FType<T> specialization ClassDB::register_class<T> builds T's ClassInfo from."""
     method_entries = [(_method_entry(c, m), m.condition) for m in c.methods]
     ctx = EmitContext(dir_name=dir_name)
     for modifier, _arg in c.resolved_modifiers:
@@ -970,8 +954,12 @@ def _ftype_specialization(c: ClassDesc, dir_name: str, external: bool = False) -
     out = ["template <>", f"struct FType<{c.name}> {{",
            f"\tusing type = {c.name};",
            f"\tusing parent = {c.parent or 'void'};",
-           f'\tstatic constexpr StaticString name = "{c.name}"_ss;',
-           f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;']
+           f'\tstatic constexpr StaticString name = {_ftype_name(c, ctx)};',
+           f'\tstatic constexpr StaticString parent_name = "{c.parent}"_ss;',
+           '\tstatic constexpr StaticString module_name = StaticString(FMODULE_NAME);']
+    if c.resolved_modifiers:
+        names = ", ".join(f'"{modifier.name}"_ss' for modifier, _arg in c.resolved_modifiers)
+        out.append(f"\tstatic constexpr std::array<StaticString, {len(c.resolved_modifiers)}> modifiers {{ {names} }};")
     out += _tuple_lines("properties", [(_property_entry(c, p), p.condition) for p in c.properties])
     out += _tuple_lines("methods", method_entries)
     out += ["};", ""]
@@ -993,6 +981,14 @@ def topological_sort(classes: list) -> list:
     for c in classes:
         visit(c)
     return result
+
+
+def _is_builtin(c: ClassDesc) -> bool:
+    return any(modifier.name == "builtin" for modifier, _arg in c.resolved_modifiers)
+
+
+def _is_ecs_module(c: ClassDesc) -> bool:
+    return any(modifier.name == "EcsModule" for modifier, _arg in c.resolved_modifiers)
 
 
 def _module_of(header: Path) -> str:
@@ -1019,11 +1015,9 @@ def _partition_of(header: Path):
 
 
 def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir_emissions: list,
-                          owner: str, external_bind: bool, bound_classes: list,
-                          enums: list, bound_enums: list) -> str:
+                          owner: str, external_bind: bool, enums: list, bound_enums: list) -> str:
     func = f"register_{subfolder}_types"
     ordered = topological_sort(classes)
-    bound = topological_sort(bound_classes)
     ctx = EmitContext(dir_name=subfolder)
 
     # Classes declared in a module are defined by an implementation unit of that module;
@@ -1069,7 +1063,10 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
                     lines.extend(defs)
                     lines.append("")
 
-    registered = bound + ([] if external_bind else ordered)
+    # EcsModules last: importing one uses the module's value types as components, which must be registered by then.
+    own = [] if external_bind else ordered
+    own = [c for c in own if not _is_ecs_module(c)] + [c for c in own if _is_ecs_module(c)]
+    registered = own
     lines.append(f"void {func}() {{")
     # Enums first, so a property of an enum type links to its EnumInfo.
     for e in bound_enums + ([] if external_bind else enums):
@@ -1101,11 +1098,9 @@ def generate_register_cpp(subfolder: str, classes: list, include_base: Path, dir
 
 
 def generate_register_header(subfolder: str, classes: list, dir_emissions: list, owner: str,
-                             external_bind: bool, bound_classes: list, enums: list, bound_enums: list) -> str:
+                             external_bind: bool, enums: list, bound_enums: list, module_dir: Path) -> str:
     func = f"register_{subfolder}_types"
-    # A module below reflection is described by the module that binds it (see --bind-dir).
-    described = ([] if external_bind else topological_sort(classes))
-    bound = topological_sort(bound_classes)
+    described = topological_sort(classes)
 
     # Emitted declarations (e.g. component templates, FType<T>) name the module's own types.
     imports, seen = [], set()
@@ -1114,19 +1109,29 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
         if part and part not in seen:
             seen.add(part)
             imports.append(f"import :{part};")
+    # A module below reflection describes its own types, but its enums are bound by reflection (see --bind-dir).
     described_enums = [] if external_bind else enums
-    if described or bound or described_enums or bound_enums:
+    ctx = EmitContext(dir_name=subfolder)
+    for c in described:
+        for modifier, arg in c.resolved_modifiers:
+            for ident in modifier.ftype_name_dependencies(c, arg, ctx):
+                part = _partition_declaring(module_dir, ident)
+                if part and part not in seen:
+                    seen.add(part)
+                    imports.append(f"import :{part};")
+    if described or described_enums or bound_enums:
         imports.append("import std;")
         imports.append("import feather.framework;")
+    if described_enums or bound_enums or (described and not external_bind):
         if owner == "feather.reflection":
-            imports.append("import :ftype;")
             imports.append("import :enum_info;")
         else:
             imports.append("import feather.reflection;")
-        for module in sorted({_module_of(c.header) for c in list(bound) + list(bound_enums)}):
+        for module in sorted({_module_of(e.header) for e in bound_enums}):
             imports.append(f"import {module};")
 
-    lines = [GENERATED_NOTICE, f"export module {owner}:register_{subfolder}_types;", ""]
+    lines = [GENERATED_NOTICE, "module;", "", "#ifndef FMODULE_NAME", f'#define FMODULE_NAME "{subfolder}"', "#endif",
+             "", f"export module {owner}:register_{subfolder}_types;", ""]
     if imports:
         lines += imports + [""]
     # Called by main across module libraries: exported with the module's API macro.
@@ -1136,12 +1141,10 @@ def generate_register_header(subfolder: str, classes: list, dir_emissions: list,
     lines += ["} // namespace feather", ""]
 
     # Explicit specializations can't be exported; they are reachable through this partition anyway.
-    if described or bound or described_enums or bound_enums:
+    if described or described_enums or bound_enums:
         lines += ["namespace feather {", ""]
         for e in bound_enums + described_enums:
             lines.extend(_fenum_specialization(e))
-        for c in bound:
-            lines.extend(_ftype_specialization(c, subfolder, external=True))
         for c in described:
             lines.extend(_ftype_specialization(c, subfolder))
         lines += ["} // namespace feather", ""]
@@ -1159,8 +1162,7 @@ def validate_hierarchy(classes: list):
     for c in classes:
         base = known.get(c.parent)
         if base is not None and base.is_value_type:
-            # ObjectRef takes a value type's ClassInfo from its static type, which is only right if nothing derives
-            # from it.
+            # A value type's ClassInfo comes from its static type, which is only right if nothing derives from it.
             raise ParseError(
                 f"{c.header}:{c.fclass_line}: class {c.name} derives from value type {base.name} "
                 f"({base.header}:{base.fclass_line}) -- a value type (FSTRUCT/novtable) can't be derived from."
@@ -1174,6 +1176,17 @@ def validate_hierarchy(classes: list):
             f"type and a Reflected-derived type can't be in the same inheritance chain. Use the "
             f"same form for both."
         )
+
+
+def _partition_declaring(module_dir: Path, ident: str):
+    """The partition of module_dir that declares ident as a type or alias, or None."""
+    pattern = re.compile(rf"^\s*(?:using\s+{ident}\s*=|(?:struct|class)\s+(?:\w+\s+)?{ident}\b(?!\s*;))", re.M)
+    for header in sorted(module_dir.rglob("*.cppm")):
+        if ".gen." in header.name:
+            continue
+        if pattern.search(header.read_text(encoding="utf-8-sig", errors="replace")):
+            return _partition_of(header)
+    return None
 
 
 def _is_module_header(inc: str, include_base: Path) -> bool:
@@ -1352,15 +1365,11 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
                        external_bind: bool = False, bound_dirs: tuple = ()) -> int:
     """Scan dir_path recursively for FCLASS headers, emit each header's .gen.h,
     and emit dir_path/register_<name>_types.gen.{cppm,cpp}. bound_dirs are
-    --external-bind dirs whose types this module binds and registers.
+    --external-bind dirs whose enums this module binds and registers.
     Returns the number of files written."""
     changed = 0
     registry = build_registry(dir_path, extra_extensions)
     classes_by_header, all_classes = _scan_dir(dir_path, name, project_root, registry)
-    bound_classes = []
-    for bound_dir in bound_dirs:
-        _, classes = _scan_dir(bound_dir, bound_dir.name, project_root, build_registry(bound_dir, extra_extensions))
-        bound_classes.extend(classes)
     enums = _scan_dir_enums(dir_path)
     bound_enums = [e for bound_dir in bound_dirs for e in _scan_dir_enums(bound_dir)]
 
@@ -1398,7 +1407,7 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
     out_cpp = dir_path / f"register_{name}_types.gen.cpp"
     try:
         register_header = generate_register_header(name, all_classes, dir_emissions, owner, external_bind,
-                                                   bound_classes, enums, bound_enums)
+                                                   enums, bound_enums, dir_path)
     except ParseError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         sys.exit(1)
@@ -1406,7 +1415,7 @@ def process_source_dir(dir_path: Path, name: str, project_root: Path, extra_exte
         changed += 1
         print(f"  [{name}] updated {out_h.name}")
     if write_if_changed(out_cpp, generate_register_cpp(name, all_classes, project_root, dir_emissions, owner,
-                                                     external_bind, bound_classes, enums, bound_enums)):
+                                                     external_bind, enums, bound_enums)):
         changed += 1
         print(f"  [{name}] updated {out_cpp.name}")
     return changed
@@ -1451,10 +1460,10 @@ def main():
                     help="'DIR' or 'NAME=DIR': a module source dir to scan (repeatable). NAME "
                          "overrides the generated register_<NAME>_types name (default: DIR's basename).")
     ap.add_argument("--external-bind", action="store_true",
-                    help="the scanned modules sit below reflection: their types get no ClassDB "
-                         "hook and are bound by the module that passes them to --bind-dir")
+                    help="the scanned modules sit below reflection: their types are described but not "
+                         "registered, and their enums are bound by the module that passes them to --bind-dir")
     ap.add_argument("--bind-dir", action="append", default=[], type=Path, dest="bind_dirs",
-                    help="a dir scanned with --external-bind whose types this module binds and registers")
+                    help="a dir scanned with --external-bind whose enums this module binds and registers")
     ap.add_argument("--extension", action="append", default=[], dest="extensions",
                     help="'scope=path': load the FCLASS/FSTRUCT modifier extension at path "
                          "(a .py file or a directory of them) only when processing scope or a "

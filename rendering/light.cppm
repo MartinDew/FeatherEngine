@@ -26,7 +26,7 @@ enum class LightType : uint8_t {
 };
 
 struct FEATHER_RENDERING_API Light {
-	FSTRUCT(Component);
+	FSTRUCT();
 
 	[[get, set]] LightType type = LightType::Directional;
 	[[get, set]] Vector3 position = Vector3::zero;

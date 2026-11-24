@@ -21,8 +21,6 @@ class FEATHER_WORLD_API EcsModule : public Reflected {
 
 protected:
 	EcsModule() = default;
-
-	static WorldSim* _get_world_sim();
 };
 
 } //namespace feather

@@ -10,8 +10,7 @@ import std.compat;
 
 namespace feather {
 
-MeshFormatLoader::MeshFormatLoader() : _importer { std::make_unique<Assimp::Importer>() } {
-}
+MeshFormatLoader::MeshFormatLoader() : _importer { std::make_unique<Assimp::Importer>() } {}
 
 bool MeshFormatLoader::recognize_extension(const std::string& extension) const {
 	return _importer->IsExtensionSupported(extension);

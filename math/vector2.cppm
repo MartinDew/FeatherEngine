@@ -1,8 +1,8 @@
 module;
 
-#include <rtm/impl/compiler_utils.h>
-
 #include <framework/reflection_macros.h>
+
+#include <rtm/impl/compiler_utils.h>
 
 #ifndef FEATHER_REFLECTION_PARSER
 #include "vector2.gen.h"
@@ -17,10 +17,12 @@ import :rtm_interop;
 
 export namespace feather {
 
+struct Vector2d;
+
 // A 2-component vector stored as plain reals. Operations load it into RTM's register type,
 // compute there and store back.
 struct Vector2f {
-	FSTRUCT();
+	FSTRUCT(builtin(Vector2));
 
 	[[get, set]] float x = 0.0f;
 	[[get, set]] float y = 0.0f;
@@ -28,6 +30,8 @@ struct Vector2f {
 	constexpr Vector2f() = default;
 	constexpr Vector2f(float x, float y) : x(x), y(y) {}
 	explicit constexpr Vector2f(float value) : x(value), y(value) {}
+	// Narrows each component.
+	constexpr Vector2f(const Vector2d& v);
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4f to_rtm() const { return rtm::vector_set(x, y, 0.0f, 0.0f); }
@@ -64,27 +68,36 @@ struct Vector2f {
 	RTM_FORCE_INLINE bool operator==(const Vector2f& o) const { return x == o.x && y == o.y; }
 	RTM_FORCE_INLINE bool operator!=(const Vector2f& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] inline bool is_near(const Vector2f& o, float tolerance = 1.e-4f) const {
+	[[method]] [[nodiscard]] inline bool is_near(const Vector2f& o, float tolerance = 1.e-4f) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance;
 	}
 
 	RTM_FORCE_INLINE float& operator[](size_t i) { return (&x)[i]; }
 	RTM_FORCE_INLINE const float& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] RTM_FORCE_INLINE float length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE float length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE float dot(const Vector2f& o) const { return rtm::vector_dot3(to_rtm(), o.to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
-	[[nodiscard]] inline float distance(const Vector2f& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f min(const Vector2f& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float length() const { return rtm::vector_length3(to_rtm()); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float length_squared() const {
+		return rtm::vector_length_squared3(to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE float dot(const Vector2f& o) const {
+		return rtm::vector_dot3(to_rtm(), o.to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2f normalized() const {
+		return from_rtm(rtm::vector_normalize3(to_rtm()));
+	}
+	[[method]]
+	RTM_FORCE_INLINE void normalize() {
+		*this = normalized();
+	}
+	[[method]] [[nodiscard]] inline float distance(const Vector2f& o) const { return (*this - o).length(); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2f min(const Vector2f& o) const {
 		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f max(const Vector2f& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2f max(const Vector2f& o) const {
 		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2f lerp(const Vector2f& o, float alpha) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2f abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2f lerp(const Vector2f& o, float alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 
@@ -111,7 +124,7 @@ RTM_FORCE_INLINE Vector2f operator*(float s, const Vector2f& v) {
 
 // The double-precision counterpart, kept a separate type so both stay reflectable.
 struct Vector2d {
-	FSTRUCT();
+	FSTRUCT(builtin(Vector2));
 
 	[[get, set]] double x = 0.0;
 	[[get, set]] double y = 0.0;
@@ -119,6 +132,7 @@ struct Vector2d {
 	constexpr Vector2d() = default;
 	constexpr Vector2d(double x, double y) : x(x), y(y) {}
 	explicit constexpr Vector2d(double value) : x(value), y(value) {}
+	constexpr Vector2d(const Vector2f& v) : x(v.x), y(v.y) {}
 
 	// The unused lanes are zero.
 	[[nodiscard]] RTM_FORCE_INLINE rtm::vector4d to_rtm() const { return rtm::vector_set(x, y, 0.0, 0.0); }
@@ -155,29 +169,36 @@ struct Vector2d {
 	RTM_FORCE_INLINE bool operator==(const Vector2d& o) const { return x == o.x && y == o.y; }
 	RTM_FORCE_INLINE bool operator!=(const Vector2d& o) const { return !(*this == o); }
 	// Component-wise within `tolerance`; operator== stays exact.
-	[[nodiscard]] inline bool is_near(const Vector2d& o, double tolerance = 1.e-8) const {
+	[[method]] [[nodiscard]] inline bool is_near(const Vector2d& o, double tolerance = 1.e-8) const {
 		return std::abs(x - o.x) <= tolerance && std::abs(y - o.y) <= tolerance;
 	}
 
 	RTM_FORCE_INLINE double& operator[](size_t i) { return (&x)[i]; }
 	RTM_FORCE_INLINE const double& operator[](size_t i) const { return (&x)[i]; }
 
-	[[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double length_squared() const { return rtm::vector_length_squared3(to_rtm()); }
-	[[nodiscard]] RTM_FORCE_INLINE double dot(const Vector2d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double length() const { return rtm::vector_length3(to_rtm()); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double length_squared() const {
+		return rtm::vector_length_squared3(to_rtm());
+	}
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE double dot(const Vector2d& o) const {
 		return rtm::vector_dot3(to_rtm(), o.to_rtm());
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d normalized() const { return from_rtm(rtm::vector_normalize3(to_rtm())); }
-	RTM_FORCE_INLINE void normalize() { *this = normalized(); }
-	[[nodiscard]] inline double distance(const Vector2d& o) const { return (*this - o).length(); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d min(const Vector2d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2d normalized() const {
+		return from_rtm(rtm::vector_normalize3(to_rtm()));
+	}
+	[[method]]
+	RTM_FORCE_INLINE void normalize() {
+		*this = normalized();
+	}
+	[[method]] [[nodiscard]] inline double distance(const Vector2d& o) const { return (*this - o).length(); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2d min(const Vector2d& o) const {
 		return from_rtm(rtm::vector_min(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d max(const Vector2d& o) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2d max(const Vector2d& o) const {
 		return from_rtm(rtm::vector_max(to_rtm(), o.to_rtm()));
 	}
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
-	[[nodiscard]] RTM_FORCE_INLINE Vector2d lerp(const Vector2d& o, double alpha) const {
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2d abs() const { return from_rtm(rtm::vector_abs(to_rtm())); }
+	[[method]] [[nodiscard]] RTM_FORCE_INLINE Vector2d lerp(const Vector2d& o, double alpha) const {
 		return from_rtm(rtm::vector_lerp(to_rtm(), o.to_rtm(), alpha));
 	}
 
@@ -201,6 +222,8 @@ inline constexpr Vector2d Vector2d::down { 0.0, -1.0 };
 RTM_FORCE_INLINE Vector2d operator*(double s, const Vector2d& v) {
 	return v * s;
 }
+
+constexpr Vector2f::Vector2f(const Vector2d& v) : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)) {}
 
 } //namespace feather
 

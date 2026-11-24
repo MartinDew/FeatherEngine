@@ -10,5 +10,5 @@ target("math")
     add_rules("feather.module")
     add_deps("framework")
     add_packages("rtm", {public = true})
-    -- Below reflection: its types are bound and registered by the reflection module.
+    -- Below reflection: its types are described here but never registered, and reflection binds its enums.
     set_values("feather.external_bind", true)

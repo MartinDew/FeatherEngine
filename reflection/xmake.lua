@@ -9,4 +9,5 @@ option_end()
 target("reflection")
     add_rules("feather.module")
     add_deps("math")
+    -- math sits below reflection and describes its own types; its enums are registered here.
     set_values("feather.bind_dirs", "math")

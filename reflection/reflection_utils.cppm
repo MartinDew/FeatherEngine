@@ -6,11 +6,10 @@ export namespace feather {
 
 class Reflected;
 
-// T carries its own reflection (FCLASS/FSTRUCT), not just a reflected base's: _feather_self is redeclared by every
-// reflected class, so a plain subclass of one doesn't match.
+// T carries its own reflection (FCLASS/FSTRUCT), not just a reflected base's: Type is redeclared by every reflected
+// class, so a plain subclass of one doesn't match.
 template <class T>
-concept is_reflected =
-		requires { typename T::_feather_self; } && std::is_same_v<typename T::_feather_self, std::remove_cv_t<T>>;
+concept is_reflected = requires { typename T::Type; } && std::is_same_v<typename T::Type, std::remove_cv_t<T>>;
 
 // Value type (FSTRUCT / FCLASS(novtable)): reflected but not derived from Reflected, so no vtable pointer.
 template <class T>

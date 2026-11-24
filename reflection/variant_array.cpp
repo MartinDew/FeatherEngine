@@ -27,28 +27,22 @@ void VariantArray::ensure_unique() {
 }
 
 // Constructors
-VariantArray::VariantArray() : _buffer(std::make_unique<Buffer>()) {
-}
+VariantArray::VariantArray() : _buffer(std::make_unique<Buffer>()) {}
 
-VariantArray::VariantArray(size_type count) : _buffer(std::make_unique<Buffer>(count)) {
-}
+VariantArray::VariantArray(size_type count) : _buffer(std::make_unique<Buffer>(count)) {}
 
-VariantArray::VariantArray(size_type count, const Variant& value) : _buffer(std::make_unique<Buffer>(count, value)) {
-}
+VariantArray::VariantArray(size_type count, const Variant& value) : _buffer(std::make_unique<Buffer>(count, value)) {}
 
-VariantArray::VariantArray(std::initializer_list<Variant> ilist) : _buffer(std::make_unique<Buffer>(ilist)) {
-}
+VariantArray::VariantArray(std::initializer_list<Variant> ilist) : _buffer(std::make_unique<Buffer>(ilist)) {}
 
 // Explicit instantiations for common iterator types
 template VariantArray::VariantArray(Variant*, Variant*);
 template VariantArray::VariantArray(const Variant*, const Variant*);
 
 // Copy and move
-VariantArray::VariantArray(const VariantArray& other) : _buffer(std::make_unique<Buffer>(*other._buffer)) {
-}
+VariantArray::VariantArray(const VariantArray& other) : _buffer(std::make_unique<Buffer>(*other._buffer)) {}
 
-VariantArray::VariantArray(VariantArray&& other) noexcept : _buffer(std::move(other._buffer)) {
-}
+VariantArray::VariantArray(VariantArray&& other) noexcept : _buffer(std::move(other._buffer)) {}
 
 VariantArray& VariantArray::operator=(const VariantArray& other) {
 	if (this != &other) {
@@ -221,8 +215,7 @@ bool VariantArray::operator!=(const VariantArray& other) const {
 }
 
 // Iterator implementations
-VariantArray::iterator::iterator(Variant* ptr) : ptr_(ptr) {
-}
+VariantArray::iterator::iterator(Variant* ptr) : ptr_(ptr) {}
 
 Variant& VariantArray::iterator::operator*() const {
 	return *ptr_;
@@ -304,11 +297,9 @@ bool VariantArray::iterator::operator>=(const iterator& other) const {
 }
 
 // const_iterator implementations
-VariantArray::const_iterator::const_iterator(const Variant* ptr) : ptr_(ptr) {
-}
+VariantArray::const_iterator::const_iterator(const Variant* ptr) : ptr_(ptr) {}
 
-VariantArray::const_iterator::const_iterator(const iterator& it) : ptr_(&(*it)) {
-}
+VariantArray::const_iterator::const_iterator(const iterator& it) : ptr_(&(*it)) {}
 
 const Variant& VariantArray::const_iterator::operator*() const {
 	return *ptr_;

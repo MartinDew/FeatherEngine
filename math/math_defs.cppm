@@ -1,3 +1,11 @@
+module;
+
+#include <framework/reflection_macros.h>
+
+#ifndef FEATHER_REFLECTION_PARSER
+#include "math_defs.gen.h"
+#endif
+
 export module feather.math:math_defs;
 
 import std.compat;
@@ -30,9 +38,12 @@ struct Vector4i {
 };
 
 struct FEATHER_MATH_API Vertex {
-	Vector3 position;
-	Vector3 normal;
-	Vector2 uv;
+	FSTRUCT(builtin);
+
+	// Single precision whatever real_t is, as the GPU reads it; reflection goes through real_t accessors.
+	[[get(get_position), set(set_position)]] Vector3f position;
+	[[get(get_normal), set(set_normal)]] Vector3f normal;
+	[[get(get_uv), set(set_uv)]] Vector2f uv;
 
 	Vertex() = default;
 	constexpr Vertex(Vector3 pos, Vector3 normal, Vector2 uv = Vector2::zero) : position(pos), normal(normal), uv(uv) {}
@@ -46,6 +57,13 @@ struct FEATHER_MATH_API Vertex {
 	Vertex& operator=(Vertex&&) = default;
 
 	bool operator==(const Vertex&) const;
+
+	const Vector3& get_position() const { return position; }
+	void set_position(const Vector3& value) { position = value; }
+	const Vector3& get_normal() const { return normal; }
+	void set_normal(const Vector3& value) { normal = value; }
+	const Vector2& get_uv() const { return uv; }
+	void set_uv(const Vector2& value) { uv = value; }
 };
 
 struct FEATHER_MATH_API AABB {
@@ -69,8 +87,8 @@ struct FEATHER_MATH_API AABB {
 };
 
 // Helper Functions
-FEATHER_MATH_API float deg_to_rad(float degrees);
-FEATHER_MATH_API float rad_to_deg(float radians);
+FEATHER_MATH_API real_t deg_to_rad(real_t degrees);
+FEATHER_MATH_API real_t rad_to_deg(real_t radians);
 
 FEATHER_MATH_API Vector3 deg_to_rad(const Vector3& degrees);
 FEATHER_MATH_API Vector3 rad_to_deg(const Vector3& radians);
