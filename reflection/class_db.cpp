@@ -225,7 +225,7 @@ Callable ClassDB::get_static_method(const StaticString& class_name, std::string_
 	return _find_static_method(class_name, func_name, true);
 }
 
-Callable ClassDB::get_static_method_internal(const StaticString& class_name, std::string_view func_name) {
+Callable ClassDB::get_static_method_unsafe(const StaticString& class_name, std::string_view func_name) {
 	return _find_static_method(class_name, func_name, false);
 }
 

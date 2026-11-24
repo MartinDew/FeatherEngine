@@ -84,7 +84,8 @@ public:
 	// Resolves `func_name` as Variant::call does: the nearest class up the hierarchy declaring it wins. Invalid when
 	// that method isn't static, or isn't public (the _internal variant skips the access check).
 	static Callable get_static_method(const StaticString& class_name, std::string_view func_name);
-	static Callable get_static_method_internal(const StaticString& class_name, std::string_view func_name);
+	// Like get static method but breaks access check
+	static Callable get_static_method_unsafe(const StaticString& class_name, std::string_view func_name);
 
 	// Register an enum before any class with a property of that type, so the property links to its EnumInfo.
 	template <class E>
