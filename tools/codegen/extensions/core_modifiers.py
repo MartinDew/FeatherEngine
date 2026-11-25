@@ -20,7 +20,9 @@ class SingletonModifier(Modifier):
     get()/instance boilerplate to the class body. The name reaches
     FType::modifiers, which ClassInfo::create_from_type reads to mark the
     class as not creatable through reflection (the engine constructs the
-    single instance itself; reflection only ever resolves it via T::get())."""
+    single instance itself; reflection only ever resolves it via T::get()).
+    A class that writes FDECLARE_SINGLETON by hand is detected the same way
+    through is_singleton_v<T>."""
     name = "singleton"
     targets = frozenset({"class"})
     value_type = False
