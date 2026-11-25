@@ -59,10 +59,11 @@ const EnumInfo* ClassDB::get_enum(StaticString name) {
 }
 
 void ClassDB::_insert(ClassInfo info) {
-	const char* kind_name = info.is_abstract ? "abstract"
-			: info.is_singleton				 ? "singleton"
-			: info.is_value_type			 ? "value type"
-											 : "implementation";
+	const char* kind_name = info.is_abstract && info.is_singleton ? "abstract singleton"
+			: info.is_abstract								  ? "abstract"
+			: info.is_singleton								  ? "singleton"
+			: info.is_value_type							  ? "value type"
+															  : "implementation";
 	std::println("Registering class '{}' as {} object", info.name, kind_name);
 
 	ClassDB& instance = *get();
@@ -190,7 +191,10 @@ void ClassDB::print_db() {
 
 	for (const ClassInfo* class_info : classes) {
 		const ClassInfo& info = *class_info;
-		const char* kind = info.is_singleton ? "singleton" : info.is_abstract ? "abstract" : "concrete";
+		const char* kind = info.is_abstract && info.is_singleton ? "abstract singleton"
+				: info.is_singleton								 ? "singleton"
+				: info.is_abstract								 ? "abstract"
+																 : "concrete";
 		std::println("\nClass: {} [{}]", info.name.str(), kind);
 		std::println("\tParent: {}", info.parent_info ? info.parent_info->name.str() : "(none)");
 		std::println("\tSize: {} Alignment: {} Creatable: {}", info.size, info.alignment, info.can_create());

@@ -423,13 +423,12 @@ constexpr ClassInfo ClassInfo::create_from_type() {
 	info.lifecycle = make_lifecycle_hooks<T>();
 
 	// Singletons are owned by the engine and resolved through T::get(); neither they nor abstract classes are created
-	// through reflection. A modifier forces the kind; otherwise a reflected object is abstract when it can't be
-	// default-constructed, else a singleton when it looks like one.
-	constexpr bool detected_abstract =
-			is_reflected_object && (std::is_abstract_v<T> || !std::is_default_constructible_v<T>);
-	constexpr bool detected_singleton = is_reflected_object && !detected_abstract && is_singleton_v<T>;
-	info.is_singleton = info.has_modifier("singleton"_ss) || (detected_singleton && !info.has_modifier("abstract"_ss));
-	info.is_abstract = !info.is_singleton && (info.has_modifier("abstract"_ss) || detected_abstract);
+	// through reflection. The kinds are independent: a modifier forces one, else a reflected object is detected from
+	// T, and a singleton's private constructor doesn't make it abstract.
+	info.is_singleton = info.has_modifier("singleton"_ss) || (is_reflected_object && is_singleton_v<T>);
+	info.is_abstract = info.has_modifier("abstract"_ss) ||
+			(is_reflected_object &&
+			 (std::is_abstract_v<T> || (!info.is_singleton && !std::is_default_constructible_v<T>)));
 	if (info.is_singleton || info.is_abstract) {
 		info.lifecycle.illegal = info.lifecycle.illegal | LifecycleIllegal::DefaultConstruct;
 	}
