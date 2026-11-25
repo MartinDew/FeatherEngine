@@ -8,6 +8,21 @@ import std;
 
 namespace feather {
 
+namespace {
+
+std::string_view _get_kind_name(ClassInfo info) {
+	if (info.is_abstract)
+		return "abstract";
+	if (info.is_singleton)
+		return "singleton";
+	if (info.is_value_type)
+		return "value type";
+
+	return "implementation";
+}
+
+}
+
 FSINGLETON_INSTANCE(ClassDB);
 
 ClassDB::ClassDB() {
@@ -59,11 +74,7 @@ const EnumInfo* ClassDB::get_enum(StaticString name) {
 }
 
 void ClassDB::_insert(ClassInfo info) {
-	const char* kind_name = info.is_abstract && info.is_singleton ? "abstract singleton"
-			: info.is_abstract								  ? "abstract"
-			: info.is_singleton								  ? "singleton"
-			: info.is_value_type							  ? "value type"
-															  : "implementation";
+	std::string_view kind_name = _get_kind_name(info);
 	std::println("Registering class '{}' as {} object", info.name, kind_name);
 
 	ClassDB& instance = *get();
