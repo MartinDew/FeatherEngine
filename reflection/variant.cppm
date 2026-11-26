@@ -218,7 +218,7 @@ class FEATHER_REFLECTION_API Variant {
 	bool _walk(TVisit&& visit) const;
 
 	[[nodiscard]] Variant _get_property(std::string_view key, bool enforce_public) const;
-	void _set_property(std::string_view key, const Variant& value, bool enforce_public);
+	bool _set_property(std::string_view key, const Variant& value, bool enforce_public);
 
 	// enforce_public denies non-Public members; the *_internal entry points pass false.
 	[[nodiscard]] Variant _internal_call(std::string_view method_name, std::span<Variant> args, bool enforce_public);
@@ -420,9 +420,10 @@ public:
 	std::string get_name() const;
 
 	// Script-facing: only AccessLevel::Public members are reachable (get/call
-	// return NIL, set is ignored otherwise).
+	// return NIL, set returns false otherwise).
 	Variant get(std::string_view key) const;
-	void set(std::string_view key, const Variant& value);
+	// False when the property is missing, unreachable, read-only or of another type; the value is then unchanged.
+	bool set(std::string_view key, const Variant& value);
 	// Object method call
 	Variant call(std::string_view method_name);
 	template <class... TArgs>
@@ -431,7 +432,7 @@ public:
 	// Privileged access for trusted engine systems (e.g. editor inspector);
 	// bypasses accessibility checks. Do not expose to scripts.
 	Variant get_internal(std::string_view key) const;
-	void set_internal(std::string_view key, const Variant& value);
+	bool set_internal(std::string_view key, const Variant& value);
 	Variant call_internal(std::string_view method_name);
 	template <class... TArgs>
 	Variant call_internal(std::string_view method_name, TArgs&&... args);

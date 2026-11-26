@@ -409,18 +409,20 @@ Variant Variant::_get_property(std::string_view key, bool enforce_public) const 
 	return result;
 }
 
-void Variant::_set_property(std::string_view key, const Variant& value, bool enforce_public) {
+bool Variant::_set_property(std::string_view key, const Variant& value, bool enforce_public) {
+	bool applied = false;
 	_walk([&](const ClassInfo& info, void* object) {
 		for (auto& property : info.properties) {
 			if (property.name == key) {
 				if (property.setter && (!enforce_public || property.setter_access == AccessLevel::Public)) {
-					property.setter(object, value);
+					applied = property.setter(object, value);
 				}
 				return true;
 			}
 		}
 		return false;
 	});
+	return applied;
 }
 
 Variant Variant::get(std::string_view key) const {
@@ -433,14 +435,14 @@ Variant Variant::get_internal(std::string_view key) const {
 	return _get_property(key, false);
 }
 
-void Variant::set(std::string_view key, const Variant& value) {
+bool Variant::set(std::string_view key, const Variant& value) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	_set_property(key, value, true);
+	return _set_property(key, value, true);
 }
 
-void Variant::set_internal(std::string_view key, const Variant& value) {
+bool Variant::set_internal(std::string_view key, const Variant& value) {
 	fassert(_is_reflectable(), "Variant has no properties or methods");
-	_set_property(key, value, false);
+	return _set_property(key, value, false);
 }
 
 Variant Variant::call(std::string_view method_name) {

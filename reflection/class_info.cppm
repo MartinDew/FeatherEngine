@@ -205,7 +205,8 @@ struct FEATHER_REFLECTION_API ClassInfo {
 
 		// Both take a pointer to an instance of the class that declares the property.
 		Variant (*getter)(void* object) = nullptr;
-		void (*setter)(void* object, const Variant& value) = nullptr;
+		// False, leaving the object untouched, when the Variant isn't convertible to the property's type.
+		bool (*setter)(void* object, const Variant& value) = nullptr;
 	};
 	std::vector<Property> properties;
 
@@ -333,13 +334,16 @@ constexpr void add_property(ClassInfo& info, const PropertyDesc<Getter, Setter>&
 	if constexpr (!std::is_void_v<SetType>) {
 		prop.setter = [](void* object, const Variant& value) {
 			auto result = value.as<SetType>();
-			fassert(result.has_value(), "Property setter called with an incompatible Variant type");
+			if (!result.has_value()) {
+				return false;
+			}
 			if constexpr (is_data_member<Setter>) {
 				static_cast<T*>(object)->*Setter = std::move(result.value());
 			}
 			else {
 				(static_cast<T*>(object)->*Setter)(std::move(result.value()));
 			}
+			return true;
 		};
 	}
 	if constexpr (std::is_enum_v<U> && requires { FEnum<U>::name; }) {
